@@ -74,15 +74,15 @@ export class MercadoPagoGateway implements PaymentGateway {
     const p = payload as { type?: string; action?: string; data?: { id?: string } };
     const externalId = p.data?.id ?? 'unknown';
     if (p.type === 'subscription_preapproval' || p.action?.startsWith('updated')) {
-      const detail = await this.preapproval.get({ id: externalId });
+      const detail = (await this.preapproval.get({ id: externalId })) as any;
       const status = detail.status ?? 'unknown';
       const plan = this.matchPlanFromMp(detail.preapproval_plan_id);
       return {
         type: 'subscription.updated',
         externalId,
         subscription: {
-          mpPreapprovalId: detail.id!,
-          userId: detail.external_reference!,
+          mpPreapprovalId: detail.id as string,
+          userId: detail.external_reference as string,
           status,
           plan,
           nextPaymentAt: detail.next_payment_date ? new Date(detail.next_payment_date) : null,
