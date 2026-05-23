@@ -1,25 +1,22 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
-COPY apps/api/package.json ./apps/api/
-COPY apps/api/prisma ./apps/api/prisma
-RUN pnpm install --filter @runquest/api... --frozen-lockfile || pnpm install --filter @runquest/api...
+RUN apk add --no-cache python3 make g++ openssl
+COPY apps/api/package.json apps/api/tsconfig.json apps/api/nest-cli.json ./
+COPY apps/api/prisma ./prisma
+RUN npm install --no-audit --no-fund
 
 FROM deps AS build
-WORKDIR /app
-COPY apps/api ./apps/api
-COPY tsconfig.base.json ./
-WORKDIR /app/apps/api
-RUN pnpm prisma:generate && pnpm build
+COPY apps/api/src ./src
+COPY tsconfig.base.json /tsconfig.base.json
+RUN npx prisma generate && npm run build
 
 FROM node:20-alpine AS runtime
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate && apk add --no-cache openssl
+RUN apk add --no-cache openssl
 ENV NODE_ENV=production
-COPY --from=build /app/apps/api/dist ./dist
-COPY --from=build /app/apps/api/package.json ./package.json
-COPY --from=build /app/apps/api/prisma ./prisma
-COPY --from=build /app/node_modules ./node_modules
+COPY apps/api/package.json ./
+COPY apps/api/prisma ./prisma
+RUN npm install --omit=dev --no-audit --no-fund && npx prisma generate
+COPY --from=build /app/dist ./dist
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh","-c","npx prisma migrate deploy && node dist/main.js"]
