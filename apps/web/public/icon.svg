@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>RunQuest — V2 Modern Logo</title>
+  <defs>
+    <!-- Aurora gradient background -->
+    <linearGradient id="aurora" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#0A0828"/>
+      <stop offset="35%" stop-color="#1E1456"/>
+      <stop offset="70%" stop-color="#2E1B7C"/>
+      <stop offset="100%" stop-color="#0A0828"/>
+    </linearGradient>
+    <!-- Holographic stroke gradient -->
+    <linearGradient id="holo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F0FF"/>
+      <stop offset="40%" stop-color="#A8FF3E"/>
+      <stop offset="75%" stop-color="#FFE15A"/>
+      <stop offset="100%" stop-color="#FF7A1A"/>
+    </linearGradient>
+    <!-- Runner body gradient (chrome-like) -->
+    <linearGradient id="chrome" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#E8FBFF"/>
+      <stop offset="100%" stop-color="#A8FF3E"/>
+    </linearGradient>
+    <!-- Plasma trail -->
+    <linearGradient id="plasma" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#FF7A1A" stop-opacity="0"/>
+      <stop offset="30%" stop-color="#FF7A1A" stop-opacity="0.9"/>
+      <stop offset="70%" stop-color="#FFE15A" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#A8FF3E" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Glow filters -->
+    <filter id="outerGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feFlood flood-color="#A8FF3E" flood-opacity="0.6"/>
+      <feComposite in2="blur" operator="in"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="cyanGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6"/>
+      <feFlood flood-color="#00F0FF" flood-opacity="0.8"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <!-- Glass effect -->
+    <radialGradient id="glass" cx="35%" cy="25%" r="65%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Hex tile gradient -->
+    <linearGradient id="hexTile" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#A8FF3E" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#5B2EFF" stop-opacity="0.08"/>
+    </linearGradient>
+    <!-- Noise/texture overlay -->
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0 L0 0 0 48" fill="none" stroke="#A8FF3E" stroke-width="0.5" opacity="0.06"/>
+    </pattern>
+  </defs>
+
+  <!-- Background squircle -->
+  <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#aurora)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#grid)"/>
+
+  <!-- Aurora light beams (background) -->
+  <g opacity="0.55" filter="url(#cyanGlow)">
+    <ellipse cx="280" cy="180" rx="380" ry="140" fill="#5B2EFF" opacity="0.5" transform="rotate(-25 280 180)"/>
+    <ellipse cx="780" cy="880" rx="420" ry="160" fill="#00F0FF" opacity="0.35" transform="rotate(-25 780 880)"/>
+  </g>
+
+  <!-- Hexagonal territory tiles (3D perspective) -->
+  <g opacity="0.85">
+    <!-- Far row -->
+    <polygon points="180,720 240,690 300,720 300,786 240,816 180,786" fill="url(#hexTile)" stroke="#A8FF3E" stroke-width="2" opacity="0.4"/>
+    <polygon points="300,720 360,690 420,720 420,786 360,816 300,786" fill="url(#hexTile)" stroke="#A8FF3E" stroke-width="2" opacity="0.55"/>
+    <polygon points="420,720 480,690 540,720 540,786 480,816 420,786" fill="url(#hexTile)" stroke="#A8FF3E" stroke-width="2.5" opacity="0.85"/>
+    <polygon points="540,720 600,690 660,720 660,786 600,816 540,786" fill="url(#hexTile)" stroke="#A8FF3E" stroke-width="2" opacity="0.65"/>
+    <polygon points="660,720 720,690 780,720 780,786 720,816 660,786" fill="url(#hexTile)" stroke="#A8FF3E" stroke-width="2" opacity="0.4"/>
+    <!-- Middle row (conquered, brighter) -->
+    <polygon points="240,816 300,786 360,816 360,882 300,912 240,882" fill="#A8FF3E" fill-opacity="0.22" stroke="#A8FF3E" stroke-width="2.5"/>
+    <polygon points="360,816 420,786 480,816 480,882 420,912 360,882" fill="#A8FF3E" fill-opacity="0.35" stroke="#A8FF3E" stroke-width="3" filter="url(#outerGlow)"/>
+    <polygon points="480,816 540,786 600,816 600,882 540,912 480,882" fill="#A8FF3E" fill-opacity="0.35" stroke="#A8FF3E" stroke-width="3" filter="url(#outerGlow)"/>
+    <polygon points="600,816 660,786 720,816 720,882 660,912 600,882" fill="#A8FF3E" fill-opacity="0.22" stroke="#A8FF3E" stroke-width="2.5"/>
+  </g>
+
+  <!-- Central holographic ring (outer) -->
+  <g filter="url(#outerGlow)">
+    <polygon points="512,108 824,288 824,648 512,828 200,648 200,288"
+             fill="none" stroke="url(#holo)" stroke-width="10" stroke-linejoin="round" opacity="0.9"/>
+  </g>
+  <!-- Inner glass hexagon -->
+  <polygon points="512,160 780,316 780,624 512,780 244,624 244,316"
+           fill="rgba(15,8,52,0.45)" stroke="#FFFFFF" stroke-width="2" stroke-opacity="0.3" stroke-linejoin="round"/>
+  <polygon points="512,160 780,316 780,624 512,780 244,624 244,316"
+           fill="url(#glass)" stroke-linejoin="round"/>
+
+  <!-- Plasma motion trail behind runner -->
+  <path d="M 250,560 Q 380,520 540,480 T 800,420"
+        stroke="url(#plasma)" stroke-width="58" stroke-linecap="round" fill="none" opacity="0.7"/>
+  <path d="M 250,560 Q 380,520 540,480 T 800,420"
+        stroke="#FFE15A" stroke-width="14" stroke-linecap="round" fill="none" opacity="0.55"/>
+
+  <!-- Spark particles -->
+  <g fill="#FFE15A">
+    <circle cx="820" cy="404" r="6" opacity="0.95"/>
+    <circle cx="780" cy="426" r="3" opacity="0.7"/>
+    <circle cx="850" cy="380" r="4" opacity="0.6"/>
+    <circle cx="800" cy="448" r="2.5" opacity="0.6"/>
+  </g>
+  <g fill="#A8FF3E">
+    <circle cx="870" cy="412" r="3" opacity="0.7"/>
+    <circle cx="836" cy="440" r="2" opacity="0.8"/>
+  </g>
+
+  <!-- Runner silhouette — modern, dynamic, fluid bezier -->
+  <g fill="url(#chrome)" filter="url(#outerGlow)">
+    <!-- Head -->
+    <ellipse cx="476" cy="296" rx="40" ry="44"/>
+    <!-- Neck-shoulder fluid connection + torso (dynamic forward lean) -->
+    <path d="M 458,338
+             C 455,355 470,372 488,378
+             L 580,418
+             C 612,433 630,468 622,498
+             L 596,548
+             C 588,564 568,572 552,564
+             L 466,520
+             C 446,510 432,490 438,468
+             L 452,398
+             C 454,378 452,360 458,338 Z"/>
+    <!-- Forward arm (extended toward upper right — forms arrow line) -->
+    <path d="M 596,418
+             C 624,400 660,378 696,348
+             C 712,334 728,316 738,296
+             C 744,284 750,280 760,290
+             C 768,298 766,308 758,322
+             C 738,358 712,392 682,420
+             C 660,440 632,460 608,470 Z"/>
+    <!-- Trailing arm (swung back, fluid) -->
+    <path d="M 478,396
+             C 458,408 432,422 408,442
+             C 388,458 372,478 364,498
+             C 360,508 350,510 342,502
+             C 334,494 338,484 348,470
+             C 366,442 392,418 420,402
+             C 442,388 462,380 478,378 Z"/>
+    <!-- Lead leg (knee up high — power pose) -->
+    <path d="M 552,564
+             C 562,588 574,618 580,648
+             C 584,668 582,690 572,706
+             C 564,720 548,724 538,716
+             C 528,708 526,692 530,676
+             C 534,650 528,624 518,602
+             C 510,586 510,572 518,562 Z"/>
+    <!-- Trailing leg (extended back — push-off) -->
+    <path d="M 468,508
+             C 448,548 420,592 392,624
+             C 372,648 348,664 326,668
+             C 312,670 304,660 308,648
+             C 312,636 326,628 342,620
+             C 372,604 396,572 414,540
+             C 428,516 442,498 458,488 Z"/>
+    <!-- Front foot (mid-air — sneaker tip) -->
+    <ellipse cx="548" cy="722" rx="34" ry="14" transform="rotate(-8 548 722)"/>
+    <!-- Back foot (toe-off) -->
+    <ellipse cx="312" cy="668" rx="32" ry="14" transform="rotate(-15 312 668)"/>
+  </g>
+
+  <!-- Accent: cyan rim light on runner edge -->
+  <g fill="none" stroke="#00F0FF" stroke-width="3" opacity="0.6" filter="url(#cyanGlow)">
+    <path d="M 458,338 C 455,355 470,372 488,378 L 580,418"/>
+    <path d="M 552,564 C 562,588 574,618 580,648"/>
+  </g>
+
+  <!-- Arrow head at top-right (subtle, forms upward direction from runner's arm) -->
+  <g filter="url(#outerGlow)">
+    <polygon points="760,260 808,212 856,260 832,272 808,248 784,272"
+             fill="#A8FF3E" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+    <rect x="794" y="260" width="28" height="38" rx="6" fill="#A8FF3E" stroke="#FFFFFF" stroke-width="2"/>
+  </g>
+
+  <!-- Top highlight (glass reflection) -->
+  <path d="M 200,200 Q 400,150 700,170 Q 750,175 800,185 L 800,260 Q 500,210 200,260 Z"
+        fill="#FFFFFF" opacity="0.06"/>
+
+  <!-- Bottom shadow (depth) -->
+  <ellipse cx="512" cy="940" rx="380" ry="24" fill="#000000" opacity="0.4"/>
+</svg>

@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String       @id @default(uuid()) @db.Uuid
+  email         String       @unique
+  passwordHash  String?
+  googleId      String?      @unique
+  displayName   String
+  avatarUrl     String?
+  emailVerified Boolean      @default(false)
+  isPremium     Boolean      @default(false)
+  premiumUntil  DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  refreshTokens RefreshToken[]
+  subscription  Subscription?
+  payments      Payment[]
+  runs          Run[]
+
+  @@index([email])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  jti       String   @unique
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revokedAt DateTime?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userAgent String?
+  ip        String?
+
+  @@index([userId])
+  @@index([jti])
+}
+
+model Subscription {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @db.Uuid
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mpPreapprovalId String   @unique
+  plan            SubPlan
+  status          String
+  startedAt       DateTime @default(now())
+  nextPaymentAt   DateTime?
+  cancelledAt     DateTime?
+  updatedAt       DateTime @updatedAt
+}
+
+enum SubPlan {
+  MONTHLY
+  YEARLY
+}
+
+model Payment {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mpPaymentId String   @unique
+  amount      Decimal  @db.Decimal(10, 2)
+  currency    String   @default("BRL")
+  status      String
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Run {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @db.Uuid
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt       DateTime
+  endedAt         DateTime
+  distanceMeters  Float
+  durationSec     Int
+  avgPaceSecPerKm Int
+  pointsGeoJson   Json
+  source          String   @default("GPS")
+  opId            String?  @unique
+  createdAt       DateTime @default(now())
+
+  @@index([userId, startedAt(sort: Desc)])
+}
+
+model WebhookEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  provider   String
+  externalId String
+  payload    Json
+  processedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@unique([provider, externalId])
+}

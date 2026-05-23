@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 480" width="1600" height="480">
+  <title>RunQuest — Horizontal Wordmark</title>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0E0A2A"/>
+      <stop offset="100%" stop-color="#1A1240"/>
+    </linearGradient>
+    <linearGradient id="hexGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#A8FF3E"/>
+      <stop offset="100%" stop-color="#5B2EFF"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="65%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#A8FF3E"/>
+    </linearGradient>
+    <linearGradient id="questGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#A8FF3E"/>
+      <stop offset="100%" stop-color="#5B2EFF"/>
+    </linearGradient>
+    <linearGradient id="streak" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#FF7A1A" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#FFE15A" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="480" fill="url(#bg)"/>
+
+  <!-- Hex badge (left) -->
+  <g transform="translate(240,240)">
+    <polygon points="0,-180 156,-90 156,90 0,180 -156,90 -156,-90"
+             fill="url(#hexGrad)" stroke="#ffffff" stroke-width="6" stroke-linejoin="round"/>
+    <!-- Inner glow -->
+    <polygon points="0,-180 156,-90 156,90 0,180 -156,90 -156,-90"
+             fill="#ffffff" opacity="0.08"/>
+    <!-- Motion streak -->
+    <path d="M -130,40 Q 0,-10 130,-60" stroke="url(#streak)" stroke-width="22"
+          stroke-linecap="round" fill="none"/>
+    <!-- Runner silhouette (white) -->
+    <g fill="#ffffff" transform="translate(-30,-10) scale(0.42)">
+      <circle cx="460" cy="370" r="52"/>
+      <path d="M 440,420 L 560,478 L 640,572 L 568,608 L 470,520 Z"/>
+      <path d="M 568,608 L 720,520 L 760,400 L 700,378 L 644,478 L 528,558 Z"/>
+      <path d="M 440,478 L 332,540 L 280,610 L 332,635 L 408,578 L 462,540 Z"/>
+      <path d="M 510,540 L 590,670 L 568,790 L 488,790 L 502,690 L 450,580 Z"/>
+      <path d="M 450,570 L 380,690 L 300,790 L 252,772 L 340,668 L 408,556 Z"/>
+      <ellipse cx="528" cy="800" rx="44" ry="18"/>
+      <ellipse cx="278" cy="800" rx="44" ry="18"/>
+    </g>
+  </g>
+
+  <!-- Wordmark -->
+  <g font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
+     font-weight="900" font-size="156" letter-spacing="-2">
+    <text x="500" y="290" fill="url(#textGrad)" font-style="italic">RUN</text>
+    <text x="780" y="290" fill="url(#questGrad)" font-style="italic">QUEST</text>
+  </g>
+
+  <!-- Tagline -->
+  <text x="504" y="356" font-family="'Segoe UI', Arial, sans-serif"
+        font-size="28" font-weight="500" fill="#A8FF3E" letter-spacing="6">
+    CORRA · CONQUISTE · EVOLUA
+  </text>
+
+  <!-- Accent line -->
+  <rect x="500" y="380" width="120" height="6" rx="3" fill="#FF7A1A"/>
+</svg>

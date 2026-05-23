@@ -1,0 +1,25 @@
+{
+  "name": "RunQuest — Corra. Conquiste. Evolua.",
+  "short_name": "RunQuest",
+  "description": "App de corrida gamificado com Personal Trainer IA.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0E0A2A",
+  "theme_color": "#0E0A2A",
+  "categories": ["fitness", "health", "sports", "lifestyle"],
+  "icons": [
+    { "src": "/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" },
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "/screen-home.png", "sizes": "1080x1920", "type": "image/png", "form_factor": "narrow" }
+  ],
+  "shortcuts": [
+    { "name": "Iniciar corrida", "short_name": "Correr", "url": "/app/run", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Missões", "url": "/app/missions", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

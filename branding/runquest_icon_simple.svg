@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>RunQuest — Simple App Icon</title>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A8FF3E"/>
+      <stop offset="100%" stop-color="#5B2EFF"/>
+    </linearGradient>
+    <linearGradient id="streak" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#FF7A1A" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#FFE15A" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" rx="224" fill="url(#bg)"/>
+
+  <!-- Hexagon frame -->
+  <polygon points="512,168 832,344 832,680 512,856 192,680 192,344"
+           fill="none" stroke="#ffffff" stroke-width="28" stroke-linejoin="round" opacity="0.95"/>
+
+  <!-- Motion streak -->
+  <path d="M 260,640 Q 460,580 700,520" stroke="url(#streak)"
+        stroke-width="44" stroke-linecap="round" fill="none"/>
+
+  <!-- Bold runner silhouette -->
+  <g fill="#ffffff">
+    <circle cx="460" cy="370" r="52"/>
+    <path d="M 440,420 L 560,478 L 640,572 L 568,608 L 470,520 Z"/>
+    <path d="M 568,608 L 720,520 L 760,400 L 700,378 L 644,478 L 528,558 Z"/>
+    <path d="M 440,478 L 332,540 L 280,610 L 332,635 L 408,578 L 462,540 Z"/>
+    <path d="M 510,540 L 590,670 L 568,790 L 488,790 L 502,690 L 450,580 Z"/>
+    <path d="M 450,570 L 380,690 L 300,790 L 252,772 L 340,668 L 408,556 Z"/>
+    <ellipse cx="528" cy="800" rx="44" ry="18"/>
+    <ellipse cx="278" cy="800" rx="44" ry="18"/>
+  </g>
+</svg>

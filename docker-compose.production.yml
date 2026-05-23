@@ -1,0 +1,31 @@
+# Adicionar este bloco ao /opt/platform/docker-compose.production.yml do VPS GENIA
+# (reaproveita postgres compartilhado existente)
+version: "3.9"
+
+services:
+  runquest-api:
+    image: ghcr.io/parkingmanagerbr-hue/runquest-api:latest
+    container_name: runquest-api
+    restart: unless-stopped
+    env_file: ./secrets/runquest.env
+    environment:
+      - DATABASE_URL=postgresql://runquest:${RUNQUEST_DB_PASSWORD}@postgres:5432/runquest?schema=public
+      - API_PORT=4000
+      - NODE_ENV=production
+    depends_on:
+      - postgres
+    networks: [platform]
+
+  runquest-web:
+    image: ghcr.io/parkingmanagerbr-hue/runquest-web:latest
+    container_name: runquest-web
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - API_BASE_URL=http://runquest-api:4000/api
+      - NEXT_PUBLIC_API_URL=https://runquest.veloxisit.com.br/api
+    networks: [platform]
+
+networks:
+  platform:
+    external: true

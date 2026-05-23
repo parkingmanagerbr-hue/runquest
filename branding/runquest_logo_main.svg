@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>RunQuest — App Icon Main</title>
+
+  <defs>
+    <!-- Gradiente principal: lime -> violet (energia + conquista) -->
+    <linearGradient id="bgGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#A8FF3E"/>
+      <stop offset="55%" stop-color="#3DD68C"/>
+      <stop offset="100%" stop-color="#5B2EFF"/>
+    </linearGradient>
+
+    <!-- Streak laranja (motion) -->
+    <linearGradient id="streakGrad" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#FF7A1A" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#FF7A1A" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#FFE15A" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Inner glow -->
+    <radialGradient id="innerGlow" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25"/>
+      <stop offset="70%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Sombra suave dentro do hexágono -->
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6"/>
+      <feOffset dx="0" dy="6" result="off"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.35"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background: rounded square (iOS-style) -->
+  <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224" fill="url(#bgGrad)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224" fill="url(#innerGlow)"/>
+
+  <!-- Hexagonal territory grid (sutil, decorativo) -->
+  <g opacity="0.12" stroke="#ffffff" stroke-width="3" fill="none">
+    <polygon points="160,300 220,266 280,300 280,368 220,402 160,368"/>
+    <polygon points="280,368 340,334 400,368 400,436 340,470 280,436"/>
+    <polygon points="744,300 804,266 864,300 864,368 804,402 744,368"/>
+    <polygon points="624,368 684,334 744,368 744,436 684,470 624,436"/>
+    <polygon points="160,656 220,622 280,656 280,724 220,758 160,724"/>
+    <polygon points="744,656 804,622 864,656 864,724 804,758 744,724"/>
+    <polygon points="400,800 460,766 520,800 520,868 460,902 400,868"/>
+    <polygon points="520,800 580,766 640,800 640,868 580,902 520,868"/>
+  </g>
+
+  <!-- Hexágono central (badge principal) -->
+  <g filter="url(#softShadow)">
+    <polygon points="512,180 800,346 800,678 512,844 224,678 224,346"
+             fill="rgba(20,15,40,0.55)" stroke="#ffffff" stroke-width="6" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Motion streak (laranja atrás do runner) -->
+  <path d="M 250,640 Q 420,600 600,560 T 820,520"
+        stroke="url(#streakGrad)" stroke-width="42" stroke-linecap="round" fill="none" opacity="0.85"/>
+
+  <!-- Runner silhouette (branco, mid-stride formando seta ascendente) -->
+  <g fill="#ffffff">
+    <!-- Cabeça -->
+    <circle cx="478" cy="340" r="42"/>
+    <!-- Torso (diagonal pro topo direito = arrow) -->
+    <path d="M 460,378
+             L 540,420
+             L 590,505
+             L 528,536
+             L 460,460
+             Z"/>
+    <!-- Braço frontal (estendido pra frente/cima — formando ponta da seta) -->
+    <path d="M 528,536
+             L 660,470
+             L 700,388
+             L 660,372
+             L 612,442
+             L 510,498
+             Z"/>
+    <!-- Braço traseiro (puxado pra trás) -->
+    <path d="M 460,420
+             L 380,468
+             L 340,520
+             L 380,540
+             L 432,500
+             L 478,468
+             Z"/>
+    <!-- Perna frontal (alta, dobrada — joelho subindo) -->
+    <path d="M 510,498
+             L 568,592
+             L 552,690
+             L 488,690
+             L 500,610
+             L 458,540
+             Z"/>
+    <!-- Perna traseira (estendida pra trás — apoio) -->
+    <path d="M 460,520
+             L 408,612
+             L 348,702
+             L 308,690
+             L 372,602
+             L 420,508
+             Z"/>
+    <!-- Pés -->
+    <ellipse cx="508" cy="700" rx="32" ry="14"/>
+    <ellipse cx="320" cy="710" rx="32" ry="14"/>
+  </g>
+
+  <!-- Ponta de seta (arrow tip) acima/à direita do runner — sinaliza progresso -->
+  <g fill="#FFE15A" stroke="#FF7A1A" stroke-width="6" stroke-linejoin="round">
+    <polygon points="720,352 770,302 820,352 800,372 770,342 740,372"/>
+    <rect x="758" y="352" width="24" height="48" rx="6"/>
+  </g>
+
+  <!-- Brilho final no canto superior esquerdo (highlight) -->
+  <ellipse cx="240" cy="220" rx="180" ry="60" fill="#ffffff" opacity="0.10"/>
+</svg>

@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body { background: #0E0A2A; color: #F2F1FA; }
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 font-semibold text-rq-ink
+         bg-gradient-to-br from-rq-lime to-rq-emerald shadow-lg shadow-rq-lime/20
+         transition hover:scale-[1.02] hover:shadow-rq-lime/40 active:scale-[0.98];
+}
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 font-semibold text-white/90
+         border border-white/15 hover:bg-white/5 transition;
+}
+.glass {
+  @apply rounded-3xl border border-white/10 bg-white/[0.03] backdrop-blur-xl;
+}
+.gradient-text {
+  @apply bg-gradient-to-br from-rq-lime via-emerald-300 to-rq-violet bg-clip-text text-transparent;
+}
