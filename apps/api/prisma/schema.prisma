@@ -23,6 +23,7 @@ model User {
   subscription  Subscription?
   payments      Payment[]
   runs          Run[]
+  stravaToken   StravaToken?
 
   @@index([email])
 }
@@ -86,9 +87,25 @@ model Run {
   pointsGeoJson   Json
   source          String   @default("GPS")
   opId            String?  @unique
+  stravaActivityId BigInt? @unique
+  stravaUploadId  BigInt?
   createdAt       DateTime @default(now())
 
   @@index([userId, startedAt(sort: Desc)])
+}
+
+model StravaToken {
+  userId         String   @id @db.Uuid
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  athleteId      BigInt
+  accessTokenEnc String   // base64(iv:cipher:tag), criptografado AES-256-GCM
+  refreshTokenEnc String  // idem
+  expiresAt      DateTime
+  scope          String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([athleteId])
 }
 
 model WebhookEvent {

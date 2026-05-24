@@ -1,4 +1,7 @@
 import 'reflect-metadata';
+
+// BigInt JSON serialization (Strava activity IDs, etc.)
+(BigInt.prototype as any).toJSON = function () { return this.toString(); };
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

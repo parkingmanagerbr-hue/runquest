@@ -8,6 +8,7 @@ import { UsersModule } from './modules/users/users.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { RunsModule } from './modules/runs/runs.module';
 import { HealthModule } from './modules/health/health.module';
+import { StravaModule } from './modules/strava/strava.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { HealthModule } from './modules/health/health.module';
     UsersModule,
     SubscriptionsModule,
     RunsModule,
+    StravaModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
