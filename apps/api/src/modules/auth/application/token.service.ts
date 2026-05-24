@@ -18,8 +18,9 @@ export class TokenService {
   ) {}
 
   async issue(user: { id: string; email: string; isPremium: boolean }): Promise<AuthTokens> {
-    const accessTtl = this.cfg.get<number>('JWT_ACCESS_TTL', 900);
-    const refreshTtl = this.cfg.get<number>('JWT_REFRESH_TTL', 2_592_000);
+    // ConfigService devolve string das env vars — converter para number
+    const accessTtl = Number(this.cfg.get('JWT_ACCESS_TTL') ?? 900);
+    const refreshTtl = Number(this.cfg.get('JWT_REFRESH_TTL') ?? 2_592_000);
     const refreshJti = randomUUID();
 
     const accessToken = await this.jwt.signAsync(
