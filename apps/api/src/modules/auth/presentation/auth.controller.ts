@@ -73,9 +73,16 @@ export class AuthController {
     return user;
   }
 
+  @Get('google/available')
+  googleAvailable() {
+    const hasId = !!this.cfg.get<string>('GOOGLE_CLIENT_ID')
+      && this.cfg.get<string>('GOOGLE_CLIENT_ID') !== '<CHANGE>';
+    return { available: hasId };
+  }
+
   @Get('google')
   @UseGuards(GoogleAuthGuard)
-  google(): void { /* Passport redireciona */ }
+  google(): void { /* Passport redireciona — só funciona se GOOGLE_CLIENT_ID configurado */ }
 
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
