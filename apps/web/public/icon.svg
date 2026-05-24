@@ -1,188 +1,218 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <title>RunQuest — V2 Modern Logo</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1280" width="1024" height="1280">
+  <title>RunQuest — Gold Shield (recreated from uploaded reference)</title>
   <defs>
-    <!-- Aurora gradient background -->
-    <linearGradient id="aurora" x1="20%" y1="0%" x2="80%" y2="100%">
-      <stop offset="0%" stop-color="#0A0828"/>
-      <stop offset="35%" stop-color="#1E1456"/>
-      <stop offset="70%" stop-color="#2E1B7C"/>
-      <stop offset="100%" stop-color="#0A0828"/>
+    <!-- Backgrounds -->
+    <radialGradient id="bg" cx="50%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#0a1840"/>
+      <stop offset="50%" stop-color="#020410"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+
+    <!-- Shield body (dark blue gradient with depth) -->
+    <linearGradient id="shieldBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#142960"/>
+      <stop offset="40%" stop-color="#0a1840"/>
+      <stop offset="100%" stop-color="#020610"/>
     </linearGradient>
-    <!-- Holographic stroke gradient -->
-    <linearGradient id="holo" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00F0FF"/>
-      <stop offset="40%" stop-color="#A8FF3E"/>
-      <stop offset="75%" stop-color="#FFE15A"/>
-      <stop offset="100%" stop-color="#FF7A1A"/>
+
+    <!-- Silver/chrome bevel -->
+    <linearGradient id="bevel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e8e8ee"/>
+      <stop offset="15%" stop-color="#c2c2cc"/>
+      <stop offset="50%" stop-color="#6a6a78"/>
+      <stop offset="85%" stop-color="#3a3a48"/>
+      <stop offset="100%" stop-color="#1a1a24"/>
     </linearGradient>
-    <!-- Runner body gradient (chrome-like) -->
-    <linearGradient id="chrome" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="50%" stop-color="#E8FBFF"/>
-      <stop offset="100%" stop-color="#A8FF3E"/>
+
+    <!-- Gold gradient (runner + wordmark) -->
+    <linearGradient id="gold" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFF6A8"/>
+      <stop offset="20%" stop-color="#FFE15A"/>
+      <stop offset="50%" stop-color="#E5A816"/>
+      <stop offset="80%" stop-color="#C77800"/>
+      <stop offset="100%" stop-color="#7A4A00"/>
     </linearGradient>
-    <!-- Plasma trail -->
-    <linearGradient id="plasma" x1="0%" y1="50%" x2="100%" y2="50%">
-      <stop offset="0%" stop-color="#FF7A1A" stop-opacity="0"/>
-      <stop offset="30%" stop-color="#FF7A1A" stop-opacity="0.9"/>
-      <stop offset="70%" stop-color="#FFE15A" stop-opacity="0.7"/>
-      <stop offset="100%" stop-color="#A8FF3E" stop-opacity="0"/>
+
+    <!-- Gold horizontal shimmer -->
+    <linearGradient id="goldShine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFE15A"/>
+      <stop offset="25%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#FFE15A"/>
+      <stop offset="75%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FFE15A"/>
     </linearGradient>
+
+    <!-- Cyan halo (Q) -->
+    <linearGradient id="cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7DD3FC"/>
+      <stop offset="50%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#1E40AF"/>
+    </linearGradient>
+
     <!-- Glow filters -->
-    <filter id="outerGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="10" result="blur"/>
-      <feFlood flood-color="#A8FF3E" flood-opacity="0.6"/>
+    <filter id="goldGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feFlood flood-color="#FFE15A" flood-opacity="0.7"/>
       <feComposite in2="blur" operator="in"/>
       <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
     <filter id="cyanGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="6"/>
-      <feFlood flood-color="#00F0FF" flood-opacity="0.8"/>
+      <feGaussianBlur stdDeviation="10"/>
+      <feFlood flood-color="#60A5FA" flood-opacity="0.8"/>
       <feComposite in2="SourceGraphic" operator="in"/>
       <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <!-- Glass effect -->
-    <radialGradient id="glass" cx="35%" cy="25%" r="65%">
-      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35"/>
-      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.05"/>
+    <filter id="bevelInset" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+
+    <!-- Light beams from top -->
+    <linearGradient id="beam" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.5"/>
       <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
-    </radialGradient>
-    <!-- Hex tile gradient -->
-    <linearGradient id="hexTile" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#A8FF3E" stop-opacity="0.18"/>
-      <stop offset="100%" stop-color="#5B2EFF" stop-opacity="0.08"/>
     </linearGradient>
-    <!-- Noise/texture overlay -->
-    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
-      <path d="M48 0 L0 0 0 48" fill="none" stroke="#A8FF3E" stroke-width="0.5" opacity="0.06"/>
-    </pattern>
+
+    <!-- Shield path -->
+    <path id="shieldPath" d="M 512,120
+      L 880,220
+      L 880,560
+      C 880,720 720,880 512,960
+      C 304,880 144,720 144,560
+      L 144,220 Z"/>
   </defs>
 
-  <!-- Background squircle -->
-  <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#aurora)"/>
-  <rect x="0" y="0" width="1024" height="1024" rx="232" fill="url(#grid)"/>
+  <!-- BACKGROUND -->
+  <rect width="1024" height="1280" fill="url(#bg)"/>
 
-  <!-- Aurora light beams (background) -->
-  <g opacity="0.55" filter="url(#cyanGlow)">
-    <ellipse cx="280" cy="180" rx="380" ry="140" fill="#5B2EFF" opacity="0.5" transform="rotate(-25 280 180)"/>
-    <ellipse cx="780" cy="880" rx="420" ry="160" fill="#00F0FF" opacity="0.35" transform="rotate(-25 780 880)"/>
+  <!-- Light beams radiating from top center -->
+  <g opacity="0.4">
+    <path d="M 460,80 L 380,520 L 540,520 Z" fill="url(#beam)"/>
+    <path d="M 512,60 L 460,580 L 564,580 Z" fill="url(#beam)" opacity="0.6"/>
+    <path d="M 564,80 L 484,520 L 644,520 Z" fill="url(#beam)"/>
+  </g>
+  <ellipse cx="512" cy="120" rx="240" ry="80" fill="#FFFFFF" opacity="0.15"/>
+
+  <!-- SHIELD — outer silver bevel layer -->
+  <g>
+    <use href="#shieldPath" fill="url(#bevel)" transform="translate(0,-4)"/>
+    <use href="#shieldPath" fill="url(#shieldBody)" transform="scale(0.96) translate(20,12)"/>
+    <!-- Inner silver inset -->
+    <use href="#shieldPath" fill="none" stroke="url(#bevel)" stroke-width="14" transform="scale(0.88) translate(60,40)"/>
+    <!-- Inner darker shield -->
+    <use href="#shieldPath" fill="url(#shieldBody)" transform="scale(0.82) translate(92,60)"/>
+    <!-- Subtle highlight on top of shield -->
+    <path d="M 200,200 L 824,220 L 824,260 Q 512,200 200,260 Z" fill="#FFFFFF" opacity="0.05"/>
   </g>
 
-  <!-- Hexagonal territory tiles (3D perspective) -->
-  <g opacity="0.85">
-    <!-- Far row -->
-    <polygon points="180,720 240,690 300,720 300,786 240,816 180,786" fill="url(#hexTile)" stroke="#A8FF3E" stroke-width="2" opacity="0.4"/>
-    <polygon points="300,720 360,690 420,720 420,786 360,816 300,786" fill="url(#hexTile)" stroke="#A8FF3E" stroke-width="2" opacity="0.55"/>
-    <polygon points="420,720 480,690 540,720 540,786 480,816 420,786" fill="url(#hexTile)" stroke="#A8FF3E" stroke-width="2.5" opacity="0.85"/>
-    <polygon points="540,720 600,690 660,720 660,786 600,816 540,786" fill="url(#hexTile)" stroke="#A8FF3E" stroke-width="2" opacity="0.65"/>
-    <polygon points="660,720 720,690 780,720 780,786 720,816 660,786" fill="url(#hexTile)" stroke="#A8FF3E" stroke-width="2" opacity="0.4"/>
-    <!-- Middle row (conquered, brighter) -->
-    <polygon points="240,816 300,786 360,816 360,882 300,912 240,882" fill="#A8FF3E" fill-opacity="0.22" stroke="#A8FF3E" stroke-width="2.5"/>
-    <polygon points="360,816 420,786 480,816 480,882 420,912 360,882" fill="#A8FF3E" fill-opacity="0.35" stroke="#A8FF3E" stroke-width="3" filter="url(#outerGlow)"/>
-    <polygon points="480,816 540,786 600,816 600,882 540,912 480,882" fill="#A8FF3E" fill-opacity="0.35" stroke="#A8FF3E" stroke-width="3" filter="url(#outerGlow)"/>
-    <polygon points="600,816 660,786 720,816 720,882 660,912 600,882" fill="#A8FF3E" fill-opacity="0.22" stroke="#A8FF3E" stroke-width="2.5"/>
+  <!-- CYAN "Q" RING around runner — luminous halo -->
+  <g filter="url(#cyanGlow)" transform="translate(512,520)">
+    <!-- Open ring (Q-like, with tail at bottom-right) -->
+    <path d="M 0,-200
+             A 200,200 0 1 1 141,141
+             L 90,90
+             A 130,130 0 1 0 0,-130 Z"
+          fill="url(#cyan)" opacity="0.9"/>
+    <!-- Inner highlight ring -->
+    <circle cx="0" cy="0" r="170" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.5"/>
+    <!-- Tail "Q" -->
+    <path d="M 110,110 L 210,210" stroke="url(#cyan)" stroke-width="36" stroke-linecap="round"/>
   </g>
 
-  <!-- Central holographic ring (outer) -->
-  <g filter="url(#outerGlow)">
-    <polygon points="512,108 824,288 824,648 512,828 200,648 200,288"
-             fill="none" stroke="url(#holo)" stroke-width="10" stroke-linejoin="round" opacity="0.9"/>
-  </g>
-  <!-- Inner glass hexagon -->
-  <polygon points="512,160 780,316 780,624 512,780 244,624 244,316"
-           fill="rgba(15,8,52,0.45)" stroke="#FFFFFF" stroke-width="2" stroke-opacity="0.3" stroke-linejoin="round"/>
-  <polygon points="512,160 780,316 780,624 512,780 244,624 244,316"
-           fill="url(#glass)" stroke-linejoin="round"/>
-
-  <!-- Plasma motion trail behind runner -->
-  <path d="M 250,560 Q 380,520 540,480 T 800,420"
-        stroke="url(#plasma)" stroke-width="58" stroke-linecap="round" fill="none" opacity="0.7"/>
-  <path d="M 250,560 Q 380,520 540,480 T 800,420"
-        stroke="#FFE15A" stroke-width="14" stroke-linecap="round" fill="none" opacity="0.55"/>
-
-  <!-- Spark particles -->
-  <g fill="#FFE15A">
-    <circle cx="820" cy="404" r="6" opacity="0.95"/>
-    <circle cx="780" cy="426" r="3" opacity="0.7"/>
-    <circle cx="850" cy="380" r="4" opacity="0.6"/>
-    <circle cx="800" cy="448" r="2.5" opacity="0.6"/>
-  </g>
-  <g fill="#A8FF3E">
-    <circle cx="870" cy="412" r="3" opacity="0.7"/>
-    <circle cx="836" cy="440" r="2" opacity="0.8"/>
+  <!-- Runner stars/sparkles inside Q area -->
+  <g fill="#7DD3FC" opacity="0.7">
+    <circle cx="380" cy="420" r="2"/>
+    <circle cx="650" cy="450" r="2.5"/>
+    <circle cx="600" cy="610" r="2"/>
+    <circle cx="420" cy="650" r="2"/>
+    <circle cx="340" cy="540" r="1.5"/>
   </g>
 
-  <!-- Runner silhouette — modern, dynamic, fluid bezier -->
-  <g fill="url(#chrome)" filter="url(#outerGlow)">
+  <!-- RUNNER (gold silhouette mid-stride, facing right) -->
+  <g fill="url(#gold)" transform="translate(380,360)" filter="url(#goldGlow)">
     <!-- Head -->
-    <ellipse cx="476" cy="296" rx="40" ry="44"/>
-    <!-- Neck-shoulder fluid connection + torso (dynamic forward lean) -->
-    <path d="M 458,338
-             C 455,355 470,372 488,378
-             L 580,418
-             C 612,433 630,468 622,498
-             L 596,548
-             C 588,564 568,572 552,564
-             L 466,520
-             C 446,510 432,490 438,468
-             L 452,398
-             C 454,378 452,360 458,338 Z"/>
-    <!-- Forward arm (extended toward upper right — forms arrow line) -->
-    <path d="M 596,418
-             C 624,400 660,378 696,348
-             C 712,334 728,316 738,296
-             C 744,284 750,280 760,290
-             C 768,298 766,308 758,322
-             C 738,358 712,392 682,420
-             C 660,440 632,460 608,470 Z"/>
-    <!-- Trailing arm (swung back, fluid) -->
-    <path d="M 478,396
-             C 458,408 432,422 408,442
-             C 388,458 372,478 364,498
-             C 360,508 350,510 342,502
-             C 334,494 338,484 348,470
-             C 366,442 392,418 420,402
-             C 442,388 462,380 478,378 Z"/>
-    <!-- Lead leg (knee up high — power pose) -->
-    <path d="M 552,564
-             C 562,588 574,618 580,648
-             C 584,668 582,690 572,706
-             C 564,720 548,724 538,716
-             C 528,708 526,692 530,676
-             C 534,650 528,624 518,602
-             C 510,586 510,572 518,562 Z"/>
+    <circle cx="170" cy="46" r="34"/>
+    <!-- Neck-shoulder + torso (athletic, leaning forward) -->
+    <path d="M 152,80
+             C 148,98 158,118 178,124
+             L 246,148
+             C 268,156 280,180 274,200
+             L 256,242
+             C 250,256 234,262 222,256
+             L 168,232
+             C 152,224 142,208 146,192
+             L 158,118
+             C 160,100 156,90 152,80 Z"/>
+    <!-- Front arm (extended forward+up, fist closed) -->
+    <path d="M 250,148
+             C 280,128 314,108 344,82
+             C 358,72 372,58 380,42
+             C 384,34 392,30 400,38
+             C 408,46 406,56 398,68
+             C 380,98 358,128 332,150
+             C 314,166 290,182 270,190 Z"/>
+    <!-- Back arm (swung back, bent elbow with fist) -->
+    <path d="M 172,138
+             C 154,150 132,162 110,180
+             C 92,194 78,210 70,224
+             C 64,232 56,234 48,228
+             C 40,222 44,212 54,200
+             C 70,176 92,156 116,144
+             C 134,134 154,128 168,128 Z"/>
+    <!-- Lead leg (knee raised high — power) -->
+    <path d="M 222,256
+             C 232,278 244,304 250,330
+             C 254,348 252,366 240,378
+             C 232,388 218,392 210,386
+             C 200,378 198,362 202,348
+             C 206,326 200,304 192,286
+             C 184,272 186,260 196,254 Z"/>
     <!-- Trailing leg (extended back — push-off) -->
-    <path d="M 468,508
-             C 448,548 420,592 392,624
-             C 372,648 348,664 326,668
-             C 312,670 304,660 308,648
-             C 312,636 326,628 342,620
-             C 372,604 396,572 414,540
-             C 428,516 442,498 458,488 Z"/>
-    <!-- Front foot (mid-air — sneaker tip) -->
-    <ellipse cx="548" cy="722" rx="34" ry="14" transform="rotate(-8 548 722)"/>
-    <!-- Back foot (toe-off) -->
-    <ellipse cx="312" cy="668" rx="32" ry="14" transform="rotate(-15 312 668)"/>
+    <path d="M 168,228
+             C 150,260 124,296 102,324
+             C 84,344 64,358 46,360
+             C 34,360 28,352 32,342
+             C 36,332 50,326 64,318
+             C 90,302 110,276 124,250
+             C 136,230 148,214 162,206 Z"/>
+    <!-- Front foot (mid-air sneaker) -->
+    <ellipse cx="218" cy="394" rx="32" ry="13" transform="rotate(-10 218 394)"/>
+    <!-- Back foot -->
+    <ellipse cx="30" cy="358" rx="30" ry="12" transform="rotate(-18 30 358)"/>
+    <!-- Muscle definition lines (subtle) -->
+    <path d="M 200,180 L 230,200" stroke="#7A4A00" stroke-width="3" opacity="0.4" fill="none"/>
+    <path d="M 220,260 L 240,290" stroke="#7A4A00" stroke-width="3" opacity="0.4" fill="none"/>
   </g>
 
-  <!-- Accent: cyan rim light on runner edge -->
-  <g fill="none" stroke="#00F0FF" stroke-width="3" opacity="0.6" filter="url(#cyanGlow)">
-    <path d="M 458,338 C 455,355 470,372 488,378 L 580,418"/>
-    <path d="M 552,564 C 562,588 574,618 580,648"/>
+  <!-- Speed streak under runner -->
+  <g opacity="0.85">
+    <path d="M 280,720 Q 400,700 540,680 T 760,640"
+          stroke="url(#gold)" stroke-width="14" stroke-linecap="round" fill="none" opacity="0.6"/>
+    <path d="M 280,720 Q 400,700 540,680 T 760,640"
+          stroke="#FFE15A" stroke-width="6" stroke-linecap="round" fill="none"/>
   </g>
 
-  <!-- Arrow head at top-right (subtle, forms upward direction from runner's arm) -->
-  <g filter="url(#outerGlow)">
-    <polygon points="760,260 808,212 856,260 832,272 808,248 784,272"
-             fill="#A8FF3E" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
-    <rect x="794" y="260" width="28" height="38" rx="6" fill="#A8FF3E" stroke="#FFFFFF" stroke-width="2"/>
+  <!-- WORDMARK "RunQuest" — RPG style gold lettering -->
+  <g transform="translate(512,1110)" text-anchor="middle">
+    <text font-family="'Cinzel', 'Trajan Pro', 'Times New Roman', serif"
+          font-size="148" font-weight="900" font-style="italic"
+          fill="url(#gold)"
+          stroke="#7A4A00" stroke-width="2"
+          filter="url(#goldGlow)">
+      RunQuest
+    </text>
+    <!-- Shimmer overlay -->
+    <text font-family="'Cinzel', 'Trajan Pro', 'Times New Roman', serif"
+          font-size="148" font-weight="900" font-style="italic"
+          fill="url(#goldShine)" opacity="0.4">
+      RunQuest
+    </text>
   </g>
 
-  <!-- Top highlight (glass reflection) -->
-  <path d="M 200,200 Q 400,150 700,170 Q 750,175 800,185 L 800,260 Q 500,210 200,260 Z"
-        fill="#FFFFFF" opacity="0.06"/>
-
-  <!-- Bottom shadow (depth) -->
-  <ellipse cx="512" cy="940" rx="380" ry="24" fill="#000000" opacity="0.4"/>
+  <!-- Decorative flourishes under wordmark -->
+  <g stroke="url(#gold)" stroke-width="3" fill="none" opacity="0.7" filter="url(#goldGlow)">
+    <path d="M 240,1180 Q 360,1190 480,1180"/>
+    <path d="M 544,1180 Q 664,1190 784,1180"/>
+    <circle cx="512" cy="1182" r="4" fill="url(#gold)"/>
+  </g>
 </svg>
