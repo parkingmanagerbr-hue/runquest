@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Concept 01 — Monogram RQ Premium</title>
+  <defs>
+    <linearGradient id="c01-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A0828"/>
+      <stop offset="100%" stop-color="#1B1056"/>
+    </linearGradient>
+    <linearGradient id="c01-mark" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#A8FF3E"/>
+      <stop offset="100%" stop-color="#3DD68C"/>
+    </linearGradient>
+    <linearGradient id="c01-accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF7A1A"/>
+      <stop offset="100%" stop-color="#FFE15A"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="232" fill="url(#c01-bg)"/>
+
+  <!-- Subtle hex ghost background -->
+  <polygon points="512,180 800,346 800,678 512,844 224,678 224,346"
+           fill="none" stroke="#ffffff" stroke-width="1" opacity="0.06"/>
+
+  <!-- "R" geometric — formado por linhas largas, com cauda formando seta -->
+  <g fill="url(#c01-mark)">
+    <!-- Coluna vertical do R -->
+    <rect x="296" y="288" width="84" height="448" rx="12"/>
+    <!-- Topo curvo (bowl do R) -->
+    <path d="M 296,288 L 540,288 Q 660,288 660,406 Q 660,524 540,524 L 380,524 L 380,440 L 540,440 Q 576,440 576,406 Q 576,372 540,372 L 380,372 Z"/>
+    <!-- Perna diagonal do R formando seta -->
+    <path d="M 480,524 L 580,524 L 720,696 L 620,748 Z"/>
+  </g>
+
+  <!-- "Q" sutil atrás (sobreposto) — círculo + tail -->
+  <g opacity="0.9">
+    <circle cx="700" cy="380" r="92" fill="none" stroke="url(#c01-accent)" stroke-width="14"/>
+    <path d="M 762,422 L 836,496" stroke="url(#c01-accent)" stroke-width="22" stroke-linecap="round"/>
+  </g>
+
+  <!-- Arrow tip nascendo da diagonal do R -->
+  <g fill="url(#c01-accent)">
+    <polygon points="720,696 700,756 760,768 758,720"/>
+  </g>
+</svg>

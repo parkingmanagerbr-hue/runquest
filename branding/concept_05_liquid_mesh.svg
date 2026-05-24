@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Concept 05 — Liquid Gradient Mesh (Spotify/Stripe modern)</title>
+  <defs>
+    <radialGradient id="c05-blob1" cx="30%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#FF7A1A"/>
+      <stop offset="100%" stop-color="#FF7A1A" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="c05-blob2" cx="70%" cy="70%" r="60%">
+      <stop offset="0%" stop-color="#A8FF3E"/>
+      <stop offset="100%" stop-color="#A8FF3E" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="c05-blob3" cx="80%" cy="20%" r="50%">
+      <stop offset="0%" stop-color="#00F0FF"/>
+      <stop offset="100%" stop-color="#00F0FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="c05-base" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5B2EFF"/>
+      <stop offset="100%" stop-color="#9B2EFF"/>
+    </linearGradient>
+    <clipPath id="c05-mask"><rect width="1024" height="1024" rx="232"/></clipPath>
+    <filter id="c05-blur"><feGaussianBlur stdDeviation="80"/></filter>
+  </defs>
+
+  <g clip-path="url(#c05-mask)">
+    <rect width="1024" height="1024" fill="url(#c05-base)"/>
+    <g filter="url(#c05-blur)">
+      <rect width="1024" height="1024" fill="url(#c05-blob1)"/>
+      <rect width="1024" height="1024" fill="url(#c05-blob2)"/>
+      <rect width="1024" height="1024" fill="url(#c05-blob3)"/>
+    </g>
+
+    <!-- Símbolo central: chevron seta abstrata 3D layered -->
+    <g transform="translate(512,512)">
+      <!-- camada de trás (sombra/profundidade) -->
+      <path d="M -240,140 L 0,-180 L 240,140 L 160,140 L 0,-72 L -160,140 Z"
+            fill="rgba(0,0,0,0.25)" transform="translate(8,12)"/>
+      <!-- chevron principal (branco/vidro) -->
+      <path d="M -240,140 L 0,-180 L 240,140 L 160,140 L 0,-72 L -160,140 Z"
+            fill="#FFFFFF" fill-opacity="0.95"/>
+      <!-- chevron menor adicional acima (movimento de progressão) -->
+      <path d="M -150,260 L 0,60 L 150,260 L 90,260 L 0,140 L -90,260 Z"
+            fill="#FFFFFF" fill-opacity="0.5"/>
+    </g>
+
+    <!-- Highlight glass do topo -->
+    <ellipse cx="350" cy="200" rx="280" ry="80" fill="#FFFFFF" opacity="0.15"/>
+  </g>
+</svg>

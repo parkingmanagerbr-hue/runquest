@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Concept 03 — Compass Arrow Quest</title>
+  <defs>
+    <linearGradient id="c03-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A8FF3E"/>
+      <stop offset="100%" stop-color="#5B2EFF"/>
+    </linearGradient>
+    <linearGradient id="c03-arrow-light" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E8FBFF"/>
+    </linearGradient>
+    <linearGradient id="c03-arrow-dark" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1A1240"/>
+      <stop offset="100%" stop-color="#0A0828"/>
+    </linearGradient>
+    <filter id="c03-shadow"><feDropShadow dx="0" dy="12" stdDeviation="8" flood-opacity="0.3"/></filter>
+  </defs>
+  <rect width="1024" height="1024" rx="232" fill="url(#c03-bg)"/>
+
+  <!-- Hexagonal frame (subtle) -->
+  <polygon points="512,140 856,338 856,686 512,884 168,686 168,338"
+           fill="rgba(255,255,255,0.08)" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- Compass needle / arrow apontando NE (estilo quest icon) -->
+  <g filter="url(#c03-shadow)">
+    <!-- Lado direito da seta (light) -->
+    <path d="M 512,210 L 760,652 L 552,540 Z" fill="url(#c03-arrow-light)"/>
+    <!-- Lado esquerdo (dark, profundidade) -->
+    <path d="M 512,210 L 552,540 L 264,652 Z" fill="url(#c03-arrow-dark)"/>
+    <!-- Cauda inferior (light) -->
+    <path d="M 552,540 L 760,652 L 512,810 Z" fill="url(#c03-arrow-light)" opacity="0.7"/>
+    <!-- Cauda inferior (dark) -->
+    <path d="M 552,540 L 512,810 L 264,652 Z" fill="url(#c03-arrow-dark)" opacity="0.85"/>
+  </g>
+
+  <!-- Pivot central -->
+  <circle cx="512" cy="540" r="38" fill="#FFE15A"/>
+  <circle cx="512" cy="540" r="38" fill="url(#c03-bg)" opacity="0.2"/>
+  <circle cx="512" cy="540" r="14" fill="#0A0828"/>
+
+  <!-- N marker -->
+  <circle cx="512" cy="160" r="12" fill="#FF7A1A"/>
+</svg>

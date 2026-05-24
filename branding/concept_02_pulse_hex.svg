@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Concept 02 — Pulse Hexagon (Apple Fitness style)</title>
+  <defs>
+    <linearGradient id="c02-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0E0A2A"/>
+      <stop offset="100%" stop-color="#2A1668"/>
+    </linearGradient>
+    <linearGradient id="c02-ring1" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#A8FF3E"/>
+      <stop offset="100%" stop-color="#5B2EFF"/>
+    </linearGradient>
+    <linearGradient id="c02-ring2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF7A1A"/>
+      <stop offset="100%" stop-color="#FFE15A"/>
+    </linearGradient>
+    <linearGradient id="c02-ring3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F0FF"/>
+      <stop offset="100%" stop-color="#A8FF3E"/>
+    </linearGradient>
+    <filter id="c02-glow"><feGaussianBlur stdDeviation="8"/></filter>
+  </defs>
+  <rect width="1024" height="1024" rx="232" fill="url(#c02-bg)"/>
+
+  <!-- 3 hexágonos concêntricos abertos (estilo Activity rings da Apple) -->
+  <g fill="none" stroke-linejoin="round" stroke-linecap="round" transform="translate(512,512)">
+    <!-- ghost glow -->
+    <g filter="url(#c02-glow)" opacity="0.6">
+      <polygon points="0,-340 295,-170 295,170 0,340 -295,170 -295,-170" stroke="url(#c02-ring1)" stroke-width="56"/>
+    </g>
+    <!-- Ring 1 — outer (lime->violet), aberto na lateral direita -->
+    <path d="M 0,-340 L 295,-170 L 295,90"
+          stroke="url(#c02-ring1)" stroke-width="56"/>
+    <path d="M 295,170 L 0,340 L -295,170 L -295,-170 L 0,-340"
+          stroke="url(#c02-ring1)" stroke-width="56"/>
+
+    <!-- Ring 2 — middle (orange) -->
+    <path d="M 0,-240 L 208,-120 L 208,60"
+          stroke="url(#c02-ring2)" stroke-width="46" opacity="0.95"/>
+    <path d="M 208,120 L 0,240 L -208,120 L -208,-120 L 0,-240"
+          stroke="url(#c02-ring2)" stroke-width="46" opacity="0.95"/>
+
+    <!-- Ring 3 — inner (cyan->lime) -->
+    <path d="M 0,-150 L 130,-75 L 130,38"
+          stroke="url(#c02-ring3)" stroke-width="38"/>
+    <path d="M 130,75 L 0,150 L -130,75 L -130,-75 L 0,-150"
+          stroke="url(#c02-ring3)" stroke-width="38"/>
+
+    <!-- Spark central -->
+    <circle cx="0" cy="0" r="22" fill="#FFE15A"/>
+    <circle cx="0" cy="0" r="44" fill="none" stroke="#FFE15A" stroke-width="3" opacity="0.5"/>
+  </g>
+</svg>

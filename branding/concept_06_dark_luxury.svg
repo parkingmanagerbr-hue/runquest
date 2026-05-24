@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Concept 06 — Dark Luxury (Premium tier — Tesla/Rolex aesthetic)</title>
+  <defs>
+    <radialGradient id="c06-bg" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#1A1A1A"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+    <linearGradient id="c06-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE15A"/>
+      <stop offset="25%" stop-color="#FFD700"/>
+      <stop offset="50%" stop-color="#FFA500"/>
+      <stop offset="75%" stop-color="#FFD700"/>
+      <stop offset="100%" stop-color="#FFE15A"/>
+    </linearGradient>
+    <linearGradient id="c06-lime" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3DD68C"/>
+      <stop offset="100%" stop-color="#A8FF3E"/>
+    </linearGradient>
+    <filter id="c06-glow"><feGaussianBlur stdDeviation="4"/></filter>
+  </defs>
+
+  <rect width="1024" height="1024" rx="232" fill="url(#c06-bg)"/>
+
+  <!-- Engraved hex border (luxury) -->
+  <polygon points="512,140 856,338 856,686 512,884 168,686 168,338"
+           fill="none" stroke="url(#c06-gold)" stroke-width="4" stroke-linejoin="round"/>
+  <polygon points="512,170 826,353 826,671 512,854 198,671 198,353"
+           fill="none" stroke="#FFD700" stroke-width="1" opacity="0.4"/>
+
+  <!-- Centerpiece: stylized RQ ligature monogram -->
+  <g transform="translate(512,512)">
+    <!-- "R" -->
+    <g fill="url(#c06-gold)">
+      <rect x="-180" y="-200" width="64" height="400" rx="8"/>
+      <path d="M -180,-200 L 0,-200 Q 100,-200 100,-110 Q 100,-20 0,-20 L -116,-20 L -116,-86 L 0,-86 Q 32,-86 32,-110 Q 32,-134 0,-134 L -116,-134 Z"/>
+      <!-- Cauda do R que vira seta de "Q" -->
+      <path d="M -60,-20 L 30,-20 L 200,200 L 110,236 Z"/>
+    </g>
+
+    <!-- Anel "Q" sutil ao redor -->
+    <circle cx="0" cy="0" r="260" fill="none" stroke="url(#c06-lime)" stroke-width="3" opacity="0.7"/>
+    <circle cx="0" cy="0" r="260" fill="none" stroke="url(#c06-gold)" stroke-width="1" opacity="0.5"/>
+    <!-- Tail do Q -->
+    <path d="M 184,184 L 268,268" stroke="url(#c06-gold)" stroke-width="10" stroke-linecap="round" filter="url(#c06-glow)"/>
+  </g>
+
+  <!-- "PREMIUM" indicator dots (constellation) -->
+  <g fill="url(#c06-gold)">
+    <circle cx="512" cy="100" r="4"/>
+    <circle cx="490" cy="92" r="2"/>
+    <circle cx="534" cy="92" r="2"/>
+  </g>
+
+  <!-- Spark at arrow tip -->
+  <circle cx="730" cy="725" r="14" fill="#A8FF3E" filter="url(#c06-glow)"/>
+</svg>

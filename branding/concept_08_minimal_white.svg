@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Concept 08 — Minimal White (Apple style, simplicity)</title>
+  <defs>
+    <linearGradient id="c08-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A8FF3E"/>
+      <stop offset="100%" stop-color="#3DD68C"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="232" fill="url(#c08-bg)"/>
+
+  <!-- Single thick white stroke: arrow upward inside hex, drawn in ONE continuous path -->
+  <!-- Conceito: traço fluido único que sugere movimento, sem detalhes -->
+  <g fill="none" stroke="#0E0A2A" stroke-width="56" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Seta principal: começa baixo esquerda, sobe diagonal, vira no topo -->
+    <path d="M 240,780
+             C 300,720 380,640 460,560
+             C 540,480 620,400 700,320
+             L 700,460
+             M 700,320
+             L 560,320"/>
+  </g>
+
+  <!-- Pequeno hexágono branco no fundo (sutil, profundidade) -->
+  <polygon points="512,180 800,346 800,678 512,844 224,678 224,346"
+           fill="none" stroke="#0E0A2A" stroke-width="6" opacity="0.15"/>
+
+  <!-- Spark pequeno na ponta -->
+  <circle cx="700" cy="280" r="20" fill="#FF7A1A" stroke="#0E0A2A" stroke-width="6"/>
+</svg>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>Concept 07 — Neon Cyber Grid (synthwave / gaming)</title>
+  <defs>
+    <linearGradient id="c07-bg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1a0833"/>
+      <stop offset="60%" stop-color="#0E0628"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="c07-neon" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF2A8E"/>
+      <stop offset="50%" stop-color="#A8FF3E"/>
+      <stop offset="100%" stop-color="#00F0FF"/>
+    </linearGradient>
+    <filter id="c07-bloom" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" rx="232" fill="url(#c07-bg)"/>
+
+  <!-- Grid de perspectiva (chão retrofuturista) -->
+  <g stroke="#FF2A8E" stroke-width="2" opacity="0.25" fill="none">
+    <line x1="0" y1="700" x2="1024" y2="700"/>
+    <line x1="0" y1="800" x2="1024" y2="800"/>
+    <line x1="0" y1="900" x2="1024" y2="900"/>
+    <!-- linhas de fuga -->
+    <line x1="0" y1="900" x2="512" y2="640"/>
+    <line x1="180" y1="900" x2="512" y2="640"/>
+    <line x1="360" y1="900" x2="512" y2="640"/>
+    <line x1="512" y1="900" x2="512" y2="640"/>
+    <line x1="664" y1="900" x2="512" y2="640"/>
+    <line x1="844" y1="900" x2="512" y2="640"/>
+    <line x1="1024" y1="900" x2="512" y2="640"/>
+  </g>
+
+  <!-- Sol retrowave atrás -->
+  <circle cx="512" cy="500" r="220" fill="#FF2A8E" opacity="0.3" filter="url(#c07-bloom)"/>
+  <circle cx="512" cy="500" r="180" fill="#FF2A8E" opacity="0.5"/>
+  <!-- bandas horizontais cortando o sol -->
+  <g fill="#0E0628">
+    <rect x="280" y="500" width="464" height="6"/>
+    <rect x="290" y="540" width="444" height="6"/>
+    <rect x="310" y="580" width="404" height="6"/>
+    <rect x="340" y="620" width="344" height="6"/>
+  </g>
+
+  <!-- Hexágono neon na frente -->
+  <g filter="url(#c07-bloom)" stroke-linejoin="round">
+    <polygon points="512,200 750,338 750,614 512,752 274,614 274,338"
+             fill="none" stroke="url(#c07-neon)" stroke-width="12"/>
+  </g>
+  <polygon points="512,200 750,338 750,614 512,752 274,614 274,338"
+           fill="none" stroke="#FFFFFF" stroke-width="2"/>
+
+  <!-- Lightning bolt central -->
+  <g filter="url(#c07-bloom)">
+    <path d="M 540,300 L 430,510 L 510,510 L 470,650 L 600,440 L 520,440 L 580,300 Z"
+          fill="#A8FF3E" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+  </g>
+</svg>
