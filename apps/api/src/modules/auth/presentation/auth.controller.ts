@@ -4,11 +4,13 @@ import {
 import { Request, Response } from 'express';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
+import { Inject } from '@nestjs/common';
 import { RegisterUseCase } from '../application/register.usecase';
 import { LoginUseCase } from '../application/login.usecase';
 import { RefreshUseCase } from '../application/refresh.usecase';
 import { GoogleLoginUseCase, GoogleProfile } from '../application/google-login.usecase';
 import { TokenService } from '../application/token.service';
+import { REFRESH_TOKEN_REPOSITORY, RefreshTokenRepository } from '../domain/refresh-token.repository';
 import { RegisterDto, LoginDto, RefreshDto } from './auth.dto';
 import { GoogleAuthGuard, JwtAuthGuard } from '../infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../../shared/decorators/current-user.decorator';
@@ -22,6 +24,7 @@ export class AuthController {
     private readonly refreshUc: RefreshUseCase,
     private readonly googleUc: GoogleLoginUseCase,
     private readonly tokens: TokenService,
+    @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refresh: RefreshTokenRepository,
     private readonly cfg: ConfigService,
   ) {}
 
@@ -30,6 +33,11 @@ export class AuthController {
   async register(@Body() dto: RegisterDto, @Req() req: Request) {
     const user = await this.registerUc.execute(dto);
     const tokens = await this.tokens.issue({ id: user.id, email: user.email, isPremium: user.isPremium });
+    await this.refresh.create({
+      jti: tokens.refreshJti, userId: user.id,
+      expiresAt: tokens.refreshExpiresAt,
+      userAgent: req.headers['user-agent'], ip: req.ip,
+    });
     return {
       user: { id: user.id, email: user.email, displayName: user.displayName, isPremium: user.isPremium },
       accessToken: tokens.accessToken,

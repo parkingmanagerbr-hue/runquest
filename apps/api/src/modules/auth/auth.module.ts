@@ -25,6 +25,6 @@ import { GoogleStrategy } from './infrastructure/google.strategy';
     { provide: USER_REPOSITORY, useClass: PrismaUserRepository },
     { provide: REFRESH_TOKEN_REPOSITORY, useClass: PrismaRefreshTokenRepository },
   ],
-  exports: [TokenService, USER_REPOSITORY],
+  exports: [TokenService, USER_REPOSITORY, REFRESH_TOKEN_REPOSITORY],
 })
 export class AuthModule {}

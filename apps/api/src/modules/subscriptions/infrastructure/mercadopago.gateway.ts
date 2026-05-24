@@ -23,23 +23,31 @@ export class MercadoPagoGateway implements PaymentGateway {
     this.preapproval = new PreApproval(this.client);
   }
 
-  private planId(plan: SubPlan): string {
-    const id = plan === 'MONTHLY'
-      ? this.cfg.get<string>('MP_PLAN_MONTHLY_ID')
-      : this.cfg.get<string>('MP_PLAN_YEARLY_ID');
-    if (!id) throw new Error(`Plan ID for ${plan} not configured`);
-    return id;
+  private planConfig(plan: SubPlan): { amount: number; frequency: number; frequency_type: 'months'; reason: string } {
+    if (plan === 'MONTHLY') {
+      return { amount: 19.90, frequency: 1, frequency_type: 'months', reason: 'RunQuest Premium Mensal' };
+    }
+    return { amount: 149.90, frequency: 12, frequency_type: 'months', reason: 'RunQuest Premium Anual' };
   }
 
   async createCheckout(input: CreateCheckoutInput): Promise<CheckoutResult> {
+    const cfg = this.planConfig(input.plan);
+    // Fluxo "checkout pro" — cria preapproval pendente que abre fluxo de cartão na URL do MP.
+    // NÃO usar preapproval_plan_id direto (esse exige card_token_id pré-tokenizado).
     const result = await this.preapproval.create({
       body: {
-        preapproval_plan_id: this.planId(input.plan),
-        payer_email: input.email,
+        reason: cfg.reason,
         external_reference: input.userId,
+        payer_email: input.email,
+        auto_recurring: {
+          frequency: cfg.frequency,
+          frequency_type: cfg.frequency_type,
+          transaction_amount: cfg.amount,
+          currency_id: 'BRL',
+        },
         back_url: this.cfg.get<string>('MP_BACK_URL')!,
         status: 'pending',
-      },
+      } as any,
     });
     if (!result.id || !result.init_point) throw new Error('MP did not return id/init_point');
     return { preapprovalId: result.id, initPoint: result.init_point };
