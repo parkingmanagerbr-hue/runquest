@@ -24,7 +24,7 @@ export class AuthController {
     private readonly refreshUc: RefreshUseCase,
     private readonly googleUc: GoogleLoginUseCase,
     private readonly tokens: TokenService,
-    @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refresh: RefreshTokenRepository,
+    @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refreshRepo: RefreshTokenRepository,
     private readonly cfg: ConfigService,
   ) {}
 
@@ -33,7 +33,7 @@ export class AuthController {
   async register(@Body() dto: RegisterDto, @Req() req: Request) {
     const user = await this.registerUc.execute(dto);
     const tokens = await this.tokens.issue({ id: user.id, email: user.email, isPremium: user.isPremium });
-    await this.refresh.create({
+    await this.refreshRepo.create({
       jti: tokens.refreshJti, userId: user.id,
       expiresAt: tokens.refreshExpiresAt,
       userAgent: req.headers['user-agent'], ip: req.ip,
