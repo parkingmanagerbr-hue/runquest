@@ -6,11 +6,17 @@ export const metadata: Metadata = {
   description:
     'App de corrida gamificado: conquiste territórios no mapa, complete missões, evolua com Personal Trainer IA. Disponível como PWA, Android e iOS.',
   manifest: '/manifest.webmanifest',
-  themeColor: '#0E0A2A',
+  themeColor: '#000000',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'RunQuest' },
   icons: {
-    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    icon: [
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
     apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
+    shortcut: '/favicon-32.png',
   },
   openGraph: {
     title: 'RunQuest', siteName: 'RunQuest',
@@ -20,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0E0A2A',
+  themeColor: '#000000',
   width: 'device-width', initialScale: 1, viewportFit: 'cover',
 };
 

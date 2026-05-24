@@ -77,8 +77,10 @@ export default function LandingPage() {
           </div>
 
           <div className="relative">
-            <div className="glass p-8 aspect-square flex items-center justify-center">
-              <LogoMark className="w-full max-w-sm drop-shadow-[0_0_40px_rgba(168,255,62,0.25)]" />
+            <div className="aspect-square flex items-center justify-center
+                            rounded-3xl bg-black border border-rq-gold/20
+                            shadow-[0_0_120px_rgba(255,193,7,0.18)]">
+              <LogoMark className="w-full max-w-lg drop-shadow-[0_0_60px_rgba(255,193,7,0.5)]" />
             </div>
             <div className="absolute -bottom-4 -right-4 glass px-4 py-3 text-xs">
               <div className="text-rq-lime font-bold">+1.420 XP</div>
