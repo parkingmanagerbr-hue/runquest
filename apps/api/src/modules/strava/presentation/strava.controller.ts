@@ -31,6 +31,14 @@ export class StravaController {
     return res.redirect(url);
   }
 
+  /** Retorna URL de autorização (chamado via fetch+Bearer no frontend). */
+  @Get('authorize-url')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  authorizeUrl(@CurrentUser() user: RequestUser): { url: string } {
+    return { url: this.connectUc.beginAuth(user.id) };
+  }
+
   /** Callback público que recebe o code da Strava. */
   @Get('callback')
   async callback(@Query('code') code: string, @Query('state') state: string, @Res() res: Response) {

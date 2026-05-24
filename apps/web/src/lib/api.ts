@@ -37,6 +37,10 @@ export const api = {
   checkout: (plan: 'MONTHLY' | 'YEARLY') =>
     request<{ initPoint: string }>('/subscriptions/checkout', { method: 'POST', body: JSON.stringify({ plan }) }),
   listRuns: () => request<any[]>('/runs'),
+  stravaStatus: () => request<{ connected: boolean; athleteId?: string | null; scope?: string | null; tokenValid?: boolean }>('/strava/status'),
+  stravaAuthorizeUrl: () => request<{ url: string }>('/strava/authorize-url'),
+  stravaImport: (sinceDays = 90) => request<{ imported: number; skipped: number }>(`/strava/import?sinceDays=${sinceDays}`, { method: 'POST' }),
+  stravaDisconnect: () => request<void>('/strava/disconnect', { method: 'POST' }),
 };
 
 export const tokens = {

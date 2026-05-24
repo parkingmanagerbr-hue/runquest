@@ -3,16 +3,27 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
-import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut } from 'lucide-react';
+import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2 } from 'lucide-react';
 
 export default function AppDashboard() {
   const router = useRouter();
   const [me, setMe] = useState<{ displayName: string; email: string; isPremium: boolean } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [strava, setStrava] = useState<{ connected: boolean; athleteId?: string | null } | null>(null);
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
     api.me().then(setMe).catch(() => router.replace('/auth/login')).finally(() => setLoading(false));
+    api.stravaStatus().then(setStrava).catch(() => {});
+    // Lê ?strava=connected da URL pós-callback
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('strava')) {
+      const v = params.get('strava');
+      setTimeout(() => api.stravaStatus().then(setStrava).catch(() => {}), 500);
+      window.history.replaceState({}, '', '/app');
+      if (v === 'error') alert('Erro ao conectar Strava: ' + params.get('reason'));
+    }
   }, [router]);
 
   const goPremium = async (plan: 'MONTHLY' | 'YEARLY') => {
@@ -20,6 +31,28 @@ export default function AppDashboard() {
       const { initPoint } = await api.checkout(plan);
       window.location.href = initPoint;
     } catch (e: any) { alert(e.message); }
+  };
+
+  const connectStrava = async () => {
+    try {
+      const { url } = await api.stravaAuthorizeUrl();
+      window.location.href = url;
+    } catch (e: any) { alert(e.message); }
+  };
+
+  const importStrava = async () => {
+    setImporting(true);
+    try {
+      const r = await api.stravaImport(90);
+      alert(`Importadas: ${r.imported} | Já existiam: ${r.skipped}`);
+    } catch (e: any) { alert(e.message); }
+    finally { setImporting(false); }
+  };
+
+  const disconnectStrava = async () => {
+    if (!confirm('Desconectar Strava?')) return;
+    try { await api.stravaDisconnect(); setStrava({ connected: false }); }
+    catch (e: any) { alert(e.message); }
   };
 
   const logout = () => { tokens.clear(); router.push('/'); };
@@ -64,6 +97,32 @@ export default function AppDashboard() {
               <div className="text-xs text-white/50">{s.label}</div>
             </div>
           ))}
+        </div>
+
+        <div className="glass mt-8 p-6 flex items-center gap-4 flex-wrap">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shrink-0">
+            <Link2 className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <h2 className="font-bold">Strava</h2>
+            {strava?.connected ? (
+              <p className="text-sm text-rq-lime flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" /> Conectado · athlete {strava.athleteId}
+              </p>
+            ) : (
+              <p className="text-sm text-white/60">Importe automaticamente suas corridas do Strava.</p>
+            )}
+          </div>
+          {strava?.connected ? (
+            <>
+              <button onClick={importStrava} disabled={importing} className="btn-primary text-sm py-2 px-4 disabled:opacity-50">
+                {importing ? 'Importando…' : 'Importar últimos 90 dias'}
+              </button>
+              <button onClick={disconnectStrava} className="btn-ghost text-sm py-2 px-4">Desconectar</button>
+            </>
+          ) : (
+            <button onClick={connectStrava} className="btn-primary text-sm py-2 px-4">Conectar Strava</button>
+          )}
         </div>
 
         {!me.isPremium && (
