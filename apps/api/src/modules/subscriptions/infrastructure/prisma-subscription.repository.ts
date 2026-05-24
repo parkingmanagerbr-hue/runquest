@@ -19,12 +19,21 @@ export class PrismaSubscriptionRepository implements SubscriptionRepository {
   async upsertByMpId(data: {
     userId: string; mpPreapprovalId: string; plan: SubPlan; status: string; nextPaymentAt?: Date | null;
   }): Promise<SubscriptionRecord> {
+    // userId é @unique — usar como chave do upsert (sub atual do user, qualquer que seja o mpId).
     const row = await this.prisma.subscription.upsert({
-      where: { mpPreapprovalId: data.mpPreapprovalId },
-      update: { status: data.status, nextPaymentAt: data.nextPaymentAt ?? null },
+      where: { userId: data.userId },
+      update: {
+        mpPreapprovalId: data.mpPreapprovalId,
+        plan: data.plan as any,
+        status: data.status,
+        nextPaymentAt: data.nextPaymentAt ?? null,
+        cancelledAt: data.status === 'cancelled' ? new Date() : null,
+      },
       create: {
-        userId: data.userId, mpPreapprovalId: data.mpPreapprovalId,
-        plan: data.plan as any, status: data.status,
+        userId: data.userId,
+        mpPreapprovalId: data.mpPreapprovalId,
+        plan: data.plan as any,
+        status: data.status,
         nextPaymentAt: data.nextPaymentAt ?? null,
       },
     });
