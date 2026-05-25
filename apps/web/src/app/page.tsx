@@ -172,7 +172,7 @@ export default function LandingPage() {
             </div>
             <div className="glass p-8 text-left border-rq-lime/40 bg-gradient-to-br from-rq-violet/10 to-rq-lime/5 relative">
               <div className="absolute -top-3 left-8 bg-rq-lime text-rq-ink text-xs font-bold px-3 py-1 rounded-full">RECOMENDADO</div>
-              <div className="text-sm text-rq-lime mb-2">PREMIUM MENSAL</div>
+              <div className="text-sm text-rq-lime mb-2">PREMIUM MENSAL · 7 DIAS GRÁTIS</div>
               <div className="font-display text-4xl font-black mb-1">R$ 19,90<span className="text-base font-normal text-white/50">/mês</span></div>
               <p className="text-white/60 text-sm mb-6">Cancele quando quiser</p>
               <ul className="space-y-2 text-sm text-white/70">
@@ -187,11 +187,12 @@ export default function LandingPage() {
             </div>
             <div className="glass p-8 text-left">
               <div className="text-sm text-white/60 mb-2">PREMIUM ANUAL</div>
-              <div className="font-display text-4xl font-black mb-1">R$ 149,90<span className="text-base font-normal text-white/50">/ano</span></div>
-              <p className="text-rq-gold text-sm mb-6">Economize 37% (~R$ 88/ano)</p>
+              <div className="font-display text-4xl font-black mb-1">R$ 99,90<span className="text-base font-normal text-white/50">/ano</span></div>
+              <p className="text-rq-gold text-sm mb-6">Economize 58% · ~R$ 138 menos no ano</p>
               <ul className="space-y-2 text-sm text-white/70">
                 <li>✓ Tudo do Premium Mensal</li>
-                <li>✓ Equivale a R$ 12,49/mês</li>
+                <li>✓ Equivale a R$ 8,32/mês</li>
+                <li>✓ 7 dias grátis para testar</li>
                 <li>✓ Pagamento único</li>
               </ul>
             </div>

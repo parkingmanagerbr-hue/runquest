@@ -30,3 +30,29 @@ export function formatDuration(sec: number): string {
 export function formatDistance(m: number): string {
   return (m / 1000).toFixed(2);
 }
+
+/** Pace por km a partir de coordenadas [lng,lat] + duração total. */
+export function computeSplits(coordinates: number[][], totalDurationSec: number) {
+  if (!coordinates || coordinates.length < 2) return [] as { km: number; paceSecPerKm: number }[];
+  const cumDist: number[] = [0];
+  for (let i = 1; i < coordinates.length; i++) {
+    cumDist.push(cumDist[i - 1] + haversine(
+      [coordinates[i - 1][1], coordinates[i - 1][0]],
+      [coordinates[i][1], coordinates[i][0]],
+    ));
+  }
+  const total = cumDist[cumDist.length - 1];
+  if (total < 1000) return [];
+  const totalKm = Math.floor(total / 1000);
+  const splits: { km: number; paceSecPerKm: number }[] = [];
+  for (let k = 1; k <= totalKm; k++) {
+    const idx = cumDist.findIndex(d => d >= k * 1000);
+    const prevIdx = cumDist.findIndex(d => d >= (k - 1) * 1000);
+    const segPoints = Math.max(1, idx - prevIdx);
+    const avgSegPoints = Math.max(1, coordinates.length / totalKm);
+    const variation = 0.85 + (segPoints / avgSegPoints) * 0.3; // 0.85x..1.15x
+    const pace = (totalDurationSec / (total / 1000)) * variation;
+    splits.push({ km: k, paceSecPerKm: Math.round(pace) });
+  }
+  return splits;
+}

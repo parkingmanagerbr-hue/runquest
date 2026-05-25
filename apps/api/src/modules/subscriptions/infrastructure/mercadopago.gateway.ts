@@ -27,7 +27,7 @@ export class MercadoPagoGateway implements PaymentGateway {
     if (plan === 'MONTHLY') {
       return { amount: 19.90, frequency: 1, frequency_type: 'months', reason: 'RunQuest Premium Mensal' };
     }
-    return { amount: 149.90, frequency: 12, frequency_type: 'months', reason: 'RunQuest Premium Anual' };
+    return { amount: 99.90, frequency: 12, frequency_type: 'months', reason: 'RunQuest Premium Anual' };
   }
 
   async createCheckout(input: CreateCheckoutInput): Promise<CheckoutResult> {
@@ -44,7 +44,8 @@ export class MercadoPagoGateway implements PaymentGateway {
           frequency_type: cfg.frequency_type,
           transaction_amount: cfg.amount,
           currency_id: 'BRL',
-        },
+          free_trial: { frequency: 7, frequency_type: 'days' },
+        } as any,
         back_url: this.cfg.get<string>('MP_BACK_URL')!,
         status: 'pending',
       } as any,

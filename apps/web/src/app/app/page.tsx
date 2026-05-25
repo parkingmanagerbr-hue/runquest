@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
 import Link from 'next/link';
-import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History } from 'lucide-react';
+import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon } from 'lucide-react';
 
 export default function AppDashboard() {
   const router = useRouter();
@@ -113,6 +113,13 @@ export default function AppDashboard() {
             </div>
             <h3 className="font-bold text-sm">Territórios</h3>
             <p className="text-xs text-white/50">Conquiste mapa</p>
+          </Link>
+          <Link href="/app/calendar" className="glass p-4 hover:border-rq-violet/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-violet to-blue-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <CalIcon className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="font-bold text-sm">Calendário</h3>
+            <p className="text-xs text-white/50">Planos 5K/10K/21K</p>
           </Link>
           <Link href="/app/history" className="glass p-4 hover:border-rq-orange/40 transition group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-orange to-amber-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">

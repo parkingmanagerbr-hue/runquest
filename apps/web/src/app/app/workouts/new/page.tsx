@@ -21,7 +21,9 @@ interface Seg {
   id: string;
   order: number;
   kind: string;
+  mode: 'time' | 'distance';
   durationSec: number;
+  distanceM: number;
   repeats: number;
 }
 
@@ -32,14 +34,14 @@ export default function NewWorkoutPage() {
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
   const [segments, setSegments] = useState<Seg[]>([
-    { id: '1', order: 0, kind: 'WARMUP', durationSec: 600, repeats: 1 },
-    { id: '2', order: 1, kind: 'INTERVAL_FAST', durationSec: 90, repeats: 6 },
-    { id: '3', order: 2, kind: 'INTERVAL_SLOW', durationSec: 90, repeats: 6 },
-    { id: '4', order: 3, kind: 'COOLDOWN', durationSec: 600, repeats: 1 },
+    { id: '1', order: 0, kind: 'WARMUP', mode: 'time', durationSec: 600, distanceM: 1000, repeats: 1 },
+    { id: '2', order: 1, kind: 'INTERVAL_FAST', mode: 'distance', durationSec: 90, distanceM: 400, repeats: 6 },
+    { id: '3', order: 2, kind: 'INTERVAL_SLOW', mode: 'time', durationSec: 90, distanceM: 400, repeats: 6 },
+    { id: '4', order: 3, kind: 'COOLDOWN', mode: 'time', durationSec: 600, distanceM: 1000, repeats: 1 },
   ]);
 
   const addSeg = () => setSegments([...segments, {
-    id: String(Date.now()), order: segments.length, kind: 'EASY', durationSec: 60, repeats: 1,
+    id: String(Date.now()), order: segments.length, kind: 'EASY', mode: 'time', durationSec: 60, distanceM: 400, repeats: 1,
   }]);
   const removeSeg = (id: string) => setSegments(segments.filter(s => s.id !== id).map((s, i) => ({ ...s, order: i })));
   const updateSeg = (id: string, patch: Partial<Seg>) =>
@@ -56,7 +58,8 @@ export default function NewWorkoutPage() {
         body: JSON.stringify({
           name, type, description: description || undefined,
           segments: segments.map(s => ({
-            order: s.order, kind: s.kind, durationSec: s.durationSec, repeats: s.repeats,
+            order: s.order, kind: s.kind, repeats: s.repeats,
+            ...(s.mode === 'time' ? { durationSec: s.durationSec } : { distanceM: s.distanceM }),
           })),
         }),
       });
@@ -110,14 +113,32 @@ export default function NewWorkoutPage() {
                 >
                   {KINDS.map(k => <option key={k.v} value={k.v} className="bg-rq-night">{k.l}</option>)}
                 </select>
-                <div className="flex items-center gap-1 text-sm">
-                  <input
-                    type="number" min={1} value={s.durationSec}
-                    onChange={e => updateSeg(s.id, { durationSec: Number(e.target.value) })}
-                    className="w-20 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-center tabular-nums"
-                  />
-                  <span className="text-white/40">seg</span>
-                </div>
+                <button
+                  onClick={() => updateSeg(s.id, { mode: s.mode === 'time' ? 'distance' : 'time' })}
+                  className="text-xs text-rq-lime hover:underline"
+                  title="Alternar tempo/distância"
+                >
+                  {s.mode === 'time' ? '⏱' : '📏'}
+                </button>
+                {s.mode === 'time' ? (
+                  <div className="flex items-center gap-1 text-sm">
+                    <input
+                      type="number" min={1} value={s.durationSec}
+                      onChange={e => updateSeg(s.id, { durationSec: Number(e.target.value) })}
+                      className="w-20 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-center tabular-nums"
+                    />
+                    <span className="text-white/40">seg</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-sm">
+                    <input
+                      type="number" min={1} value={s.distanceM}
+                      onChange={e => updateSeg(s.id, { distanceM: Number(e.target.value) })}
+                      className="w-20 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-center tabular-nums"
+                    />
+                    <span className="text-white/40">m</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-1 text-sm">
                   <input
                     type="number" min={1} value={s.repeats}

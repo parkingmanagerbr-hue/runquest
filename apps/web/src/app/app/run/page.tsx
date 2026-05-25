@@ -2,10 +2,11 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, Pause, Square, MapPin, Activity, ArrowLeft } from 'lucide-react';
+import { Play, Pause, Square, MapPin, Activity, ArrowLeft, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { api, tokens } from '@/lib/api';
 import { haversine, formatPace, formatDuration, formatDistance } from '@/lib/geo';
+import { useHeartRate } from '@/lib/useHeartRate';
 
 const RunMap = dynamic(() => import('@/components/RunMap').then(m => m.RunMap), {
   ssr: false,
@@ -23,6 +24,7 @@ export default function RunTrackingPage() {
   const [duration, setDuration] = useState(0); // seconds
   const [startedAt, setStartedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hr = useHeartRate();
 
   const watchId = useRef<number | null>(null);
   const tickRef = useRef<NodeJS.Timeout | null>(null);
@@ -146,9 +148,17 @@ export default function RunTrackingPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <h1 className="font-display font-bold">Corrida</h1>
-          <div className="ml-auto flex items-center gap-1.5 text-xs">
-            <MapPin className="w-3.5 h-3.5 text-rq-lime" />
-            <span className="text-white/60">{current ? 'GPS' : '...'}</span>
+          <div className="ml-auto flex items-center gap-3">
+            <button onClick={hr.connected ? hr.disconnect : hr.connect}
+              className={`flex items-center gap-1.5 text-xs ${hr.connected ? 'text-rq-orange' : 'text-white/60 hover:text-white'}`}
+              title={hr.connected ? 'Cinta conectada · clique pra desconectar' : 'Conectar cinta cardíaca BLE'}>
+              <Heart className={`w-3.5 h-3.5 ${hr.connected ? 'fill-current animate-pulse' : ''}`} />
+              {hr.bpm ? <span className="tabular-nums">{hr.bpm}</span> : hr.connecting ? '...' : <span>HR</span>}
+            </button>
+            <div className="flex items-center gap-1.5 text-xs">
+              <MapPin className="w-3.5 h-3.5 text-rq-lime" />
+              <span className="text-white/60">{current ? 'GPS' : '...'}</span>
+            </div>
           </div>
         </div>
       </header>
