@@ -8,6 +8,7 @@ import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.d
 import { PrismaService } from '../../prisma/prisma.service';
 import { MissionsModule, MissionProgressService } from '../missions/missions.module';
 import { TerritoriesModule, TerritoryService } from '../territories/territories.module';
+import { GamificationModule, BadgeUnlockService } from '../gamification/gamification.module';
 
 class CreateRunDto {
   @IsISO8601() startedAt!: string;
@@ -29,13 +30,14 @@ export class RunsController {
     private readonly prisma: PrismaService,
     private readonly missions: MissionProgressService,
     private readonly territories: TerritoryService,
+    private readonly badges: BadgeUnlockService,
   ) {}
 
   @Post()
   async create(@CurrentUser() user: RequestUser, @Body() dto: CreateRunDto) {
     if (dto.opId) {
       const existing = await this.prisma.run.findUnique({ where: { opId: dto.opId } });
-      if (existing) return { ...existing, xpGained: 0, coinsGained: 0, newTerritories: 0 };
+      if (existing) return { ...existing, xpGained: 0, coinsGained: 0, newTerritories: 0, newBadges: [] };
     }
     const run = await this.prisma.run.create({
       data: {
@@ -51,14 +53,13 @@ export class RunsController {
       },
     });
 
-    // POST-RUN PROCESSING (síncrono — leve)
     const distKm = dto.distanceMeters / 1000;
-    // XP: 10/km + 1/min de duração; bonus de 20 se distância > 5km
-    const xpGain = Math.round(distKm * 10 + dto.durationSec / 60 + (distKm > 5 ? 20 : 0));
-    const coinGain = Math.round(distKm * 10);
 
-    // Streak: se última corrida foi ontem, +1; se hoje, mantém; senão reset 1
-    const u = await this.prisma.user.findUnique({ where: { id: user.id }, select: { lastRunAt: true, streakDays: true } });
+    // Streak
+    const u = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { lastRunAt: true, streakDays: true, longestStreak: true } as any,
+    }) as any;
     let newStreak = 1;
     if (u?.lastRunAt) {
       const last = new Date(u.lastRunAt); last.setHours(0, 0, 0, 0);
@@ -68,8 +69,14 @@ export class RunsController {
       else if (diffDays === 1) newStreak = (u.streakDays ?? 0) + 1;
       else newStreak = 1;
     }
+    const longestStreak = Math.max(u?.longestStreak ?? 0, newStreak);
 
-    // Level: curva 100 * level^1.5
+    // STREAK MULTIPLIER: cap 7 dias = 1.35x
+    const streakMult = 1 + Math.min(newStreak, 7) * 0.05;
+    const baseXp = distKm * 10 + dto.durationSec / 60 + (distKm > 5 ? 20 : 0);
+    const xpGain = Math.round(baseXp * streakMult);
+    const coinGain = Math.round(distKm * 10);
+
     const updatedUser = await this.prisma.user.update({
       where: { id: user.id },
       data: {
@@ -77,7 +84,10 @@ export class RunsController {
         runCoins: { increment: coinGain },
         lastRunAt: new Date(),
         streakDays: newStreak,
-      },
+        longestStreak,
+        totalRuns: { increment: 1 },
+        totalDistanceM: { increment: dto.distanceMeters },
+      } as any,
     });
     let newLevel = updatedUser.level;
     while (updatedUser.xp >= Math.round(100 * Math.pow(newLevel, 1.5))) newLevel++;
@@ -85,24 +95,41 @@ export class RunsController {
       await this.prisma.user.update({ where: { id: user.id }, data: { level: newLevel } });
     }
 
-    // Atualizar progresso de missões
+    // Missões
     await this.missions.applyRun(user.id, { distanceMeters: dto.distanceMeters, durationSec: dto.durationSec });
 
-    // Capturar territórios H3
+    // Territórios
     const coords = (dto.pointsGeoJson as any)?.coordinates as number[][] | undefined;
     let territoryStats = { visited: 0, newCaptures: 0 };
     if (coords && coords.length > 0) {
       territoryStats = await this.territories.applyRun(user.id, coords);
     }
+    const totalTerritories = await (this.prisma as any).territory.count({
+      where: { userId: user.id, capturedAt: { not: null } },
+    });
+
+    // Badges
+    const newBadges = await this.badges.checkAndUnlock(user.id, {
+      totalRuns: (updatedUser as any).totalRuns,
+      totalDistanceM: (updatedUser as any).totalDistanceM,
+      streak: newStreak,
+      level: newLevel,
+      territories: totalTerritories,
+      singleRunDistanceM: dto.distanceMeters,
+      singleRunPaceSecPerKm: dto.avgPaceSecPerKm,
+    });
 
     return {
       ...run,
       xpGained: xpGain,
       coinsGained: coinGain,
+      streakMultiplier: streakMult,
       newTerritories: territoryStats.newCaptures,
       visitedCells: territoryStats.visited,
       streakDays: newStreak,
+      level: newLevel,
       newLevel: newLevel !== updatedUser.level ? newLevel : undefined,
+      newBadges,
     };
   }
 
@@ -117,7 +144,7 @@ export class RunsController {
 }
 
 @Module({
-  imports: [MissionsModule, TerritoriesModule],
+  imports: [MissionsModule, TerritoriesModule, GamificationModule],
   controllers: [RunsController],
 })
 export class RunsModule {}

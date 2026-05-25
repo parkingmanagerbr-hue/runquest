@@ -13,6 +13,7 @@ import { WorkoutsModule } from './modules/workouts/workouts.module';
 import { MissionsModule } from './modules/missions/missions.module';
 import { TerritoriesModule } from './modules/territories/territories.module';
 import { PlansModule } from './modules/plans/plans.module';
+import { GamificationModule } from './modules/gamification/gamification.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { PlansModule } from './modules/plans/plans.module';
     MissionsModule,
     TerritoriesModule,
     PlansModule,
+    GamificationModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

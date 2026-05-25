@@ -20,11 +20,21 @@ model User {
   premiumUntil  DateTime?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
-  xp            Int          @default(0)
-  level         Int          @default(1)
-  runCoins      Int          @default(0)
-  streakDays    Int          @default(0)
-  lastRunAt     DateTime?
+  xp                    Int      @default(0)
+  level                 Int      @default(1)
+  runCoins              Int      @default(0)
+  streakDays            Int      @default(0)
+  longestStreak         Int      @default(0)
+  lastRunAt             DateTime?
+  lastDailyClaimAt      DateTime?
+  totalDistanceM        Float    @default(0)
+  totalRuns             Int      @default(0)
+  selectedAvatar        String?
+  selectedTerritoryColor String? @default("#A8FF3E")
+  badges                UserBadge[]
+  items                 UserItem[]
+  followers             Follow[] @relation("FollowingUser")
+  following             Follow[] @relation("FollowerUser")
   refreshTokens RefreshToken[]
   subscription  Subscription?
   payments      Payment[]
@@ -250,6 +260,68 @@ model TrainingPlan {
   createdAt   DateTime @default(now())
 
   @@index([userId])
+}
+
+model Badge {
+  id              String   @id @default(uuid()) @db.Uuid
+  code            String   @unique
+  title           String
+  description     String
+  icon            String
+  tier            String   @default("bronze")
+  requirementKind String
+  requirementValue Float   @default(0)
+  xpReward        Int      @default(0)
+  coinReward      Int      @default(0)
+  order           Int      @default(0)
+  users           UserBadge[]
+}
+
+model UserBadge {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId   String   @db.Uuid
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  unlockedAt DateTime @default(now())
+  @@unique([userId, badgeId])
+  @@index([userId])
+}
+
+model CosmeticItem {
+  id          String  @id @default(uuid()) @db.Uuid
+  code        String  @unique
+  name        String
+  description String?
+  kind        String
+  value       String
+  price       Int
+  icon        String?
+  premiumOnly Boolean @default(false)
+  rarity      String  @default("common")
+  users       UserItem[]
+}
+
+model UserItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemId      String   @db.Uuid
+  item        CosmeticItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  purchasedAt DateTime @default(now())
+  @@unique([userId, itemId])
+  @@index([userId])
+}
+
+model Follow {
+  id          String   @id @default(uuid()) @db.Uuid
+  followerId  String   @db.Uuid
+  follower    User     @relation("FollowerUser", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String   @db.Uuid
+  following   User     @relation("FollowingUser", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  @@unique([followerId, followingId])
+  @@index([followingId])
 }
 
 model WebhookEvent {

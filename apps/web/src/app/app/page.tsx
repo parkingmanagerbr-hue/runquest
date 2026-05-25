@@ -121,6 +121,34 @@ export default function AppDashboard() {
             <h3 className="font-bold text-sm">Calendário</h3>
             <p className="text-xs text-white/50">Planos 5K/10K/21K</p>
           </Link>
+          <Link href="/app/leaderboard" className="glass p-4 hover:border-rq-gold/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-gold to-yellow-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <Trophy className="w-4 h-4 text-rq-ink" />
+            </div>
+            <h3 className="font-bold text-sm">Ranking</h3>
+            <p className="text-xs text-white/50">Semanal</p>
+          </Link>
+          <Link href="/app/shop" className="glass p-4 hover:border-rq-violet/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <span className="text-base">🛍️</span>
+            </div>
+            <h3 className="font-bold text-sm">Loja</h3>
+            <p className="text-xs text-white/50">Cosméticos</p>
+          </Link>
+          <Link href="/app/friends" className="glass p-4 hover:border-cyan-400/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <span className="text-base">👥</span>
+            </div>
+            <h3 className="font-bold text-sm">Amigos</h3>
+            <p className="text-xs text-white/50">Social</p>
+          </Link>
+          <Link href="/app/profile" className="glass p-4 hover:border-rq-lime/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-lime to-emerald-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <span className="text-base">👤</span>
+            </div>
+            <h3 className="font-bold text-sm">Perfil</h3>
+            <p className="text-xs text-white/50">XP + badges</p>
+          </Link>
           <Link href="/app/history" className="glass p-4 hover:border-rq-orange/40 transition group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-orange to-amber-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
               <History className="w-4 h-4 text-rq-ink" />
