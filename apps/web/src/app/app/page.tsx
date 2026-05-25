@@ -8,7 +8,7 @@ import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, P
 
 export default function AppDashboard() {
   const router = useRouter();
-  const [me, setMe] = useState<{ displayName: string; email: string; isPremium: boolean } | null>(null);
+  const [me, setMe] = useState<{ displayName: string; email: string; isPremium: boolean; isOwner?: boolean; xp?: number; level?: number; runCoins?: number; streakDays?: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [strava, setStrava] = useState<{ connected: boolean; athleteId?: string | null } | null>(null);
   const [importing, setImporting] = useState(false);
@@ -85,43 +85,65 @@ export default function AppDashboard() {
         <h1 className="font-display text-3xl font-black mb-2">Olá, {me.displayName.split(' ')[0]}.</h1>
         <p className="text-white/60">Sua jornada começa aqui. Em breve: GPS tracking, missões, territórios.</p>
 
-        <div className="grid sm:grid-cols-3 gap-3 mt-6">
-          <Link href="/app/run" className="glass p-5 hover:border-rq-lime/40 transition group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rq-lime to-rq-emerald flex items-center justify-center mb-3 group-hover:scale-110 transition">
-              <Play className="w-5 h-5 text-rq-ink" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-6">
+          <Link href="/app/run" className="glass p-4 hover:border-rq-lime/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-lime to-rq-emerald flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <Play className="w-4 h-4 text-rq-ink" />
             </div>
-            <h3 className="font-bold mb-0.5">Iniciar corrida</h3>
-            <p className="text-xs text-white/60">GPS tracking ao vivo no mapa</p>
+            <h3 className="font-bold text-sm">Correr</h3>
+            <p className="text-xs text-white/50">GPS ao vivo</p>
           </Link>
-          <Link href="/app/workouts" className="glass p-5 hover:border-rq-violet/40 transition group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rq-violet to-purple-500 flex items-center justify-center mb-3 group-hover:scale-110 transition">
-              <Zap className="w-5 h-5 text-white" />
+          <Link href="/app/workouts" className="glass p-4 hover:border-rq-violet/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-violet to-purple-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <Zap className="w-4 h-4 text-white" />
             </div>
-            <h3 className="font-bold mb-0.5">Treinos</h3>
-            <p className="text-xs text-white/60">Intervalados, tempo, longão</p>
+            <h3 className="font-bold text-sm">Treinos</h3>
+            <p className="text-xs text-white/50">Intervalados</p>
           </Link>
-          <Link href="/app/history" className="glass p-5 hover:border-rq-orange/40 transition group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rq-orange to-rq-gold flex items-center justify-center mb-3 group-hover:scale-110 transition">
-              <History className="w-5 h-5 text-rq-ink" />
+          <Link href="/app/missions" className="glass p-4 hover:border-rq-gold/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-gold to-rq-orange flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <Trophy className="w-4 h-4 text-rq-ink" />
             </div>
-            <h3 className="font-bold mb-0.5">Histórico</h3>
-            <p className="text-xs text-white/60">Todas suas corridas</p>
+            <h3 className="font-bold text-sm">Missões</h3>
+            <p className="text-xs text-white/50">Diárias/semanais</p>
+          </Link>
+          <Link href="/app/territories" className="glass p-4 hover:border-rq-emerald/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-emerald to-cyan-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <MapPinned className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="font-bold text-sm">Territórios</h3>
+            <p className="text-xs text-white/50">Conquiste mapa</p>
+          </Link>
+          <Link href="/app/history" className="glass p-4 hover:border-rq-orange/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-orange to-amber-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <History className="w-4 h-4 text-rq-ink" />
+            </div>
+            <h3 className="font-bold text-sm">Histórico</h3>
+            <p className="text-xs text-white/50">Corridas</p>
           </Link>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-          {[
-            { icon: Trophy, label: 'Nível', value: '1' },
-            { icon: Sparkles, label: 'XP', value: '0' },
-            { icon: MapPinned, label: 'Territórios', value: '0' },
-            { icon: HeartPulse, label: 'Streak', value: '0d' },
-          ].map((s) => (
-            <div key={s.label} className="glass p-5">
-              <s.icon className="w-5 h-5 text-rq-lime mb-3" />
-              <div className="text-2xl font-display font-black">{s.value}</div>
-              <div className="text-xs text-white/50">{s.label}</div>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+          <div className="glass p-4">
+            <Trophy className="w-4 h-4 text-rq-lime mb-2" />
+            <div className="font-display text-2xl font-black">{me.level ?? 1}</div>
+            <div className="text-xs text-white/50">Nível</div>
+          </div>
+          <div className="glass p-4">
+            <Sparkles className="w-4 h-4 text-rq-violet mb-2" />
+            <div className="font-display text-2xl font-black tabular-nums">{me.xp ?? 0}</div>
+            <div className="text-xs text-white/50">XP</div>
+          </div>
+          <div className="glass p-4">
+            <span className="w-4 h-4 text-rq-gold mb-2 block">🪙</span>
+            <div className="font-display text-2xl font-black tabular-nums">{me.runCoins ?? 0}</div>
+            <div className="text-xs text-white/50">RunCoins</div>
+          </div>
+          <div className="glass p-4">
+            <HeartPulse className="w-4 h-4 text-rq-orange mb-2" />
+            <div className="font-display text-2xl font-black">{me.streakDays ?? 0}d</div>
+            <div className="text-xs text-white/50">Streak</div>
+          </div>
         </div>
 
         <div className="glass mt-8 p-6 flex items-center gap-4 flex-wrap">
@@ -150,7 +172,19 @@ export default function AppDashboard() {
           )}
         </div>
 
-        {!me.isPremium && (
+        {me.isOwner && (
+          <div className="glass mt-6 p-5 border-rq-gold/30 bg-gradient-to-br from-rq-gold/10 to-rq-orange/5">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">👑</span>
+              <div>
+                <h3 className="font-bold text-rq-gold">Owner — Premium vitalício</h3>
+                <p className="text-xs text-white/60">Sem cobrança. Acesso total a todas as features Premium.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!me.isPremium && !me.isOwner && (
           <div className="glass mt-8 p-8 border-rq-violet/30 bg-gradient-to-br from-rq-violet/10 to-rq-lime/5">
             <div className="flex items-start gap-4 flex-wrap">
               <HeartPulse className="w-10 h-10 text-rq-lime shrink-0" />

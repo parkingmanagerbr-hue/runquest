@@ -13,14 +13,15 @@ export class UsersController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async me(@CurrentUser() user: RequestUser) {
-    const u = await this.prisma.user.findUnique({
+    return this.prisma.user.findUnique({
       where: { id: user.id },
       select: {
         id: true, email: true, displayName: true, avatarUrl: true,
-        isPremium: true, premiumUntil: true, createdAt: true,
+        isPremium: true, premiumUntil: true, isOwner: true,
+        xp: true, level: true, runCoins: true, streakDays: true, lastRunAt: true,
+        createdAt: true,
       },
     });
-    return u;
   }
 }
 

@@ -10,6 +10,8 @@ import { RunsModule } from './modules/runs/runs.module';
 import { HealthModule } from './modules/health/health.module';
 import { StravaModule } from './modules/strava/strava.module';
 import { WorkoutsModule } from './modules/workouts/workouts.module';
+import { MissionsModule } from './modules/missions/missions.module';
+import { TerritoriesModule } from './modules/territories/territories.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { WorkoutsModule } from './modules/workouts/workouts.module';
     RunsModule,
     StravaModule,
     WorkoutsModule,
+    MissionsModule,
+    TerritoriesModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

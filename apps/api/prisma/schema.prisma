@@ -15,6 +15,7 @@ model User {
   displayName   String
   avatarUrl     String?
   emailVerified Boolean      @default(false)
+  isOwner       Boolean      @default(false)
   isPremium     Boolean      @default(false)
   premiumUntil  DateTime?
   createdAt     DateTime     @default(now())

@@ -1,6 +1,7 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
 import { PAYMENT_GATEWAY, PaymentGateway, SubPlan } from '../domain/payment-gateway';
 import { SUBSCRIPTION_REPOSITORY, SubscriptionRepository } from '../domain/subscription.repository';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
 export class CreateCheckoutUseCase {
@@ -9,9 +10,19 @@ export class CreateCheckoutUseCase {
   constructor(
     @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
     @Inject(SUBSCRIPTION_REPOSITORY) private readonly subs: SubscriptionRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(input: { userId: string; email: string; plan: SubPlan }): Promise<{ initPoint: string }> {
+    // Owner sempre Premium grátis — nunca cobra
+    const user = await this.prisma.user.findUnique({
+      where: { id: input.userId },
+      select: { isOwner: true },
+    });
+    if (user?.isOwner) {
+      throw new ForbiddenException('OWNER_NEVER_CHARGED: você é dono do app, premium vitalício');
+    }
+
     // Se já existe subscription pending do mesmo user, cancela no MP antes de criar nova
     const existing = await this.subs.findByUserId(input.userId);
     if (existing && existing.status === 'pending') {
