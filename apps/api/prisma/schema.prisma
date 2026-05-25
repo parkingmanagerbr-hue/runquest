@@ -20,13 +20,73 @@ model User {
   premiumUntil  DateTime?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  xp            Int          @default(0)
+  level         Int          @default(1)
+  runCoins      Int          @default(0)
+  streakDays    Int          @default(0)
+  lastRunAt     DateTime?
   refreshTokens RefreshToken[]
   subscription  Subscription?
   payments      Payment[]
   runs          Run[]
   stravaToken   StravaToken?
+  missionProgress MissionProgress[]
+  territories     Territory[]
 
   @@index([email])
+}
+
+model Mission {
+  id          String     @id @default(uuid()) @db.Uuid
+  code        String     @unique
+  title       String
+  description String
+  type        MissionType @default(STANDARD)
+  scope       MissionScope
+  goalKind    String
+  goalValue   Float
+  xpReward    Int
+  coinReward  Int
+  premiumOnly Boolean    @default(false)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime   @default(now())
+  progress    MissionProgress[]
+}
+
+enum MissionScope { DAILY WEEKLY EVENT }
+enum MissionType  { STANDARD CHALLENGE AI_GENERATED }
+
+model MissionProgress {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  missionId   String   @db.Uuid
+  mission     Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  progress    Float    @default(0)
+  completed   Boolean  @default(false)
+  claimed     Boolean  @default(false)
+  completedAt DateTime?
+  claimedAt   DateTime?
+  assignedAt  DateTime @default(now())
+
+  @@unique([userId, missionId])
+  @@index([userId])
+}
+
+model Territory {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  h3Index     String
+  visits      Int      @default(1)
+  capturedAt  DateTime?
+  expiresAt   DateTime
+  lastVisitAt DateTime @default(now())
+
+  @@unique([userId, h3Index])
+  @@index([h3Index])
+  @@index([userId])
 }
 
 model RefreshToken {
