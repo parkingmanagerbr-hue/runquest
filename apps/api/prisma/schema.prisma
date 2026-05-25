@@ -90,6 +90,7 @@ model Run {
   stravaActivityId BigInt? @unique
   stravaUploadId  BigInt?
   createdAt       DateTime @default(now())
+  workoutSession  WorkoutSession?
 
   @@index([userId, startedAt(sort: Desc)])
 }
@@ -106,6 +107,88 @@ model StravaToken {
   updatedAt      DateTime @updatedAt
 
   @@index([athleteId])
+}
+
+model Workout {
+  id          String           @id @default(uuid()) @db.Uuid
+  userId      String?          @db.Uuid
+  name        String
+  description String?
+  type        WorkoutType      @default(INTERVALS)
+  totalDurationSec Int         @default(0)
+  totalDistanceM   Float       @default(0)
+  isTemplate  Boolean          @default(false)
+  segments    WorkoutSegment[]
+  sessions    WorkoutSession[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+}
+
+enum WorkoutType {
+  INTERVALS
+  TEMPO
+  LONG_RUN
+  EASY
+  RECOVERY
+  RACE
+  CUSTOM
+}
+
+model WorkoutSegment {
+  id          String        @id @default(uuid()) @db.Uuid
+  workoutId   String        @db.Uuid
+  workout     Workout       @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  order       Int
+  kind        SegmentKind
+  durationSec Int?
+  distanceM   Float?
+  targetPaceSecPerKm Int?
+  repeats     Int           @default(1)
+  notes       String?
+
+  @@unique([workoutId, order])
+}
+
+enum SegmentKind {
+  WARMUP
+  INTERVAL_FAST
+  INTERVAL_SLOW
+  TEMPO
+  EASY
+  COOLDOWN
+  REST
+  CUSTOM
+}
+
+model WorkoutSession {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  workoutId     String   @db.Uuid
+  workout       Workout  @relation(fields: [workoutId], references: [id])
+  runId         String?  @unique @db.Uuid
+  run           Run?     @relation(fields: [runId], references: [id])
+  startedAt     DateTime
+  completedAt   DateTime?
+  segmentsDone  Int      @default(0)
+  notes         String?
+
+  @@index([userId, startedAt(sort: Desc)])
+}
+
+model TrainingPlan {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  name        String
+  goal        String
+  weeks       Int
+  startDate   DateTime
+  active      Boolean  @default(true)
+  scheduledWorkouts Json   @default("[]")
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
 }
 
 model WebhookEvent {

@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
-import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
+import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History } from 'lucide-react';
 
 export default function AppDashboard() {
   const router = useRouter();
@@ -84,7 +85,31 @@ export default function AppDashboard() {
         <h1 className="font-display text-3xl font-black mb-2">Olá, {me.displayName.split(' ')[0]}.</h1>
         <p className="text-white/60">Sua jornada começa aqui. Em breve: GPS tracking, missões, territórios.</p>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+        <div className="grid sm:grid-cols-3 gap-3 mt-6">
+          <Link href="/app/run" className="glass p-5 hover:border-rq-lime/40 transition group">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rq-lime to-rq-emerald flex items-center justify-center mb-3 group-hover:scale-110 transition">
+              <Play className="w-5 h-5 text-rq-ink" />
+            </div>
+            <h3 className="font-bold mb-0.5">Iniciar corrida</h3>
+            <p className="text-xs text-white/60">GPS tracking ao vivo no mapa</p>
+          </Link>
+          <Link href="/app/workouts" className="glass p-5 hover:border-rq-violet/40 transition group">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rq-violet to-purple-500 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+              <Zap className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="font-bold mb-0.5">Treinos</h3>
+            <p className="text-xs text-white/60">Intervalados, tempo, longão</p>
+          </Link>
+          <Link href="/app/history" className="glass p-5 hover:border-rq-orange/40 transition group">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rq-orange to-rq-gold flex items-center justify-center mb-3 group-hover:scale-110 transition">
+              <History className="w-5 h-5 text-rq-ink" />
+            </div>
+            <h3 className="font-bold mb-0.5">Histórico</h3>
+            <p className="text-xs text-white/60">Todas suas corridas</p>
+          </Link>
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
           {[
             { icon: Trophy, label: 'Nível', value: '1' },
             { icon: Sparkles, label: 'XP', value: '0' },
