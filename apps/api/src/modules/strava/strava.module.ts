@@ -5,15 +5,20 @@ import { ConnectStravaUseCase } from './application/connect-strava.usecase';
 import { ImportStravaActivitiesUseCase } from './application/import-activities.usecase';
 import { ExportRunToStravaUseCase } from './application/export-run.usecase';
 import { EnsureValidStravaTokenService } from './application/ensure-valid-token.service';
+import { StravaWebhookHandler } from './application/webhook-handler.service';
+import { StravaSyncScheduler } from './application/strava-sync.scheduler';
 import { STRAVA_GATEWAY } from './domain/strava-gateway';
 import { STRAVA_TOKEN_REPOSITORY } from './domain/strava-token.repository';
 import { StravaHttpGateway } from './infrastructure/strava-http.gateway';
 import { PrismaStravaTokenRepository } from './infrastructure/prisma-strava-token.repository';
 import { CryptoService } from '../../shared/kernel/crypto.service';
 import { AuthModule } from '../auth/auth.module';
+import { MissionsModule } from '../missions/missions.module';
+import { TerritoriesModule } from '../territories/territories.module';
+import { GamificationModule } from '../gamification/gamification.module';
 
 @Module({
-  imports: [ConfigModule, AuthModule],
+  imports: [ConfigModule, AuthModule, MissionsModule, TerritoriesModule, GamificationModule],
   controllers: [StravaController],
   providers: [
     CryptoService,
@@ -21,6 +26,8 @@ import { AuthModule } from '../auth/auth.module';
     ImportStravaActivitiesUseCase,
     ExportRunToStravaUseCase,
     EnsureValidStravaTokenService,
+    StravaWebhookHandler,
+    StravaSyncScheduler,
     { provide: STRAVA_GATEWAY, useClass: StravaHttpGateway },
     { provide: STRAVA_TOKEN_REPOSITORY, useClass: PrismaStravaTokenRepository },
   ],

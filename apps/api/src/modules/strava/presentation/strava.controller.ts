@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Query, Param, Res, UseGuards, Req, HttpCode,
+  Body, Controller, Get, Post, Query, Param, Res, UseGuards, Req, HttpCode,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -9,6 +9,7 @@ import { CurrentUser, RequestUser } from '../../../shared/decorators/current-use
 import { ConnectStravaUseCase } from '../application/connect-strava.usecase';
 import { ImportStravaActivitiesUseCase } from '../application/import-activities.usecase';
 import { ExportRunToStravaUseCase } from '../application/export-run.usecase';
+import { StravaWebhookHandler } from '../application/webhook-handler.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 @ApiTags('strava')
@@ -18,6 +19,7 @@ export class StravaController {
     private readonly connectUc: ConnectStravaUseCase,
     private readonly importUc: ImportStravaActivitiesUseCase,
     private readonly exportUc: ExportRunToStravaUseCase,
+    private readonly webhook: StravaWebhookHandler,
     private readonly prisma: PrismaService,
     private readonly cfg: ConfigService,
   ) {}
@@ -87,5 +89,32 @@ export class StravaController {
   @UseGuards(JwtAuthGuard)
   async exportRun(@CurrentUser() user: RequestUser, @Param('runId') runId: string) {
     return this.exportUc.execute(user.id, runId);
+  }
+
+  // ============== WEBHOOKS (públicos, sem auth) ==============
+
+  /** Validação do webhook (Strava manda GET no setup) */
+  @Get('webhook')
+  async webhookValidate(
+    @Query('hub.mode') mode: string,
+    @Query('hub.verify_token') verifyToken: string,
+    @Query('hub.challenge') challenge: string,
+  ) {
+    const expected = this.cfg.get<string>('STRAVA_WEBHOOK_VERIFY_TOKEN', 'runquest_webhook_2026');
+    if (mode === 'subscribe' && verifyToken === expected) {
+      return { 'hub.challenge': challenge };
+    }
+    return { error: 'bad_verify_token' };
+  }
+
+  /** Evento de webhook (push do Strava quando atividade muda) */
+  @Post('webhook')
+  @HttpCode(200)
+  async webhookReceive(@Body() body: any) {
+    // Strava espera 200 em <2s. Processa async pra não bloquear.
+    void this.webhook.handle(body).catch((e) => {
+      console.error('Strava webhook handler error:', e);
+    });
+    return { ok: true };
   }
 }

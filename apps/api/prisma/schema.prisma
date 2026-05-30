@@ -64,8 +64,17 @@ model Mission {
   progress    MissionProgress[]
 }
 
-enum MissionScope { DAILY WEEKLY EVENT }
-enum MissionType  { STANDARD CHALLENGE AI_GENERATED }
+enum MissionScope {
+  DAILY
+  WEEKLY
+  EVENT
+}
+
+enum MissionType {
+  STANDARD
+  CHALLENGE
+  AI_GENERATED
+}
 
 model MissionProgress {
   id          String   @id @default(uuid()) @db.Uuid
