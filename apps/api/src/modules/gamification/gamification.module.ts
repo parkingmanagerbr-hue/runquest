@@ -155,10 +155,11 @@ export class LeaderboardController {
     const captured: any[] = await (this.prisma as any).territory.groupBy({
       by: ['userId'],
       where: { capturedAt: { gte: start } },
-      _count: { id: true },
-      take: 100,
+      _count: { _all: true },
     });
+    captured.forEach((c: any) => { c._count.id = c._count._all; });
     captured.sort((a: any, b: any) => b._count.id - a._count.id);
+    captured.splice(100);
     const users = await this.prisma.user.findMany({
       where: { id: { in: captured.map((r: any) => r.userId) } },
       select: { id: true, displayName: true, avatarUrl: true, level: true, selectedAvatar: true },
