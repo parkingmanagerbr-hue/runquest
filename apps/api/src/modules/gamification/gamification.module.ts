@@ -124,11 +124,11 @@ export class LeaderboardController {
     }
 
     if (kind === 'distance') {
-      const rows = await this.prisma.run.groupBy({
+      const rows: any[] = await (this.prisma as any).run.groupBy({
         by: ['userId'],
         where: { startedAt: { gte: start } },
         _sum: { distanceMeters: true },
-        orderBy: { _sum: { distanceMeters: 'desc' } } as any,
+        orderBy: { _sum: { distanceMeters: 'desc' } },
         take: 100,
       });
       const users = await this.prisma.user.findMany({
@@ -152,7 +152,7 @@ export class LeaderboardController {
     }
 
     // territories
-    const captured = await (this.prisma as any).territory.groupBy({
+    const captured: any[] = await (this.prisma as any).territory.groupBy({
       by: ['userId'],
       where: { capturedAt: { gte: start } },
       _count: { id: true },
