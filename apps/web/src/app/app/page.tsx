@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
 import Link from 'next/link';
-import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon } from 'lucide-react';
+import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog } from 'lucide-react';
 
 export default function AppDashboard() {
   const router = useRouter();
@@ -155,6 +155,34 @@ export default function AppDashboard() {
             </div>
             <h3 className="font-bold text-sm">Histórico</h3>
             <p className="text-xs text-white/50">Corridas</p>
+          </Link>
+          <Link href="/app/goals" className="glass p-4 hover:border-rq-lime/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-400 to-rq-lime flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <Target className="w-4 h-4 text-rq-ink" />
+            </div>
+            <h3 className="font-bold text-sm">Metas</h3>
+            <p className="text-xs text-white/50">Semanais/mensais</p>
+          </Link>
+          <Link href="/app/feed" className="glass p-4 hover:border-pink-400/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-400 to-rq-orange flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <Rss className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="font-bold text-sm">Feed</h3>
+            <p className="text-xs text-white/50">Atividades + kudos</p>
+          </Link>
+          <Link href="/app/notifications" className="glass p-4 hover:border-blue-400/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-400 to-rq-violet flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <Bell className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="font-bold text-sm">Notificações</h3>
+            <p className="text-xs text-white/50">Atualizações</p>
+          </Link>
+          <Link href="/app/settings" className="glass p-4 hover:border-white/30 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <Cog className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="font-bold text-sm">Config</h3>
+            <p className="text-xs text-white/50">Perfil + coach</p>
           </Link>
         </div>
 

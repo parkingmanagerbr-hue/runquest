@@ -14,6 +14,9 @@ import { MissionsModule } from './modules/missions/missions.module';
 import { TerritoriesModule } from './modules/territories/territories.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
+import { GoalsModule } from './modules/goals/goals.module';
+import { FeedModule } from './modules/feed/feed.module';
+import { SettingsModule } from './modules/settings/settings.module';
 
 @Module({
   imports: [
@@ -30,6 +33,9 @@ import { GamificationModule } from './modules/gamification/gamification.module';
     TerritoriesModule,
     PlansModule,
     GamificationModule,
+    GoalsModule,
+    FeedModule,
+    SettingsModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

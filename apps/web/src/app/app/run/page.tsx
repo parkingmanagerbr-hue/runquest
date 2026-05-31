@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { api, tokens } from '@/lib/api';
 import { haversine, formatPace, formatDuration, formatDistance } from '@/lib/geo';
 import { useHeartRate } from '@/lib/useHeartRate';
+import { useAudioCoach } from '@/lib/useAudioCoach';
 
 const RunMap = dynamic(() => import('@/components/RunMap').then(m => m.RunMap), {
   ssr: false,
@@ -25,6 +26,7 @@ export default function RunTrackingPage() {
   const [startedAt, setStartedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const hr = useHeartRate();
+  useAudioCoach(distance, duration, state === 'tracking');
 
   const watchId = useRef<number | null>(null);
   const tickRef = useRef<NodeJS.Timeout | null>(null);

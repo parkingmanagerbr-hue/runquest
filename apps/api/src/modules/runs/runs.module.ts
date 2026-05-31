@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MissionsModule, MissionProgressService } from '../missions/missions.module';
 import { TerritoriesModule, TerritoryService } from '../territories/territories.module';
 import { GamificationModule, BadgeUnlockService } from '../gamification/gamification.module';
+import { GoalsModule, GoalProgressService } from '../goals/goals.module';
 
 class CreateRunDto {
   @IsISO8601() startedAt!: string;
@@ -31,6 +32,7 @@ export class RunsController {
     private readonly missions: MissionProgressService,
     private readonly territories: TerritoryService,
     private readonly badges: BadgeUnlockService,
+    private readonly goals: GoalProgressService,
   ) {}
 
   @Post()
@@ -95,8 +97,9 @@ export class RunsController {
       await this.prisma.user.update({ where: { id: user.id }, data: { level: newLevel } });
     }
 
-    // Missões
+    // Missões + Goals
     await this.missions.applyRun(user.id, { distanceMeters: dto.distanceMeters, durationSec: dto.durationSec });
+    await this.goals.applyRun(user.id, { distanceMeters: dto.distanceMeters, durationSec: dto.durationSec });
 
     // Territórios
     const coords = (dto.pointsGeoJson as any)?.coordinates as number[][] | undefined;
@@ -144,7 +147,7 @@ export class RunsController {
 }
 
 @Module({
-  imports: [MissionsModule, TerritoriesModule, GamificationModule],
+  imports: [MissionsModule, TerritoriesModule, GamificationModule, GoalsModule],
   controllers: [RunsController],
 })
 export class RunsModule {}
