@@ -108,7 +108,10 @@ export class TerritoriesController {
   }
 }
 
+import { MissionsModule } from '../missions/missions.module';
+
 @Module({
+  imports: [MissionsModule],
   controllers: [TerritoriesController],
   providers: [TerritoryService],
   exports: [TerritoryService],
