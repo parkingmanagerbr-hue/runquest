@@ -15,7 +15,7 @@ interface RunResult {
   coinsGained: number;
   streakDays: number;
   streakMultiplier: number;
-  newBadges: { name: string; emoji: string; description: string }[];
+  newBadges: { title?: string; name?: string; icon?: string; emoji?: string; description?: string }[];
   newTerritories: number;
   newLevel?: number;
 }
@@ -299,10 +299,10 @@ export default function RunTrackingPage() {
                 <div className="space-y-1.5">
                   {runResult.newBadges.map((b, i) => (
                     <div key={i} className="flex items-center gap-2">
-                      <span className="text-xl">{b.emoji}</span>
+                      <span className="text-xl">{b.icon ?? b.emoji ?? '🏅'}</span>
                       <div>
-                        <div className="font-bold text-sm">{b.name}</div>
-                        <div className="text-xs text-white/50">{b.description}</div>
+                        <div className="font-bold text-sm">{b.title ?? b.name ?? 'Conquista'}</div>
+                        {b.description && <div className="text-xs text-white/50">{b.description}</div>}
                       </div>
                     </div>
                   ))}
