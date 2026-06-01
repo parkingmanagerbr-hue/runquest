@@ -95,6 +95,32 @@ export default function StatsPage() {
     return slots;
   }, [runs]);
 
+  // VO2 max estimate using Cooper formula from best sustainable pace
+  // Estimate: pace → 12min distance → Cooper formula
+  const vo2max = useMemo(() => {
+    const validRuns = runs.filter(r => r.distanceMeters >= 2000 && r.avgPaceSecPerKm > 0);
+    if (validRuns.length === 0) return null;
+    // Use 10th percentile pace (best race pace)
+    const sorted = [...validRuns].sort((a, b) => a.avgPaceSecPerKm - b.avgPaceSecPerKm);
+    const idx = Math.max(0, Math.floor(sorted.length * 0.1));
+    const bestPace = sorted[idx].avgPaceSecPerKm; // sec/km
+    const speedMperMin = 60000 / bestPace; // m/min
+    const dist12min = speedMperMin * 12; // distance in 12 min at this pace
+    // Cooper: VO2max = (dist12min - 504.9) / 44.73
+    const vo2 = (dist12min - 504.9) / 44.73;
+    if (vo2 < 20) return null; // sanity check
+    return Math.round(vo2 * 10) / 10;
+  }, [runs]);
+
+  const vo2Category = (v: number) => {
+    if (v >= 60) return { label: 'Elite', color: 'text-rq-lime' };
+    if (v >= 52) return { label: 'Excelente', color: 'text-rq-emerald' };
+    if (v >= 44) return { label: 'Bom', color: 'text-blue-400' };
+    if (v >= 36) return { label: 'Médio', color: 'text-yellow-400' };
+    if (v >= 28) return { label: 'Abaixo da média', color: 'text-rq-orange' };
+    return { label: 'Iniciante', color: 'text-white/60' };
+  };
+
   // All-time bests
   const bests = useMemo(() => ({
     longestRun: runs.reduce((a, r) => r.distanceMeters > (a?.distanceMeters ?? 0) ? r : a, null as Run | null),
@@ -184,6 +210,29 @@ export default function StatsPage() {
         </div>
       ) : (
         <section className="max-w-5xl mx-auto px-6 py-6 space-y-6">
+
+          {/* VO2 max + Totals */}
+          {vo2max !== null && (() => {
+            const cat = vo2Category(vo2max);
+            return (
+              <div className="glass p-5 flex items-center gap-5">
+                <div className="text-center shrink-0">
+                  <div className="text-4xl mb-1">🫀</div>
+                </div>
+                <div className="flex-1">
+                  <div className="text-xs text-white/50 uppercase tracking-wider mb-0.5">VO₂ máx estimado</div>
+                  <div className="flex items-baseline gap-2">
+                    <span className={`font-display text-4xl font-black ${cat.color}`}>{vo2max}</span>
+                    <span className="text-white/40 text-sm">mL/kg/min</span>
+                    <span className={`text-sm font-bold ${cat.color}`}>· {cat.label}</span>
+                  </div>
+                  <div className="text-xs text-white/30 mt-1">
+                    Estimativa via método Cooper · com base no seu melhor pace registrado
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Totals */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
