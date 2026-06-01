@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
 import Link from 'next/link';
-import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch } from 'lucide-react';
+import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain } from 'lucide-react';
 
 export default function AppDashboard() {
   const router = useRouter();
@@ -200,6 +200,14 @@ export default function AppDashboard() {
             </div>
             <h3 className="font-bold text-sm">Config</h3>
             <p className="text-xs text-white/50">Perfil + coach</p>
+          </Link>
+          <Link href="/app/ai-trainer"
+            className={`glass p-4 transition group ${me.isPremium || me.isOwner ? 'hover:border-rq-lime/50 border-rq-lime/20 bg-gradient-to-br from-rq-lime/5 to-transparent' : 'hover:border-rq-violet/40'}`}>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-lime to-rq-violet flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <Brain className="w-4 h-4 text-rq-ink" />
+            </div>
+            <h3 className="font-bold text-sm">Trainer IA</h3>
+            <p className="text-xs text-white/50">{me.isPremium || me.isOwner ? 'Plano adaptativo' : '🔒 Premium'}</p>
           </Link>
         </div>
 
