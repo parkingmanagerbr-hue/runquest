@@ -205,6 +205,41 @@ export class RunsController {
     };
   }
 
+  /** GET /runs/stats/prs — Personal Records: best pace per distance bracket */
+  @Get('stats/prs')
+  async personalRecords(@CurrentUser() user: RequestUser) {
+    const allRuns = await this.prisma.run.findMany({
+      where: { userId: user.id },
+      select: { id: true, distanceMeters: true, durationSec: true, avgPaceSecPerKm: true, startedAt: true },
+      orderBy: { startedAt: 'desc' },
+    });
+
+    const brackets = [
+      { label: '5K', minM: 4500, maxM: 5600 },
+      { label: '10K', minM: 9000, maxM: 11000 },
+      { label: '21K', minM: 19000, maxM: 23000 },
+      { label: '42K', minM: 40000, maxM: 44000 },
+    ];
+
+    return brackets.map(b => {
+      const candidates = allRuns.filter(r => r.distanceMeters >= b.minM && r.distanceMeters <= b.maxM);
+      if (candidates.length === 0) return { label: b.label, best: null };
+      const best = candidates.reduce((prev, cur) =>
+        cur.avgPaceSecPerKm < prev.avgPaceSecPerKm ? cur : prev
+      );
+      return {
+        label: b.label,
+        best: {
+          runId: best.id,
+          paceSecPerKm: best.avgPaceSecPerKm,
+          durationSec: best.durationSec,
+          distanceMeters: best.distanceMeters,
+          date: best.startedAt,
+        },
+      };
+    });
+  }
+
   /** GET /runs/:id/gpx — Download GPX file for external apps */
   @Get(':id/gpx')
   @Header('Content-Type', 'application/gpx+xml')
