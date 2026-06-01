@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles } from 'lucide-react';
+import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles, Download } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace, computeSplits } from '@/lib/geo';
 import { Share2 } from 'lucide-react';
@@ -115,6 +115,11 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
             <button onClick={share} className="btn-ghost text-xs py-1.5 px-3">
               <Share2 className="w-3.5 h-3.5" /> Compartilhar
             </button>
+            <a href={`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/${id}/gpx`}
+              download className="btn-ghost text-xs py-1.5 px-3 inline-flex items-center gap-1.5"
+              style={{ cursor: 'pointer' }}>
+              <Download className="w-3.5 h-3.5" /> GPX
+            </a>
             {!run.stravaUploadId && (
               <button onClick={exportStrava} className="btn-ghost text-xs py-1.5 px-3">
                 <Upload className="w-3.5 h-3.5" /> Enviar Strava

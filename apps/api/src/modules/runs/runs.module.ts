@@ -1,6 +1,7 @@
 import {
-  Body, Controller, Get, Module, Param, Post, Query, UseGuards,
+  Body, Controller, Get, Header, Module, Param, Post, Query, Res, UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsInt, IsISO8601, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { ConfigService } from '@nestjs/config';
@@ -146,6 +147,31 @@ export class RunsController {
       orderBy: { startedAt: 'desc' },
       take: Math.min(Number(limit) || 30, 100),
     });
+  }
+
+  /** GET /runs/:id/gpx — Download GPX file for external apps */
+  @Get(':id/gpx')
+  @Header('Content-Type', 'application/gpx+xml')
+  async gpx(@CurrentUser() user: RequestUser, @Param('id') runId: string, @Res() res: Response) {
+    const run = await this.prisma.run.findFirst({ where: { id: runId, userId: user.id } });
+    if (!run) { res.status(404).send('Not found'); return; }
+    const coords = (run.pointsGeoJson as any)?.coordinates as number[][] ?? [];
+    const trkpts = coords.map(([lng, lat]) =>
+      `    <trkpt lat="${lat.toFixed(6)}" lon="${lng.toFixed(6)}"></trkpt>`
+    ).join('\n');
+    const startedAt = run.startedAt.toISOString();
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="RunQuest" xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata><time>${startedAt}</time></metadata>
+  <trk>
+    <name>RunQuest ${startedAt.slice(0, 10)}</name>
+    <trkseg>
+${trkpts}
+    </trkseg>
+  </trk>
+</gpx>`;
+    res.setHeader('Content-Disposition', `attachment; filename="runquest-${runId.slice(0, 8)}.gpx"`);
+    res.send(gpx);
   }
 
   /** POST /runs/:id/analyze — AI post-run coaching analysis (Premium) */
