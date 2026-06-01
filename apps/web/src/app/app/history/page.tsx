@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Activity, Clock, TrendingUp, ChevronRight, MapPin } from 'lucide-react';
+import { ArrowLeft, Activity, Clock, TrendingUp, ChevronRight, MapPin, Download } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace } from '@/lib/geo';
 
@@ -16,6 +16,25 @@ interface Run {
 }
 
 const MONTH_LABELS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+function exportCSV(runs: Run[]) {
+  const header = 'Data,Distância (km),Duração (min),Pace médio (min/km),Fonte';
+  const rows = runs.map(r => {
+    const d = new Date(r.startedAt).toISOString().slice(0, 19).replace('T', ' ');
+    const km = (r.distanceMeters / 1000).toFixed(2);
+    const min = (r.durationSec / 60).toFixed(1);
+    const pace = `${Math.floor(r.avgPaceSecPerKm / 60)}:${String(r.avgPaceSecPerKm % 60).padStart(2, '0')}`;
+    return `"${d}",${km},${min},"${pace}","${r.source}"`;
+  });
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `runquest-corridas-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -76,6 +95,12 @@ export default function HistoryPage() {
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/app" className="text-white/70"><ArrowLeft className="w-5 h-5" /></Link>
           <h1 className="font-display font-bold">Histórico</h1>
+          {runs.length > 0 && (
+            <button onClick={() => exportCSV(runs)}
+              className="ml-auto flex items-center gap-1.5 text-xs text-white/50 hover:text-white">
+              <Download className="w-3.5 h-3.5" /> CSV
+            </button>
+          )}
         </div>
       </header>
 
