@@ -6,6 +6,8 @@ import { IsOptional, IsString, MaxLength } from 'class-validator';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PushModule } from '../push/push.module';
+import { PushService } from '../push/push.service';
 
 class CommentDto {
   @IsString() @MaxLength(500) text!: string;
@@ -52,7 +54,7 @@ export class FeedController {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class KudosController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly push: PushService) {}
 
   @Post()
   async kudo(@CurrentUser() user: RequestUser, @Param('runId') runId: string) {
@@ -66,15 +68,17 @@ export class KudosController {
     const run = await this.prisma.run.findUnique({ where: { id: runId }, select: { userId: true } });
     if (run && run.userId !== user.id) {
       const me = await this.prisma.user.findUnique({ where: { id: user.id }, select: { displayName: true } });
+      const title = `${me?.displayName ?? 'Alguém'} curtiu sua corrida`;
       await (this.prisma as any).notification.create({
         data: {
           id: crypto.randomUUID(),
           userId: run.userId,
           type: 'kudo',
-          title: `${me?.displayName ?? 'Alguém'} curtiu sua corrida`,
+          title,
           data: { runId, byUserId: user.id },
         },
       });
+      this.push.sendToUser(run.userId, { title, body: '❤️ Abra o RunQuest para ver', url: `/app/runs/${runId}` }).catch(() => {});
     }
     return { ok: true };
   }
@@ -91,7 +95,7 @@ export class KudosController {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class CommentsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly push: PushService) {}
 
   @Get()
   async list(@Param('runId') runId: string) {
@@ -115,15 +119,17 @@ export class CommentsController {
     const run = await this.prisma.run.findUnique({ where: { id: runId }, select: { userId: true } });
     if (run && run.userId !== user.id) {
       const me = await this.prisma.user.findUnique({ where: { id: user.id }, select: { displayName: true } });
+      const title = `${me?.displayName ?? 'Alguém'} comentou: ${dto.text.slice(0, 80)}`;
       await (this.prisma as any).notification.create({
         data: {
           id: crypto.randomUUID(),
           userId: run.userId,
           type: 'comment',
-          title: `${me?.displayName ?? 'Alguém'} comentou: ${dto.text.slice(0, 80)}`,
+          title,
           data: { runId, byUserId: user.id },
         },
       });
+      this.push.sendToUser(run.userId, { title, body: '💬 Toque para ver o comentário', url: `/app/runs/${runId}` }).catch(() => {});
     }
     return c;
   }
@@ -164,6 +170,7 @@ export class NotificationsController {
 }
 
 @Module({
+  imports: [PushModule],
   controllers: [FeedController, KudosController, CommentsController, NotificationsController],
 })
 export class FeedModule {}

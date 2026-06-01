@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Bell, Heart, MessageSquare, Trophy, Flag } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, Heart, MessageSquare, Trophy, Flag } from 'lucide-react';
 import { tokens } from '@/lib/api';
+import { usePushNotifications } from '@/lib/usePushNotifications';
 
 interface Notif {
   id: string;
@@ -25,6 +26,7 @@ const iconFor = (type: string) => {
 export default function NotificationsPage() {
   const router = useRouter();
   const [items, setItems] = useState<Notif[]>([]);
+  const push = usePushNotifications();
 
   const load = async () => {
     const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/notifications?limit=50`, {
@@ -56,6 +58,29 @@ export default function NotificationsPage() {
       </header>
 
       <section className="max-w-2xl mx-auto px-4 py-6 space-y-2">
+        {/* Push subscribe banner */}
+        {push.supported && !push.subscribed && (
+          <div className="glass p-4 flex items-center gap-3 border-rq-lime/30 bg-rq-lime/5">
+            <Bell className="w-5 h-5 text-rq-lime shrink-0" />
+            <div className="flex-1 text-sm">
+              <p className="font-medium">Ativar notificações push</p>
+              <p className="text-white/50 text-xs">Receba alertas de kudos, comentários e badges</p>
+            </div>
+            <button onClick={push.subscribe} disabled={push.loading}
+              className="btn-primary text-xs py-1.5 px-3 shrink-0 disabled:opacity-50">
+              {push.loading ? '…' : 'Ativar'}
+            </button>
+          </div>
+        )}
+        {push.supported && push.subscribed && (
+          <div className="flex items-center gap-2 text-xs text-white/40 px-1">
+            <Bell className="w-3.5 h-3.5 text-rq-lime" />
+            <span>Notificações push ativas</span>
+            <button onClick={push.unsubscribe} className="ml-auto text-white/30 hover:text-white/60">
+              <BellOff className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
         {items.length === 0 && (
           <div className="text-center py-16 text-white/40">
             <Bell className="w-12 h-12 mx-auto mb-3 opacity-40" />

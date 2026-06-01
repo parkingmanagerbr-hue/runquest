@@ -17,6 +17,7 @@ import { GamificationModule } from './modules/gamification/gamification.module';
 import { GoalsModule } from './modules/goals/goals.module';
 import { FeedModule } from './modules/feed/feed.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { PushModule } from './modules/push/push.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { SettingsModule } from './modules/settings/settings.module';
     GoalsModule,
     FeedModule,
     SettingsModule,
+    PushModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

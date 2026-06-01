@@ -7,7 +7,6 @@ on:
       - 'apps/**'
       - 'packages/**'
       - '.github/workflows/deploy.yml'
-      - 'docker-compose.production.yml'
 
 env:
   REGISTRY: ghcr.io
@@ -68,7 +67,39 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /opt/platform
-            docker compose -f docker-compose.production.yml pull runquest-api runquest-web
-            docker compose -f docker-compose.production.yml up -d runquest-api runquest-web
-            docker exec runquest-api npx prisma migrate deploy || true
+            # Pull latest images
+            docker pull ghcr.io/parkingmanagerbr-hue/runquest-api:latest
+            docker pull ghcr.io/parkingmanagerbr-hue/runquest-web:latest
+
+            # Restart API
+            docker rm -f platform-runquest-api-1 || true
+            docker run -d \
+              --name platform-runquest-api-1 \
+              --hostname runquest-api \
+              --network platform_internal \
+              --network-alias runquest-api \
+              --restart unless-stopped \
+              --env-file /opt/platform/secrets/runquest.env \
+              --label com.docker.compose.project=platform \
+              --label com.docker.compose.service=runquest-api \
+              ghcr.io/parkingmanagerbr-hue/runquest-api:latest
+
+            # Restart Web
+            docker rm -f platform-runquest-web-1 || true
+            docker run -d \
+              --name platform-runquest-web-1 \
+              --hostname runquest-web \
+              --network platform_internal \
+              --network-alias runquest-web \
+              --restart unless-stopped \
+              -e NEXT_PUBLIC_API_URL=https://runquest.veloxisit.com.br/api \
+              -e NEXT_TELEMETRY_DISABLED=1 \
+              --label com.docker.compose.project=platform \
+              --label com.docker.compose.service=runquest-web \
+              ghcr.io/parkingmanagerbr-hue/runquest-web:latest
+
+            # Run DB migrations
+            sleep 5
+            docker exec platform-runquest-api-1 npx prisma migrate deploy || true
+
+            echo "Deploy complete"

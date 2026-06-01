@@ -3,6 +3,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsIn, IsInt, IsISO8601, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -27,7 +28,12 @@ class PushSubDto {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class SettingsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly cfg: ConfigService) {}
+
+  @Get('vapid-public-key')
+  vapidKey() {
+    return { key: this.cfg.get<string>('VAPID_PUBLIC') ?? '' };
+  }
 
   @Get()
   async get(@CurrentUser() user: RequestUser) {
