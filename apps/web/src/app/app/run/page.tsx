@@ -40,6 +40,9 @@ export default function RunTrackingPage() {
   const hr = useHeartRate();
   useAudioCoach(distance, duration, state === 'tracking');
 
+  const [targetPace, setTargetPace] = useState<number>(0); // sec/km, 0 = no target
+  const [targetPaceInput, setTargetPaceInput] = useState(''); // "5:30" format
+
   const watchId = useRef<number | null>(null);
   const tickRef = useRef<NodeJS.Timeout | null>(null);
   const pointsRef = useRef<Point[]>([]);
@@ -161,6 +164,18 @@ export default function RunTrackingPage() {
   };
 
   const pace = distance > 0 ? Math.round((duration * 1000) / distance) : 0;
+  const calories = Math.round(distance / 1000 * 70 * 1.036);
+  const paceStatus: 'fast' | 'slow' | 'on' | 'none' = targetPace > 0 && pace > 0
+    ? pace < targetPace * 0.97 ? 'fast'
+    : pace > targetPace * 1.03 ? 'slow'
+    : 'on'
+    : 'none';
+
+  const parseTargetPace = (str: string) => {
+    const m = str.match(/^(\d+):(\d{2})$/);
+    if (!m) return 0;
+    return parseInt(m[1]) * 60 + parseInt(m[2]);
+  };
 
   return (
     <main className="min-h-screen bg-rq-aurora flex flex-col">
@@ -190,7 +205,7 @@ export default function RunTrackingPage() {
       {error && <div className="bg-rq-orange/20 text-rq-orange px-4 py-2 text-sm text-center">{error}</div>}
 
       <section className="flex-1 px-6 py-6 max-w-5xl mx-auto w-full">
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-4 mb-4">
           <div>
             <div className="text-white/40 text-xs uppercase tracking-wider">Distância</div>
             <div className="font-display text-4xl font-black tabular-nums">{formatDistance(distance)}</div>
@@ -203,10 +218,44 @@ export default function RunTrackingPage() {
           </div>
           <div>
             <div className="text-white/40 text-xs uppercase tracking-wider">Pace</div>
-            <div className="font-display text-4xl font-black tabular-nums">{formatPace(pace)}</div>
-            <div className="text-white/40 text-xs">min/km</div>
+            <div className={`font-display text-4xl font-black tabular-nums ${
+              paceStatus === 'fast' ? 'text-rq-lime' : paceStatus === 'slow' ? 'text-rq-orange' : paceStatus === 'on' ? 'text-cyan-300' : ''
+            }`}>{formatPace(pace)}</div>
+            <div className="text-xs">
+              {paceStatus === 'fast' && <span className="text-rq-lime">▲ acima do alvo</span>}
+              {paceStatus === 'slow' && <span className="text-rq-orange">▼ abaixo do alvo</span>}
+              {paceStatus === 'on' && <span className="text-cyan-300">✓ no alvo</span>}
+              {paceStatus === 'none' && <span className="text-white/40">min/km</span>}
+            </div>
           </div>
         </div>
+
+        {/* Live calories + pace target indicator */}
+        {(state === 'tracking' || state === 'paused') && (
+          <div className="flex gap-3 mb-4">
+            {calories > 0 && (
+              <div className="flex-1 glass p-2.5 text-center">
+                <div className="text-xs text-white/40">Calorias</div>
+                <div className="font-display text-lg font-black text-rq-orange">{calories}</div>
+                <div className="text-xs text-white/30">kcal est.</div>
+              </div>
+            )}
+            {targetPace > 0 && (
+              <div className="flex-1 glass p-2.5 text-center">
+                <div className="text-xs text-white/40">Alvo</div>
+                <div className="font-display text-lg font-black text-cyan-300 tabular-nums">{formatPace(targetPace)}</div>
+                <div className="text-xs text-white/30">min/km</div>
+              </div>
+            )}
+            {hr.bpm && (
+              <div className="flex-1 glass p-2.5 text-center">
+                <div className="text-xs text-white/40">BPM</div>
+                <div className="font-display text-lg font-black text-rq-orange animate-pulse">{hr.bpm}</div>
+                <div className="text-xs text-white/30">bpm</div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center justify-center gap-4">
           {state === 'idle' && (
@@ -243,9 +292,43 @@ export default function RunTrackingPage() {
         </div>
 
         {state === 'idle' && (
-          <p className="text-center mt-6 text-xs text-white/40">
-            🔒 Permissão de localização será solicitada. Funciona melhor com GPS ativo e céu aberto.
-          </p>
+          <div className="mt-6 space-y-4">
+            {/* Target pace */}
+            <div className="glass p-4">
+              <label className="block">
+                <div className="text-xs text-white/50 uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <Zap className="w-3.5 h-3.5 text-cyan-300" /> Pace alvo (opcional)
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    placeholder="5:30"
+                    value={targetPaceInput}
+                    onChange={e => {
+                      setTargetPaceInput(e.target.value);
+                      const parsed = parseTargetPace(e.target.value);
+                      setTargetPace(parsed);
+                    }}
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-center font-mono text-lg font-bold focus:outline-none focus:border-cyan-300/50"
+                    maxLength={5}
+                  />
+                  <span className="text-white/40 text-sm">min/km</span>
+                  {targetPace > 0 && (
+                    <button onClick={() => { setTargetPace(0); setTargetPaceInput(''); }}
+                      className="text-white/30 hover:text-white text-xs">✕</button>
+                  )}
+                </div>
+                {targetPace > 0 && (
+                  <div className="text-xs text-cyan-300 mt-1.5">
+                    ✓ Alvo: {formatPace(targetPace)}/km — pace exibido em verde/laranja durante a corrida
+                  </div>
+                )}
+              </label>
+            </div>
+            <p className="text-center text-xs text-white/40">
+              🔒 Permissão de localização será solicitada. Funciona melhor com GPS ativo e céu aberto.
+            </p>
+          </div>
         )}
       </section>
 
