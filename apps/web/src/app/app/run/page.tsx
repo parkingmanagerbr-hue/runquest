@@ -43,10 +43,14 @@ export default function RunTrackingPage() {
   const [targetPace, setTargetPace] = useState<number>(0); // sec/km, 0 = no target
   const [targetPaceInput, setTargetPaceInput] = useState(''); // "5:30" format
 
+  const [liveSplits, setLiveSplits] = useState<{ km: number; paceSecPerKm: number }[]>([]);
+
   const watchId = useRef<number | null>(null);
   const tickRef = useRef<NodeJS.Timeout | null>(null);
   const pointsRef = useRef<Point[]>([]);
   const distRef = useRef(0);
+  const lastKmDistRef = useRef(0); // distance at last km marker
+  const lastKmTimeRef = useRef(0); // duration at last km marker
 
   useEffect(() => {
     if (!tokens.hasSession()) router.replace('/auth/login');
@@ -72,6 +76,9 @@ export default function RunTrackingPage() {
     setPoints([]); pointsRef.current = [];
     setDistance(0); distRef.current = 0;
     setDuration(0);
+    setLiveSplits([]);
+    lastKmDistRef.current = 0;
+    lastKmTimeRef.current = 0;
     setStartedAt(new Date());
     setState('tracking');
 
@@ -88,6 +95,19 @@ export default function RunTrackingPage() {
           if (d > 50) return; // ignora salto > 50m (provável GPS bug)
           distRef.current += d;
           setDistance(distRef.current);
+
+          // Check if we crossed a km marker
+          const prevKm = Math.floor(lastKmDistRef.current / 1000);
+          const currKm = Math.floor(distRef.current / 1000);
+          if (currKm > prevKm && currKm > 0) {
+            setDuration(dur => {
+              const splitPace = Math.round((dur - lastKmTimeRef.current) * 1000 / (distRef.current - lastKmDistRef.current));
+              lastKmDistRef.current = distRef.current;
+              lastKmTimeRef.current = dur;
+              setLiveSplits(prev => [...prev.slice(-4), { km: currKm, paceSecPerKm: splitPace }]);
+              return dur;
+            });
+          }
         }
         pointsRef.current.push(p);
         setPoints([...pointsRef.current]);
@@ -258,6 +278,32 @@ export default function RunTrackingPage() {
                 <div className="text-xs text-white/30">bpm</div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Live splits */}
+        {liveSplits.length > 0 && (
+          <div className="glass mb-4 p-3">
+            <div className="text-xs text-white/40 uppercase tracking-wider mb-2">Splits por km</div>
+            <div className="space-y-1">
+              {liveSplits.slice(-3).map((s, i) => {
+                const isFastest = s.paceSecPerKm === Math.min(...liveSplits.map(x => x.paceSecPerKm));
+                return (
+                  <div key={i} className="flex items-center justify-between text-sm">
+                    <span className="text-white/50 font-mono w-8">{s.km}km</span>
+                    <div className="flex-1 mx-3 h-1.5 rounded-full bg-white/10">
+                      <div className="h-full rounded-full" style={{
+                        width: `${Math.min(100, (6 * 60 / s.paceSecPerKm) * 100)}%`,
+                        background: isFastest ? 'var(--rq-lime)' : 'rgba(163,230,53,0.5)',
+                      }} />
+                    </div>
+                    <span className={`font-mono font-bold tabular-nums ${isFastest ? 'text-rq-lime' : 'text-white/70'}`}>
+                      {Math.floor(s.paceSecPerKm / 60)}:{String(s.paceSecPerKm % 60).padStart(2, '0')}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
