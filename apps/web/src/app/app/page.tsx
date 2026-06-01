@@ -4,7 +4,20 @@ import { useRouter } from 'next/navigation';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
 import Link from 'next/link';
-import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain } from 'lucide-react';
+import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain, TrendingUp, TrendingDown } from 'lucide-react';
+import { formatPace } from '@/lib/geo';
+
+interface WeekStats {
+  runs: number;
+  totalKm: number;
+  totalSec: number;
+  avgPaceSecPerKm: number;
+  byDay: { day: number; km: number; runs: number }[];
+  prevWeekKm: number;
+  trend: number | null;
+}
+
+const DAY_LABELS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 
 export default function AppDashboard() {
   const router = useRouter();
@@ -12,11 +25,15 @@ export default function AppDashboard() {
   const [loading, setLoading] = useState(true);
   const [strava, setStrava] = useState<{ connected: boolean; athleteId?: string | null } | null>(null);
   const [importing, setImporting] = useState(false);
+  const [week, setWeek] = useState<WeekStats | null>(null);
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
     api.me().then(setMe).catch(() => router.replace('/auth/login')).finally(() => setLoading(false));
     api.stravaStatus().then(setStrava).catch(() => {});
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/stats/week`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
+    }).then(r => r.ok ? r.json() : null).then(d => d && setWeek(d)).catch(() => {});
     // Lê ?strava=connected da URL pós-callback
     const params = new URLSearchParams(window.location.search);
     if (params.get('strava')) {
@@ -88,6 +105,58 @@ export default function AppDashboard() {
             ? `🔥 ${me.streakDays} dias seguidos — continue assim!`
             : 'Inicie sua primeira corrida e comece a conquistar territórios.'}
         </p>
+
+        {/* Weekly stats bar */}
+        {week && (
+          <div className="glass mt-5 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-white/50">Esta semana</h2>
+              {week.trend !== null && (
+                <span className={`text-xs flex items-center gap-1 ${week.trend >= 0 ? 'text-rq-lime' : 'text-rq-orange'}`}>
+                  {week.trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                  {week.trend >= 0 ? '+' : ''}{week.trend.toFixed(0)}% vs semana passada
+                </span>
+              )}
+            </div>
+            <div className="flex items-end gap-3 mb-3">
+              <div>
+                <span className="font-display text-3xl font-black">{week.totalKm.toFixed(1)}</span>
+                <span className="text-white/40 text-sm ml-1">km</span>
+              </div>
+              <div className="text-white/40 text-sm pb-1">·</div>
+              <div className="text-white/60 text-sm pb-1">{week.runs} corrida{week.runs !== 1 ? 's' : ''}</div>
+              {week.avgPaceSecPerKm > 0 && (
+                <>
+                  <div className="text-white/40 text-sm pb-1">·</div>
+                  <div className="text-white/60 text-sm pb-1">{formatPace(week.avgPaceSecPerKm)}/km</div>
+                </>
+              )}
+            </div>
+            {/* Day bars */}
+            <div className="flex gap-1 items-end h-10">
+              {week.byDay.map((d, i) => {
+                const maxKm = Math.max(...week.byDay.map(x => x.km), 1);
+                const h = d.km > 0 ? Math.max((d.km / maxKm) * 100, 15) : 0;
+                const isToday = i === ((new Date().getDay() + 6) % 7);
+                return (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full rounded-sm transition-all"
+                      style={{
+                        height: `${h}%`,
+                        minHeight: d.km > 0 ? '4px' : '0',
+                        background: d.km > 0
+                          ? isToday ? 'var(--rq-lime, #c8ff00)' : 'rgba(200,255,0,0.4)'
+                          : 'rgba(255,255,255,0.05)',
+                      }} />
+                    <span className={`text-[10px] ${isToday ? 'text-rq-lime font-bold' : 'text-white/30'}`}>
+                      {DAY_LABELS[i]}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Ação primária — destaque maior */}
         <div className="grid grid-cols-2 gap-3 mt-6">

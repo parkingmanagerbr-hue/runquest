@@ -149,6 +149,62 @@ export class RunsController {
     });
   }
 
+  /** GET /runs/stats/week — Stats for current week (Mon→Sun) */
+  @Get('stats/week')
+  async weekStats(@CurrentUser() user: RequestUser) {
+    const now = new Date();
+    // Monday of current week
+    const monday = new Date(now);
+    monday.setHours(0, 0, 0, 0);
+    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+
+    const runs = await this.prisma.run.findMany({
+      where: { userId: user.id, startedAt: { gte: monday } },
+      select: { distanceMeters: true, durationSec: true, avgPaceSecPerKm: true, startedAt: true },
+    });
+
+    const totalKm = runs.reduce((a, r) => a + r.distanceMeters / 1000, 0);
+    const totalSec = runs.reduce((a, r) => a + r.durationSec, 0);
+    const avgPace = runs.length > 0
+      ? Math.round(runs.reduce((a, r) => a + r.avgPaceSecPerKm, 0) / runs.length)
+      : 0;
+
+    // Day-by-day breakdown (0=Mon … 6=Sun)
+    const byDay = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday); d.setDate(monday.getDate() + i);
+      const dayRuns = runs.filter(r => {
+        const rd = new Date(r.startedAt); rd.setHours(0, 0, 0, 0);
+        return rd.getTime() === d.getTime();
+      });
+      return {
+        day: i,
+        km: Math.round(dayRuns.reduce((a, r) => a + r.distanceMeters / 1000, 0) * 10) / 10,
+        runs: dayRuns.length,
+      };
+    });
+
+    // Last 4 weeks for trend
+    const fourWeeksAgo = new Date(monday); fourWeeksAgo.setDate(monday.getDate() - 28);
+    const prevRuns = await this.prisma.run.findMany({
+      where: { userId: user.id, startedAt: { gte: fourWeeksAgo, lt: monday } },
+      select: { distanceMeters: true, startedAt: true },
+    });
+    const prevWeekKm = prevRuns
+      .filter(r => new Date(r.startedAt) >= new Date(monday.getTime() - 7 * 86400000))
+      .reduce((a, r) => a + r.distanceMeters / 1000, 0);
+
+    return {
+      weekStart: monday.toISOString(),
+      runs: runs.length,
+      totalKm: Math.round(totalKm * 100) / 100,
+      totalSec,
+      avgPaceSecPerKm: avgPace,
+      byDay,
+      prevWeekKm: Math.round(prevWeekKm * 100) / 100,
+      trend: prevWeekKm > 0 ? ((totalKm - prevWeekKm) / prevWeekKm) * 100 : null,
+    };
+  }
+
   /** GET /runs/:id/gpx — Download GPX file for external apps */
   @Get(':id/gpx')
   @Header('Content-Type', 'application/gpx+xml')
