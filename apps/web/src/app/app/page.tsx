@@ -26,14 +26,17 @@ export default function AppDashboard() {
   const [strava, setStrava] = useState<{ connected: boolean; athleteId?: string | null } | null>(null);
   const [importing, setImporting] = useState(false);
   const [week, setWeek] = useState<WeekStats | null>(null);
+  const [todayWorkout, setTodayWorkout] = useState<{ label: string; distanceM?: number; durationSec?: number; workoutId?: string; planName: string } | null>(null);
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
     api.me().then(setMe).catch(() => router.replace('/auth/login')).finally(() => setLoading(false));
     api.stravaStatus().then(setStrava).catch(() => {});
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/stats/week`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    }).then(r => r.ok ? r.json() : null).then(d => d && setWeek(d)).catch(() => {});
+    const h = { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } };
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/stats/week`, h)
+      .then(r => r.ok ? r.json() : null).then(d => d && setWeek(d)).catch(() => {});
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/plans/today`, h)
+      .then(r => r.ok ? r.json() : null).then(d => d && setTodayWorkout(d)).catch(() => {});
     // Lê ?strava=connected da URL pós-callback
     const params = new URLSearchParams(window.location.search);
     if (params.get('strava')) {
@@ -105,6 +108,26 @@ export default function AppDashboard() {
             ? `🔥 ${me.streakDays} dias seguidos — continue assim!`
             : 'Inicie sua primeira corrida e comece a conquistar territórios.'}
         </p>
+
+        {/* Today's workout from active plan */}
+        {todayWorkout && (
+          <Link href={todayWorkout.workoutId ? `/app/workouts/${todayWorkout.workoutId}` : '/app/calendar'}
+            className="glass mt-4 p-4 flex items-center gap-4 border-rq-violet/30 bg-gradient-to-br from-rq-violet/10 to-transparent hover:border-rq-violet/50 transition">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rq-violet to-blue-600 flex items-center justify-center shrink-0">
+              <CalIcon className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-rq-violet font-bold uppercase tracking-wider mb-0.5">{todayWorkout.planName} · Hoje</div>
+              <div className="font-bold truncate">{todayWorkout.label}</div>
+              <div className="text-xs text-white/50 mt-0.5">
+                {todayWorkout.distanceM ? `${(todayWorkout.distanceM / 1000).toFixed(1)} km` : ''}
+                {todayWorkout.distanceM && todayWorkout.durationSec ? ' · ' : ''}
+                {todayWorkout.durationSec ? `${Math.round(todayWorkout.durationSec / 60)} min` : ''}
+              </div>
+            </div>
+            <Play className="w-4 h-4 text-rq-violet shrink-0" />
+          </Link>
+        )}
 
         {/* Weekly stats bar */}
         {week && (

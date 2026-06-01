@@ -158,6 +158,38 @@ Rules:
     });
   }
 
+  /** GET /plans/today — Today's workout from active plan, null if none */
+  @Get('today')
+  async today(@CurrentUser() user: RequestUser) {
+    const plan = await (this.prisma as any).trainingPlan.findFirst({
+      where: { userId: user.id, active: true },
+    });
+    if (!plan) return null;
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const scheduled: any[] = plan.scheduledWorkouts ?? [];
+    const todayEntry = scheduled.find((s: any) => s.date === todayStr && !s.completed);
+    if (!todayEntry) return null;
+
+    let workout = null;
+    if (todayEntry.workoutId) {
+      workout = await this.prisma.workout.findUnique({
+        where: { id: todayEntry.workoutId },
+        include: { segments: { orderBy: { order: 'asc' } } },
+      });
+    }
+
+    return {
+      date: todayStr,
+      label: todayEntry.label ?? workout?.name ?? 'Treino',
+      distanceM: todayEntry.distanceM ?? null,
+      durationSec: todayEntry.durationSec ?? null,
+      workoutId: todayEntry.workoutId ?? null,
+      workout,
+      planName: plan.name,
+    };
+  }
+
   @Post()
   async create(@CurrentUser() user: RequestUser, @Body() dto: CreatePlanDto) {
     // Desativar outros planos
