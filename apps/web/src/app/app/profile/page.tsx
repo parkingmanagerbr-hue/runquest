@@ -54,13 +54,17 @@ export default function ProfilePage() {
 
   const load = async () => {
     const h = { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } };
+    const safeJson = (r: Response) => r.ok ? r.json().catch(() => null) : null;
     const [u, b, d, p] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/users/me`, h).then(r => r.json()),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/badges`, h).then(r => r.json()),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/daily/status`, h).then(r => r.json()),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/stats/prs`, h).then(r => r.json()).catch(() => []),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/users/me`, h).then(safeJson),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/badges`, h).then(safeJson),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/daily/status`, h).then(safeJson),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/stats/prs`, h).then(safeJson).catch(() => []),
     ]);
-    setMe(u); setBadges(b); setDaily(d); setPrs(Array.isArray(p) ? p : []);
+    if (u) setMe(u);
+    setBadges(Array.isArray(b) ? b : []);
+    if (d) setDaily(d);
+    setPrs(Array.isArray(p) ? p : []);
   };
 
   useEffect(() => {
