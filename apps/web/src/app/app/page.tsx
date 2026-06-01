@@ -27,6 +27,7 @@ export default function AppDashboard() {
   const [importing, setImporting] = useState(false);
   const [week, setWeek] = useState<WeekStats | null>(null);
   const [todayWorkout, setTodayWorkout] = useState<{ label: string; distanceM?: number; durationSec?: number; workoutId?: string; planName: string } | null>(null);
+  const [recentRuns, setRecentRuns] = useState<{ id: string; startedAt: string; distanceMeters: number; durationSec: number; avgPaceSecPerKm: number }[]>([]);
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
@@ -37,6 +38,8 @@ export default function AppDashboard() {
       .then(r => r.ok ? r.json() : null).then(d => d && setWeek(d)).catch(() => {});
     fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/plans/today`, h)
       .then(r => r.ok ? r.json() : null).then(d => d && setTodayWorkout(d)).catch(() => {});
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs?limit=3`, h)
+      .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setRecentRuns(d)).catch(() => {});
     // Lê ?strava=connected da URL pós-callback
     const params = new URLSearchParams(window.location.search);
     if (params.get('strava')) {
@@ -325,6 +328,35 @@ export default function AppDashboard() {
             <div className="text-xs text-white/50">Streak</div>
           </div>
         </div>
+
+        {/* Recent runs */}
+        {recentRuns.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-white/50">Últimas corridas</h2>
+              <Link href="/app/history" className="text-xs text-rq-lime hover:underline">Ver todas →</Link>
+            </div>
+            <div className="space-y-2">
+              {recentRuns.map(r => {
+                const d = new Date(r.startedAt);
+                return (
+                  <Link key={r.id} href={`/app/runs/${r.id}`}
+                    className="glass p-3 flex items-center gap-3 hover:border-rq-lime/30 transition">
+                    <div className="text-center w-10 shrink-0">
+                      <div className="text-xs text-white/40 uppercase leading-none">{d.toLocaleString('pt-BR', { month: 'short' })}</div>
+                      <div className="font-display text-xl font-black leading-tight">{d.getDate()}</div>
+                    </div>
+                    <div className="flex-1 grid grid-cols-3 gap-2 text-sm">
+                      <div><span className="font-bold text-rq-lime">{(r.distanceMeters / 1000).toFixed(2)}</span><span className="text-white/40 text-xs"> km</span></div>
+                      <div className="tabular-nums text-white/70">{Math.floor(r.durationSec / 60)}:{String(r.durationSec % 60).padStart(2, '0')}</div>
+                      <div className="tabular-nums text-white/50 text-xs">{Math.floor(r.avgPaceSecPerKm / 60)}:{String(r.avgPaceSecPerKm % 60).padStart(2, '0')}/km</div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="glass mt-8 p-6 flex items-center gap-4 flex-wrap">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shrink-0">
