@@ -12,8 +12,10 @@ export function useHeartRate() {
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const deviceRef = useRef<BluetoothDevice | null>(null);
-  const charRef = useRef<BluetoothRemoteGATTCharacteristic | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const deviceRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const charRef = useRef<any>(null);
 
   const onValue = useCallback((e: Event) => {
     const value = (e.target as any).value as DataView;
