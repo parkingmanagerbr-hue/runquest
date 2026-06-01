@@ -29,16 +29,11 @@ interface Seg {
 
 export default function NewWorkoutPage() {
   const router = useRouter();
-  const [name, setName] = useState('Tiros 6×400m');
+  const [name, setName] = useState('');
   const [type, setType] = useState('INTERVALS');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
-  const [segments, setSegments] = useState<Seg[]>([
-    { id: '1', order: 0, kind: 'WARMUP', mode: 'time', durationSec: 600, distanceM: 1000, repeats: 1 },
-    { id: '2', order: 1, kind: 'INTERVAL_FAST', mode: 'distance', durationSec: 90, distanceM: 400, repeats: 6 },
-    { id: '3', order: 2, kind: 'INTERVAL_SLOW', mode: 'time', durationSec: 90, distanceM: 400, repeats: 6 },
-    { id: '4', order: 3, kind: 'COOLDOWN', mode: 'time', durationSec: 600, distanceM: 1000, repeats: 1 },
-  ]);
+  const [segments, setSegments] = useState<Seg[]>([]);
 
   const addSeg = () => setSegments([...segments, {
     id: String(Date.now()), order: segments.length, kind: 'EASY', mode: 'time', durationSec: 60, distanceM: 400, repeats: 1,
