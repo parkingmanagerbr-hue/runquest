@@ -240,6 +240,14 @@ export class RunsController {
     });
   }
 
+  /** GET /runs/:id — Single run detail */
+  @Get(':id')
+  async findOne(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    const run = await this.prisma.run.findFirst({ where: { id, userId: user.id } });
+    if (!run) return null;
+    return run;
+  }
+
   /** GET /runs/:id/gpx — Download GPX file for external apps */
   @Get(':id/gpx')
   @Header('Content-Type', 'application/gpx+xml')

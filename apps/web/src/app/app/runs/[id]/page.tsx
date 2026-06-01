@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles, Download } from 'lucide-react';
+import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles, Download, Flame, Gauge } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace, computeSplits } from '@/lib/geo';
 import { Share2 } from 'lucide-react';
@@ -33,13 +33,15 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    })
-      .then(r => r.json())
-      .then((runs: Run[]) => {
-        const found = runs.find(r => r.id === id);
-        setRun(found ?? null);
+    const h = { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } };
+    // Try direct endpoint first (faster), fall back to list search
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/${id}`, h)
+      .then(r => r.ok ? r.json() : null)
+      .then(async (run: Run | null) => {
+        if (run?.id) { setRun(run); return; }
+        // Fallback: search in list
+        const runs: Run[] = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs?limit=100`, h).then(r => r.json());
+        setRun(runs.find(r => r.id === id) ?? null);
       })
       .finally(() => setLoading(false));
   }, [id, router]);
@@ -133,26 +135,41 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
       {positions.length > 1 && <RunMap positions={positions} current={null} height="40vh" />}
 
       <section className="max-w-5xl mx-auto px-6 py-6">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        {/* Stats grid */}
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
           <div className="glass p-4">
             <Activity className="w-4 h-4 text-rq-lime mb-1" />
-            <div className="font-display text-2xl font-black">{formatDistance(run.distanceMeters)}</div>
+            <div className="font-display text-xl font-black">{formatDistance(run.distanceMeters)}</div>
             <div className="text-xs text-white/50">km</div>
           </div>
           <div className="glass p-4">
             <Clock className="w-4 h-4 text-rq-lime mb-1" />
-            <div className="font-display text-2xl font-black tabular-nums">{formatDuration(run.durationSec)}</div>
+            <div className="font-display text-xl font-black tabular-nums">{formatDuration(run.durationSec)}</div>
             <div className="text-xs text-white/50">tempo</div>
           </div>
           <div className="glass p-4">
             <TrendingUp className="w-4 h-4 text-rq-lime mb-1" />
-            <div className="font-display text-2xl font-black tabular-nums">{formatPace(run.avgPaceSecPerKm)}</div>
+            <div className="font-display text-xl font-black tabular-nums">{formatPace(run.avgPaceSecPerKm)}</div>
             <div className="text-xs text-white/50">pace médio</div>
           </div>
           <div className="glass p-4">
+            <Gauge className="w-4 h-4 text-rq-violet mb-1" />
+            <div className="font-display text-xl font-black tabular-nums">
+              {(3600 / run.avgPaceSecPerKm).toFixed(1)}
+            </div>
+            <div className="text-xs text-white/50">km/h</div>
+          </div>
+          <div className="glass p-4">
+            <Flame className="w-4 h-4 text-rq-orange mb-1" />
+            <div className="font-display text-xl font-black">
+              {Math.round(run.distanceMeters / 1000 * 70 * 1.036)}
+            </div>
+            <div className="text-xs text-white/50">kcal est.</div>
+          </div>
+          <div className="glass p-4">
             <MapPin className="w-4 h-4 text-rq-lime mb-1" />
-            <div className="font-display text-2xl font-black">{positions.length}</div>
-            <div className="text-xs text-white/50">pontos GPS</div>
+            <div className="font-display text-xl font-black">{positions.length}</div>
+            <div className="text-xs text-white/50">pts GPS</div>
           </div>
         </div>
 
