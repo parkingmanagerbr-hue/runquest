@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
 import Link from 'next/link';
-import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react';
+import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain, TrendingUp, TrendingDown, BarChart2, Layers } from 'lucide-react';
 import { formatPace } from '@/lib/geo';
 
 interface WeekStats {
@@ -305,6 +305,13 @@ export default function AppDashboard() {
             </div>
             <h3 className="font-bold text-sm">Estatísticas</h3>
             <p className="text-xs text-white/50">Progresso anual</p>
+          </Link>
+          <Link href="/app/zones" className="glass p-4 hover:border-rq-violet/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-violet to-purple-800 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <Layers className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="font-bold text-sm">Zonas</h3>
+            <p className="text-xs text-white/50">Z1-Z5 pace</p>
           </Link>
           <Link href="/app/ai-trainer"
             className={`glass p-4 transition group ${me.isPremium || me.isOwner ? 'hover:border-rq-lime/50 border-rq-lime/20 bg-gradient-to-br from-rq-lime/5 to-transparent' : 'hover:border-rq-violet/40'}`}>
