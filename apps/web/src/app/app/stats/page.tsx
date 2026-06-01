@@ -135,6 +135,28 @@ export default function StatsPage() {
 
   const maxHeatKm = Math.max(...heatmap.flatMap(w => w.map(d => d.km)), 1);
 
+  // Training load: ACWR (Acute:Chronic Workload Ratio)
+  const trainingLoad = useMemo(() => {
+    const now = Date.now();
+    const day = 86400000;
+    const acuteKm = runs.filter(r => now - new Date(r.startedAt).getTime() < 7 * day)
+      .reduce((a, r) => a + r.distanceMeters / 1000, 0);
+    const chronicKm = runs.filter(r => {
+      const age = now - new Date(r.startedAt).getTime();
+      return age >= 7 * day && age < 28 * day;
+    }).reduce((a, r) => a + r.distanceMeters / 1000, 0) / 3; // avg per week over 3 weeks
+    const acwr = chronicKm > 0.5 ? acuteKm / chronicKm : null;
+    let status = '';
+    let color = '';
+    if (acwr === null) { status = 'Histórico insuficiente'; color = 'text-white/40'; }
+    else if (acwr < 0.6) { status = 'Muito pouco treino 🟡'; color = 'text-yellow-400'; }
+    else if (acwr <= 0.8) { status = 'Abaixo do ideal'; color = 'text-yellow-300'; }
+    else if (acwr <= 1.3) { status = 'Carga equilibrada ✅'; color = 'text-rq-lime'; }
+    else if (acwr <= 1.5) { status = 'Carga elevada ⚠️'; color = 'text-rq-orange'; }
+    else { status = 'Sobrecarga — risco de lesão 🔴'; color = 'text-red-400'; }
+    return { acuteKm: Math.round(acuteKm * 10) / 10, chronicKm: Math.round(chronicKm * 10) / 10, acwr, status, color };
+  }, [runs]);
+
   const maxMonthKm = Math.max(...monthlyData.map(m => m.km), 1);
   const maxWeekdayKm = Math.max(...byWeekday.map(d => d.km), 1);
   const maxPace = Math.max(...paceProgression.map(p => p.pace), 1);
@@ -385,6 +407,43 @@ export default function StatsPage() {
               )}
             </div>
           </div>
+
+          {/* Training Load (ACWR) */}
+          {runs.length >= 3 && (
+            <div className="glass p-5">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-3 flex items-center gap-2">
+                <Flame className="w-3.5 h-3.5 text-rq-orange" /> Carga de treino
+              </h2>
+              <div className="flex items-center gap-4 mb-3">
+                <div className="flex-1 text-center">
+                  <div className="text-xs text-white/40 mb-1">Esta semana</div>
+                  <div className="font-display text-2xl font-black text-rq-lime">{trainingLoad.acuteKm}</div>
+                  <div className="text-xs text-white/30">km</div>
+                </div>
+                <div className="flex-1 text-center">
+                  <div className="text-xs text-white/40 mb-1">Média semanal (28d)</div>
+                  <div className="font-display text-2xl font-black text-white/70">{trainingLoad.chronicKm}</div>
+                  <div className="text-xs text-white/30">km/semana</div>
+                </div>
+                {trainingLoad.acwr !== null && (
+                  <div className="flex-1 text-center">
+                    <div className="text-xs text-white/40 mb-1">ACWR</div>
+                    <div className="font-display text-2xl font-black"
+                      style={{ color: trainingLoad.acwr > 1.3 ? '#ef4444' : trainingLoad.acwr < 0.7 ? '#eab308' : '#a3e635' }}>
+                      {trainingLoad.acwr.toFixed(2)}
+                    </div>
+                    <div className="text-xs text-white/30">ratio</div>
+                  </div>
+                )}
+              </div>
+              <div className={`text-sm font-bold ${trainingLoad.color}`}>{trainingLoad.status}</div>
+              {trainingLoad.acwr !== null && (
+                <div className="mt-1 text-xs text-white/30">
+                  ACWR entre 0.8–1.3 = zona segura de treinamento
+                </div>
+              )}
+            </div>
+          )}
 
         </section>
       )}
