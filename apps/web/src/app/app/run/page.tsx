@@ -2,12 +2,23 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, Pause, Square, MapPin, Activity, ArrowLeft, Heart } from 'lucide-react';
+import { Play, Pause, Square, MapPin, Activity, ArrowLeft, Heart, Zap, Trophy, Flame, Star } from 'lucide-react';
 import Link from 'next/link';
-import { api, tokens } from '@/lib/api';
+import { tokens } from '@/lib/api';
 import { haversine, formatPace, formatDuration, formatDistance } from '@/lib/geo';
 import { useHeartRate } from '@/lib/useHeartRate';
 import { useAudioCoach } from '@/lib/useAudioCoach';
+
+interface RunResult {
+  id: string;
+  xpGained: number;
+  coinsGained: number;
+  streakDays: number;
+  streakMultiplier: number;
+  newBadges: { name: string; emoji: string; description: string }[];
+  newTerritories: number;
+  newLevel?: number;
+}
 
 const RunMap = dynamic(() => import('@/components/RunMap').then(m => m.RunMap), {
   ssr: false,
@@ -19,6 +30,7 @@ type Point = [number, number];
 export default function RunTrackingPage() {
   const router = useRouter();
   const [state, setState] = useState<'idle' | 'tracking' | 'paused' | 'done'>('idle');
+  const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [points, setPoints] = useState<Point[]>([]);
   const [current, setCurrent] = useState<Point | null>(null);
   const [distance, setDistance] = useState(0); // meters
@@ -106,7 +118,7 @@ export default function RunTrackingPage() {
     const endedISO = new Date(startedAt!.getTime() + duration * 1000).toISOString();
     const pace = distRef.current > 0 ? Math.round((duration * 1000) / distRef.current) : 0;
     try {
-      const run = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs`, {
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -125,10 +137,18 @@ export default function RunTrackingPage() {
           source: 'GPS',
           opId: `run-${Date.now()}`,
         }),
-      }).then(r => r.json());
-      router.replace(`/app/runs/${run.id}`);
+      });
+      if (!resp.ok) {
+        const err = await resp.text();
+        throw new Error(`API ${resp.status}: ${err}`);
+      }
+      const run = await resp.json();
+      if (!run?.id) throw new Error('Resposta inválida da API');
+      setRunResult(run);
+      // Will navigate to detail when user dismisses rewards modal
     } catch (e: any) {
-      alert('Erro ao salvar: ' + e.message);
+      setState('paused');
+      alert('Erro ao salvar corrida: ' + e.message);
     }
   };
 
@@ -228,6 +248,81 @@ export default function RunTrackingPage() {
           </p>
         )}
       </section>
+
+      {/* Post-run Rewards Modal */}
+      {runResult && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+          <div className="bg-rq-night border border-white/10 rounded-3xl w-full max-w-sm p-6 space-y-4 shadow-2xl">
+            <div className="text-center">
+              <div className="text-5xl mb-2">🏃‍♂️</div>
+              <h2 className="font-display text-2xl font-black text-white">Corrida concluída!</h2>
+              {runResult.newLevel && (
+                <div className="mt-2 bg-rq-lime/20 border border-rq-lime/40 rounded-xl px-4 py-2">
+                  <span className="text-rq-lime font-bold">🎉 Subiu para nível {runResult.newLevel}!</span>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="glass p-3 text-center">
+                <Zap className="w-4 h-4 text-rq-lime mx-auto mb-1" />
+                <div className="font-display text-xl font-black text-rq-lime">+{runResult.xpGained}</div>
+                <div className="text-xs text-white/50">XP ganho</div>
+                {runResult.streakMultiplier > 1 && (
+                  <div className="text-xs text-rq-orange mt-0.5">{runResult.streakMultiplier.toFixed(2)}x bônus</div>
+                )}
+              </div>
+              <div className="glass p-3 text-center">
+                <Star className="w-4 h-4 text-yellow-400 mx-auto mb-1" />
+                <div className="font-display text-xl font-black text-yellow-400">+{runResult.coinsGained}</div>
+                <div className="text-xs text-white/50">RunCoins</div>
+              </div>
+              {runResult.streakDays > 0 && (
+                <div className="glass p-3 text-center">
+                  <Flame className="w-4 h-4 text-rq-orange mx-auto mb-1" />
+                  <div className="font-display text-xl font-black text-rq-orange">{runResult.streakDays}</div>
+                  <div className="text-xs text-white/50">dias seguidos</div>
+                </div>
+              )}
+              {runResult.newTerritories > 0 && (
+                <div className="glass p-3 text-center">
+                  <MapPin className="w-4 h-4 text-rq-violet mx-auto mb-1" />
+                  <div className="font-display text-xl font-black text-rq-violet">+{runResult.newTerritories}</div>
+                  <div className="text-xs text-white/50">territórios</div>
+                </div>
+              )}
+            </div>
+
+            {runResult.newBadges?.length > 0 && (
+              <div className="glass p-3">
+                <div className="text-xs text-white/50 mb-2 uppercase tracking-wider">Conquistas desbloqueadas!</div>
+                <div className="space-y-1.5">
+                  {runResult.newBadges.map((b, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-xl">{b.emoji}</span>
+                      <div>
+                        <div className="font-bold text-sm">{b.name}</div>
+                        <div className="text-xs text-white/50">{b.description}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button onClick={() => router.replace('/app')}
+                className="flex-1 btn-ghost py-3 text-sm">
+                Início
+              </button>
+              <button onClick={() => router.replace(`/app/runs/${runResult.id}`)}
+                className="flex-1 btn-primary py-3 text-sm">
+                <Trophy className="w-4 h-4" /> Ver corrida
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
