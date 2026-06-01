@@ -164,7 +164,11 @@ export default function RunTrackingPage() {
   };
 
   const pace = distance > 0 ? Math.round((duration * 1000) / distance) : 0;
-  const calories = Math.round(distance / 1000 * 70 * 1.036);
+  const weightKg = (() => {
+    try { const s = JSON.parse(localStorage.getItem('rq.settings') ?? '{}'); return s.weightKg || 70; }
+    catch { return 70; }
+  })();
+  const calories = Math.round(distance / 1000 * weightKg * 1.036);
   const paceStatus: 'fast' | 'slow' | 'on' | 'none' = targetPace > 0 && pace > 0
     ? pace < targetPace * 0.97 ? 'fast'
     : pace > targetPace * 1.03 ? 'slow'

@@ -80,6 +80,12 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
   const dateStr = date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
   const timeStr = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
+  // User weight for calorie calculation
+  const weightKg = (() => {
+    try { const s = JSON.parse(localStorage.getItem('rq.settings') ?? '{}'); return s.weightKg || 70; }
+    catch { return 70; }
+  })();
+
   // Splits per km (calculados das coordenadas reais)
   const rawSplits = computeSplits(run.pointsGeoJson?.coordinates ?? [], run.durationSec);
   const splits = rawSplits.length > 0 ? rawSplits : (() => {
@@ -162,7 +168,7 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
           <div className="glass p-4">
             <Flame className="w-4 h-4 text-rq-orange mb-1" />
             <div className="font-display text-xl font-black">
-              {Math.round(run.distanceMeters / 1000 * 70 * 1.036)}
+              {Math.round(run.distanceMeters / 1000 * weightKg * 1.036)}
             </div>
             <div className="text-xs text-white/50">kcal est.</div>
           </div>

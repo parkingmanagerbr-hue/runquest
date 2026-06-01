@@ -107,6 +107,34 @@ export default function StatsPage() {
   const totalDuration = runs.reduce((a, r) => a + r.durationSec, 0);
   const totalCal = Math.round(totalKm * 70 * 1.036);
 
+  // Activity heatmap: last 52 weeks × 7 days
+  const heatmap = useMemo(() => {
+    const runMap = new Map<string, number>(); // date -> km
+    for (const r of runs) {
+      const key = new Date(r.startedAt).toISOString().slice(0, 10);
+      runMap.set(key, (runMap.get(key) ?? 0) + r.distanceMeters / 1000);
+    }
+    const today = new Date();
+    // Start from Sunday 52 weeks ago
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - today.getDay() - 52 * 7);
+
+    const weeks: { date: string; km: number }[][] = [];
+    let current = new Date(startDate);
+    while (current <= today) {
+      const week: { date: string; km: number }[] = [];
+      for (let d = 0; d < 7; d++) {
+        const key = current.toISOString().slice(0, 10);
+        week.push({ date: key, km: runMap.get(key) ?? 0 });
+        current.setDate(current.getDate() + 1);
+      }
+      weeks.push(week);
+    }
+    return weeks;
+  }, [runs]);
+
+  const maxHeatKm = Math.max(...heatmap.flatMap(w => w.map(d => d.km)), 1);
+
   const maxMonthKm = Math.max(...monthlyData.map(m => m.km), 1);
   const maxWeekdayKm = Math.max(...byWeekday.map(d => d.km), 1);
   const maxPace = Math.max(...paceProgression.map(p => p.pace), 1);
@@ -181,6 +209,48 @@ export default function StatsPage() {
               ))}
             </div>
           </div>
+
+          {/* Activity heatmap */}
+          {heatmap.length > 0 && (
+            <div className="glass p-5">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-4 flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5" /> Atividade — últimas 52 semanas
+              </h2>
+              <div className="overflow-x-auto">
+                <div className="flex gap-[3px]" style={{ minWidth: `${heatmap.length * 11}px` }}>
+                  {heatmap.map((week, wi) => (
+                    <div key={wi} className="flex flex-col gap-[3px]">
+                      {week.map((day, di) => {
+                        const intensity = day.km > 0 ? Math.min(1, day.km / (maxHeatKm * 0.7)) : 0;
+                        const alpha = intensity > 0 ? 0.2 + intensity * 0.8 : 0;
+                        const isToday = day.date === new Date().toISOString().slice(0, 10);
+                        return (
+                          <div
+                            key={di}
+                            className="w-[9px] h-[9px] rounded-[2px]"
+                            title={day.km > 0 ? `${day.date}: ${day.km.toFixed(1)}km` : day.date}
+                            style={{
+                              background: day.km > 0
+                                ? `rgba(163,230,53,${alpha})`
+                                : 'rgba(255,255,255,0.04)',
+                              border: isToday ? '1px solid rgba(163,230,53,0.8)' : undefined,
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 mt-3 text-[10px] text-white/30">
+                <span>menos</span>
+                {[0.1, 0.3, 0.5, 0.7, 1].map((a, i) => (
+                  <div key={i} className="w-[9px] h-[9px] rounded-[2px]" style={{ background: `rgba(163,230,53,${a * 0.9})` }} />
+                ))}
+                <span>mais km</span>
+              </div>
+            </div>
+          )}
 
           {/* Pace progression + weekday heatmap */}
           <div className="grid sm:grid-cols-2 gap-4">
