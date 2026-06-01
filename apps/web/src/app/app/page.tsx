@@ -28,6 +28,7 @@ export default function AppDashboard() {
   const [week, setWeek] = useState<WeekStats | null>(null);
   const [todayWorkout, setTodayWorkout] = useState<{ label: string; distanceM?: number; durationSec?: number; workoutId?: string; planName: string } | null>(null);
   const [recentRuns, setRecentRuns] = useState<{ id: string; startedAt: string; distanceMeters: number; durationSec: number; avgPaceSecPerKm: number }[]>([]);
+  const [missions, setMissions] = useState<{ id: string; title: string; description: string; type: string; progress: number; target: number; claimed: boolean; completed: boolean; xpReward: number; coinReward: number }[]>([]);
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
@@ -40,6 +41,8 @@ export default function AppDashboard() {
       .then(r => r.ok ? r.json() : null).then(d => d && setTodayWorkout(d)).catch(() => {});
     fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs?limit=3`, h)
       .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setRecentRuns(d)).catch(() => {});
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/missions`, h)
+      .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setMissions(d.filter((m: any) => !m.claimed).slice(0, 3))).catch(() => {});
     // Lê ?strava=connected da URL pós-callback
     const params = new URLSearchParams(window.location.search);
     if (params.get('strava')) {
@@ -352,6 +355,41 @@ export default function AppDashboard() {
                       <div className="tabular-nums text-white/50 text-xs">{Math.floor(r.avgPaceSecPerKm / 60)}:{String(r.avgPaceSecPerKm % 60).padStart(2, '0')}/km</div>
                     </div>
                   </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Active missions preview */}
+        {missions.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-white/50 flex items-center gap-1.5">
+                <Trophy className="w-3.5 h-3.5 text-rq-gold" /> Missões ativas
+              </h2>
+              <Link href="/app/missions" className="text-xs text-rq-lime hover:underline">Ver todas →</Link>
+            </div>
+            <div className="space-y-2">
+              {missions.map(m => {
+                const pct = Math.min(100, (m.progress / m.target) * 100);
+                const done = m.progress >= m.target;
+                return (
+                  <div key={m.id} className={`glass p-3 ${done ? 'border-rq-gold/40 bg-rq-gold/5' : ''}`}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-bold">{m.title}</span>
+                      <span className="text-xs text-white/40 tabular-nums">{m.progress}/{m.target}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, background: done ? 'var(--rq-gold, #f5c842)' : 'linear-gradient(to right, #a3e635, #34d399)' }} />
+                    </div>
+                    {done && (
+                      <div className="mt-1.5 text-xs text-rq-gold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Pronto para resgatar! → <Link href="/app/missions" className="underline">Resgatar</Link>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>

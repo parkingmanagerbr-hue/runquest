@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Activity, Clock, TrendingUp, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Activity, Clock, TrendingUp, ChevronRight, MapPin } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace } from '@/lib/geo';
 
@@ -15,6 +15,8 @@ interface Run {
   source: string;
 }
 
+const MONTH_LABELS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
 export default function HistoryPage() {
   const router = useRouter();
   const [runs, setRuns] = useState<Run[]>([]);
@@ -25,12 +27,48 @@ export default function HistoryPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs?limit=100`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
     })
-      .then(r => r.json()).then(setRuns)
+      .then(r => r.json()).then(d => setRuns(Array.isArray(d) ? d : []))
       .finally(() => setLoading(false));
   }, [router]);
 
   const totalKm = runs.reduce((a, r) => a + r.distanceMeters / 1000, 0);
   const totalDuration = runs.reduce((a, r) => a + r.durationSec, 0);
+  const avgPace = runs.length > 0
+    ? Math.round(runs.reduce((a, r) => a + r.avgPaceSecPerKm, 0) / runs.length)
+    : 0;
+
+  // Group runs by month
+  const byMonth = useMemo(() => {
+    const map = new Map<string, Run[]>();
+    for (const r of runs) {
+      const d = new Date(r.startedAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(r);
+    }
+    // Sort descending
+    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [runs]);
+
+  // Monthly volume for sparkline (last 6 months)
+  const monthlyKm = useMemo(() => {
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const monthRuns = runs.filter(r => {
+        const rd = new Date(r.startedAt);
+        return rd.getFullYear() === d.getFullYear() && rd.getMonth() === d.getMonth();
+      });
+      return {
+        label: MONTH_LABELS[d.getMonth()],
+        km: monthRuns.reduce((a, r) => a + r.distanceMeters / 1000, 0),
+        count: monthRuns.length,
+      };
+    });
+  }, [runs]);
+
+  const maxKm = Math.max(...monthlyKm.map(m => m.km), 1);
 
   return (
     <main className="min-h-screen bg-rq-aurora">
@@ -41,27 +79,50 @@ export default function HistoryPage() {
         </div>
       </header>
 
-      <section className="max-w-5xl mx-auto px-6 py-8">
-        {/* Resumo */}
-        <div className="grid sm:grid-cols-3 gap-4 mb-8">
-          <div className="glass p-5">
+      <section className="max-w-5xl mx-auto px-6 py-6 space-y-5">
+        {/* Summary stats */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="glass p-4">
             <Activity className="w-4 h-4 text-rq-lime mb-1" />
-            <div className="font-display text-3xl font-black">{runs.length}</div>
+            <div className="font-display text-2xl font-black">{runs.length}</div>
             <div className="text-xs text-white/50">corridas</div>
           </div>
-          <div className="glass p-5">
+          <div className="glass p-4">
             <TrendingUp className="w-4 h-4 text-rq-lime mb-1" />
-            <div className="font-display text-3xl font-black">{totalKm.toFixed(1)}</div>
+            <div className="font-display text-2xl font-black">{totalKm.toFixed(1)}</div>
             <div className="text-xs text-white/50">km totais</div>
           </div>
-          <div className="glass p-5">
+          <div className="glass p-4">
             <Clock className="w-4 h-4 text-rq-lime mb-1" />
-            <div className="font-display text-3xl font-black tabular-nums">{formatDuration(totalDuration)}</div>
+            <div className="font-display text-lg font-black tabular-nums">{formatDuration(totalDuration)}</div>
             <div className="text-xs text-white/50">tempo total</div>
           </div>
         </div>
 
-        {/* Lista */}
+        {/* Monthly volume chart */}
+        {runs.length > 0 && (
+          <div className="glass p-5">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-4">Volume mensal (km)</h2>
+            <div className="flex items-end gap-2 h-24">
+              {monthlyKm.map((m, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="text-[9px] text-white/50 tabular-nums">{m.km > 0 ? m.km.toFixed(0) : ''}</div>
+                  <div className="w-full rounded-t-sm transition-all"
+                    style={{
+                      height: `${(m.km / maxKm) * 64}px`,
+                      minHeight: m.km > 0 ? '4px' : '0',
+                      background: i === monthlyKm.length - 1
+                        ? 'linear-gradient(to top, #a3e635, #34d399)'
+                        : 'rgba(255,255,255,0.15)',
+                    }} />
+                  <div className="text-[9px] text-white/40">{m.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Runs grouped by month */}
         {loading ? (
           <div className="text-white/60">Carregando…</div>
         ) : runs.length === 0 ? (
@@ -72,29 +133,49 @@ export default function HistoryPage() {
             <Link href="/app/run" className="btn-primary inline-flex">Iniciar corrida</Link>
           </div>
         ) : (
-          <div className="space-y-2">
-            {runs.map((r) => {
-              const d = new Date(r.startedAt);
+          <div className="space-y-5">
+            {byMonth.map(([key, monthRuns]) => {
+              const [year, month] = key.split('-');
+              const monthKm = monthRuns.reduce((a, r) => a + r.distanceMeters / 1000, 0);
+              const monthLabel = `${MONTH_LABELS[parseInt(month) - 1]} ${year}`;
               return (
-                <Link key={r.id} href={`/app/runs/${r.id}`}
-                  className="glass p-4 flex items-center gap-4 hover:border-rq-lime/30 transition">
-                  <div className="text-center w-14 shrink-0">
-                    <div className="text-xs text-white/40 uppercase">{d.toLocaleString('pt-BR', { month: 'short' })}</div>
-                    <div className="font-display text-2xl font-black leading-none">{d.getDate()}</div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-bold capitalize truncate">
-                      {d.toLocaleDateString('pt-BR', { weekday: 'long' })} · {d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                    <div className="flex gap-4 text-xs text-white/60 mt-1">
-                      <span>{formatDistance(r.distanceMeters)} km</span>
-                      <span>{formatDuration(r.durationSec)}</span>
-                      <span>{formatPace(r.avgPaceSecPerKm)}/km</span>
-                      {r.source !== 'GPS' && <span className="text-rq-orange">{r.source}</span>}
+                <div key={key}>
+                  {/* Month header */}
+                  <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-white/50">{monthLabel}</h2>
+                    <div className="flex gap-3 text-xs text-white/40">
+                      <span>{monthRuns.length} corrida{monthRuns.length !== 1 ? 's' : ''}</span>
+                      <span>{monthKm.toFixed(1)} km</span>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-white/40" />
-                </Link>
+
+                  <div className="space-y-2">
+                    {monthRuns.map((r) => {
+                      const d = new Date(r.startedAt);
+                      return (
+                        <Link key={r.id} href={`/app/runs/${r.id}`}
+                          className="glass p-4 flex items-center gap-4 hover:border-rq-lime/30 transition">
+                          <div className="text-center w-10 shrink-0">
+                            <div className="text-xs text-white/40">{MONTH_LABELS[d.getMonth()]}</div>
+                            <div className="font-display text-xl font-black leading-none">{d.getDate()}</div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-sm capitalize truncate">
+                              {d.toLocaleDateString('pt-BR', { weekday: 'long' })} · {d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                            <div className="flex flex-wrap gap-3 text-xs text-white/60 mt-1">
+                              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{formatDistance(r.distanceMeters)} km</span>
+                              <span>{formatDuration(r.durationSec)}</span>
+                              <span className="text-rq-lime font-mono">{formatPace(r.avgPaceSecPerKm)}/km</span>
+                              {r.source !== 'GPS' && <span className="text-rq-orange">{r.source}</span>}
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-white/40 shrink-0" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
           </div>

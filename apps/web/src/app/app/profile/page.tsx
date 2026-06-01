@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, Sparkles, Coins, Heart, Award, Calendar, Activity, Flame, Zap } from 'lucide-react';
+import { ArrowLeft, Trophy, Sparkles, Coins, Heart, Award, Calendar, Activity, Flame, Zap, Timer } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace } from '@/lib/geo';
 
@@ -20,6 +20,19 @@ interface Me {
 interface Badge { id: string; code: string; title: string; description: string; icon: string; tier: string; unlocked: boolean; }
 
 function nextLevelXp(level: number) { return Math.round(100 * Math.pow(level, 1.5)); }
+
+/** Riegel formula: T2 = T1 × (D2/D1)^1.06 */
+function riegelPredict(refDistM: number, refDurSec: number, targetDistM: number): number {
+  return refDurSec * Math.pow(targetDistM / refDistM, 1.06);
+}
+
+function fmtTime(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.round(sec % 60);
+  if (h > 0) return `${h}h${String(m).padStart(2, '0')}min`;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
 function levelXpRange(level: number) {
   return { start: level === 1 ? 0 : nextLevelXp(level - 1), end: nextLevelXp(level) };
 }
@@ -157,6 +170,43 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        {/* Race Predictor — Riegel formula */}
+        {prs.some(p => p.best) && (() => {
+          // Find best reference PR (shortest distance with a result = most accurate)
+          const ref = prs.find(p => p.best) ?? null;
+          if (!ref?.best) return null;
+          const refDist = ref.best.distanceMeters;
+          const refDur = ref.best.durationSec;
+          const predictions = [
+            { label: '5K', dist: 5000 },
+            { label: '10K', dist: 10000 },
+            { label: 'Meia', dist: 21097 },
+            { label: 'Maratona', dist: 42195 },
+          ].filter(p => Math.abs(p.dist - refDist) > p.dist * 0.2); // exclude the reference distance
+
+          return (
+            <div className="glass p-5">
+              <h2 className="font-bold text-sm uppercase tracking-wider text-white/60 flex items-center gap-2 mb-1">
+                <Timer className="w-4 h-4 text-rq-violet" /> Predição de Provas
+              </h2>
+              <p className="text-xs text-white/30 mb-4">Baseado no seu {ref.label} usando fórmula de Riegel</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {predictions.map(p => {
+                  const predSec = riegelPredict(refDist, refDur, p.dist);
+                  const predPace = Math.round(predSec / (p.dist / 1000));
+                  return (
+                    <div key={p.label} className="rounded-xl p-3 bg-gradient-to-br from-rq-violet/10 to-transparent border border-rq-violet/20">
+                      <div className="text-xs text-white/50 mb-1">{p.label}</div>
+                      <div className="font-display text-lg font-black text-rq-violet tabular-nums">{fmtTime(predSec)}</div>
+                      <div className="text-xs text-white/40 tabular-nums">{Math.floor(predPace / 60)}:{String(predPace % 60).padStart(2, '0')}/km</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Daily login */}
         {daily && (
