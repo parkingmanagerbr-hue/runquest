@@ -1,6 +1,6 @@
 'use client';
 import dynamic from 'next/dynamic';
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles, Download, Flame, Gauge } from 'lucide-react';
@@ -23,8 +23,8 @@ interface Run {
   stravaUploadId?: string | null;
 }
 
-export default function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function RunDetailPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const router = useRouter();
   const [run, setRun] = useState<Run | null>(null);
   const [loading, setLoading] = useState(true);

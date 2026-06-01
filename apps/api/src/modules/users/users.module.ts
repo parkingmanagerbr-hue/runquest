@@ -13,15 +13,28 @@ export class UsersController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async me(@CurrentUser() user: RequestUser) {
-    return this.prisma.user.findUnique({
-      where: { id: user.id },
-      select: {
-        id: true, email: true, displayName: true, avatarUrl: true,
-        isPremium: true, premiumUntil: true, isOwner: true,
-        xp: true, level: true, runCoins: true, streakDays: true, lastRunAt: true,
-        createdAt: true,
-      },
-    });
+    const [u, agg] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: user.id },
+        select: {
+          id: true, email: true, displayName: true, avatarUrl: true,
+          isPremium: true, premiumUntil: true, isOwner: true,
+          xp: true, level: true, runCoins: true, streakDays: true,
+          longestStreak: true, lastRunAt: true, createdAt: true,
+          selectedAvatar: true, selectedTerritoryColor: true,
+        },
+      }),
+      this.prisma.run.aggregate({
+        where: { userId: user.id },
+        _count: { id: true },
+        _sum: { distanceMeters: true },
+      }),
+    ]);
+    return {
+      ...u,
+      totalRuns: agg._count.id,
+      totalDistanceM: agg._sum.distanceMeters ?? 0,
+    };
   }
 }
 

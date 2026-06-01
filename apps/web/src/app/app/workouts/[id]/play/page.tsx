@@ -1,5 +1,5 @@
 'use client';
-import { use, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Play, Pause, SkipForward, X } from 'lucide-react';
@@ -66,8 +66,8 @@ function speak(text: string) {
   } catch {}
 }
 
-export default function WorkoutPlayerPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function WorkoutPlayerPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const router = useRouter();
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [steps, setSteps] = useState<{ kind: string; durationSec: number; label: string }[]>([]);
