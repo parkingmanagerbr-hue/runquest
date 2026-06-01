@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
 import Link from 'next/link';
-import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog } from 'lucide-react';
+import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch } from 'lucide-react';
 
 export default function AppDashboard() {
   const router = useRouter();
@@ -83,15 +83,39 @@ export default function AppDashboard() {
 
       <section className="max-w-5xl mx-auto p-6">
         <h1 className="font-display text-3xl font-black mb-2">Olá, {me.displayName.split(' ')[0]}.</h1>
-        <p className="text-white/60">Sua jornada começa aqui. Em breve: GPS tracking, missões, territórios.</p>
+        <p className="text-white/60">
+          {me.streakDays && me.streakDays > 0
+            ? `🔥 ${me.streakDays} dias seguidos — continue assim!`
+            : 'Inicie sua primeira corrida e comece a conquistar territórios.'}
+        </p>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-6">
-          <Link href="/app/run" className="glass p-4 hover:border-rq-lime/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-lime to-rq-emerald flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <Play className="w-4 h-4 text-rq-ink" />
+        {/* Ação primária — destaque maior */}
+        <div className="grid grid-cols-2 gap-3 mt-6">
+          <Link href="/app/run"
+            className="glass p-5 hover:border-rq-lime/60 transition group border-rq-lime/30 bg-gradient-to-br from-rq-lime/10 to-transparent">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-rq-lime to-rq-emerald flex items-center justify-center mb-3 group-hover:scale-110 transition">
+              <Play className="w-5 h-5 text-rq-ink" />
             </div>
-            <h3 className="font-bold text-sm">Correr</h3>
-            <p className="text-xs text-white/50">GPS ao vivo</p>
+            <h3 className="font-bold">Iniciar corrida</h3>
+            <p className="text-xs text-white/50 mt-0.5">GPS ao vivo · mapa em tempo real</p>
+          </Link>
+          <Link href="/app/history"
+            className="glass p-5 hover:border-rq-orange/40 transition group">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-rq-orange to-amber-500 flex items-center justify-center mb-3 group-hover:scale-110 transition">
+              <History className="w-5 h-5 text-rq-ink" />
+            </div>
+            <h3 className="font-bold">Minhas corridas</h3>
+            <p className="text-xs text-white/50 mt-0.5">Ver mapa + splits de cada corrida</p>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3">
+          <Link href="/app/devices" className="glass p-4 hover:border-rq-violet/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-violet to-blue-600 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <Watch className="w-4 h-4 text-white" />
+            </div>
+            <h3 className="font-bold text-sm">Relógio</h3>
+            <p className="text-xs text-white/50">Amazfit · Garmin</p>
           </Link>
           <Link href="/app/workouts" className="glass p-4 hover:border-rq-violet/40 transition group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-violet to-purple-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
@@ -148,13 +172,6 @@ export default function AppDashboard() {
             </div>
             <h3 className="font-bold text-sm">Perfil</h3>
             <p className="text-xs text-white/50">XP + badges</p>
-          </Link>
-          <Link href="/app/history" className="glass p-4 hover:border-rq-orange/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-orange to-amber-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <History className="w-4 h-4 text-rq-ink" />
-            </div>
-            <h3 className="font-bold text-sm">Histórico</h3>
-            <p className="text-xs text-white/50">Corridas</p>
           </Link>
           <Link href="/app/goals" className="glass p-4 hover:border-rq-lime/40 transition group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-400 to-rq-lime flex items-center justify-center mb-2 group-hover:scale-110 transition">

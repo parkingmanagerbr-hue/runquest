@@ -29,7 +29,11 @@ export const api = {
     request<{ accessToken: string; refreshToken: string }>(
       '/auth/login', { method: 'POST', body: JSON.stringify(data), auth: false },
     ),
-  me: () => request<{ id: string; email: string; displayName: string; isPremium: boolean }>('/users/me'),
+  me: () => request<{
+    id: string; email: string; displayName: string; isPremium: boolean;
+    isOwner?: boolean; xp?: number; level?: number; runCoins?: number;
+    streakDays?: number; lastRunAt?: string | null; premiumUntil?: string | null;
+  }>('/users/me'),
   refresh: (refreshToken: string) =>
     request<{ accessToken: string; refreshToken: string }>(
       '/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }), auth: false },
