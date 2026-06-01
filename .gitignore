@@ -15,5 +15,5 @@ coverage
 .vscode
 *.tsbuildinfo
 prisma/dev.db*
-apps/web/public/sw.js
+
 apps/web/public/workbox-*.js
