@@ -1,8 +1,10 @@
 import {
-  Body, Controller, Get, Module, Post, Query, UseGuards,
+  Body, Controller, Get, Module, Param, Post, Query, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsInt, IsISO8601, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { ConfigService } from '@nestjs/config';
+import Anthropic from '@anthropic-ai/sdk';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -33,6 +35,7 @@ export class RunsController {
     private readonly territories: TerritoryService,
     private readonly badges: BadgeUnlockService,
     private readonly goals: GoalProgressService,
+    private readonly cfg: ConfigService,
   ) {}
 
   @Post()
@@ -143,6 +146,53 @@ export class RunsController {
       orderBy: { startedAt: 'desc' },
       take: Math.min(Number(limit) || 30, 100),
     });
+  }
+
+  /** POST /runs/:id/analyze — AI post-run coaching analysis (Premium) */
+  @Post(':id/analyze')
+  async analyze(@CurrentUser() user: RequestUser, @Param('id') runId: string) {
+    const u = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { isPremium: true, isOwner: true, level: true, streakDays: true },
+    });
+    const apiKey = this.cfg.get<string>('ANTHROPIC_API_KEY');
+    if (!apiKey || (!u?.isPremium && !u?.isOwner)) {
+      return { analysis: null, premium: false };
+    }
+
+    const run = await this.prisma.run.findFirst({ where: { id: runId, userId: user.id } });
+    if (!run) return { error: 'NOT_FOUND' };
+
+    const recentRuns = await this.prisma.run.findMany({
+      where: { userId: user.id, id: { not: runId } },
+      orderBy: { startedAt: 'desc' },
+      take: 5,
+      select: { distanceMeters: true, durationSec: true, avgPaceSecPerKm: true },
+    });
+
+    const avgPaceStr = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    const recentSummary = recentRuns.length > 0
+      ? recentRuns.map(r => `${(r.distanceMeters / 1000).toFixed(1)}km @ ${avgPaceStr(r.avgPaceSecPerKm)}/km`).join(', ')
+      : 'first run';
+
+    const client = new Anthropic({ apiKey });
+    const msg = await client.messages.create({
+      model: 'claude-haiku-4-5',
+      max_tokens: 512,
+      messages: [{
+        role: 'user',
+        content: `You are a running coach. Analyze this run and give short, practical feedback in Brazilian Portuguese (2-3 sentences max):
+
+This run: ${(run.distanceMeters / 1000).toFixed(2)}km, time ${Math.floor(run.durationSec / 60)}min ${run.durationSec % 60}s, pace ${avgPaceStr(run.avgPaceSecPerKm)}/km
+Recent runs: ${recentSummary}
+Runner level: ${u.level}, streak: ${u.streakDays} days
+
+Give encouraging, specific coaching feedback comparing this run to recent ones. Include 1 improvement tip. Keep under 60 words. Use emoji.`
+      }],
+    });
+
+    const text = (msg.content[0] as any).text as string;
+    return { analysis: text, premium: true };
   }
 }
 

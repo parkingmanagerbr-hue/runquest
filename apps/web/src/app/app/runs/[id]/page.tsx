@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Trash2, Upload } from 'lucide-react';
+import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace, computeSplits } from '@/lib/geo';
 import { Share2 } from 'lucide-react';
@@ -28,6 +28,8 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
   const router = useRouter();
   const [run, setRun] = useState<Run | null>(null);
   const [loading, setLoading] = useState(true);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
@@ -41,6 +43,19 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
       })
       .finally(() => setLoading(false));
   }, [id, router]);
+
+  const analyzeRun = async () => {
+    setAnalyzing(true);
+    try {
+      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/${id}/analyze`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
+      }).then(r => r.json());
+      if (r.analysis) setAnalysis(r.analysis);
+      else if (!r.premium) setAnalysis('💎 Análise IA disponível para assinantes Premium');
+    } catch (e: any) { setAnalysis('Erro: ' + e.message); }
+    setAnalyzing(false);
+  };
 
   const exportStrava = async () => {
     try {
@@ -134,6 +149,24 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
             <div className="font-display text-2xl font-black">{positions.length}</div>
             <div className="text-xs text-white/50">pontos GPS</div>
           </div>
+        </div>
+
+        {/* AI Coach Analysis */}
+        <div className="glass p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-sm uppercase tracking-wider text-white/60 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-rq-lime" /> Análise do Coach IA
+            </h2>
+            {!analysis && (
+              <button onClick={analyzeRun} disabled={analyzing}
+                className="btn-primary text-xs py-1.5 px-3 disabled:opacity-50">
+                {analyzing ? '✨ Analisando…' : '✨ Analisar'}
+              </button>
+            )}
+          </div>
+          {analysis
+            ? <p className="text-sm text-white/80 leading-relaxed">{analysis}</p>
+            : <p className="text-sm text-white/40">Toque em Analisar para receber feedback personalizado do seu coach IA.</p>}
         </div>
 
         {splits.length > 0 && (
