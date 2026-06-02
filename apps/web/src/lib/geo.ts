@@ -31,6 +31,12 @@ export function formatDistance(m: number): string {
   return (m / 1000).toFixed(2);
 }
 
+/** Convert GPS speed (m/s) to pace (sec/km) */
+export function speedToPace(speedMs: number): number {
+  if (speedMs <= 0.1) return 0;
+  return Math.round(1000 / speedMs);
+}
+
 /** Pace por km a partir de coordenadas [lng,lat] + duração total. */
 export function computeSplits(coordinates: number[][], totalDurationSec: number) {
   if (!coordinates || coordinates.length < 2) return [] as { km: number; paceSecPerKm: number }[];

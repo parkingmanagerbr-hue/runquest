@@ -23,6 +23,9 @@ class CreateRunDto {
   @IsOptional() pointsGeoJson?: unknown;
   @IsOptional() @IsString() opId?: string;
   @IsOptional() @IsString() source?: 'GPS' | 'MANUAL';
+  @IsOptional() @IsNumber() elevationGainM?: number;
+  @IsOptional() @IsNumber() elevationLossM?: number;
+  @IsOptional() @IsNumber() avgSpeedKmh?: number;
 }
 
 @ApiTags('runs')
@@ -56,6 +59,9 @@ export class RunsController {
         pointsGeoJson: (dto.pointsGeoJson ?? {}) as any,
         source: dto.source ?? 'GPS',
         opId: dto.opId,
+        elevationGainM: dto.elevationGainM,
+        elevationLossM: dto.elevationLossM,
+        avgSpeedKmh: dto.avgSpeedKmh,
       },
     });
 

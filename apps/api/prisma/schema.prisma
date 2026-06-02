@@ -175,6 +175,9 @@ model Run {
   distanceMeters  Float
   durationSec     Int
   avgPaceSecPerKm Int
+  elevationGainM    Float?
+  elevationLossM    Float?
+  avgSpeedKmh       Float?
   pointsGeoJson   Json
   source          String   @default("GPS")
   opId            String?  @unique

@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles, Download, Flame, Gauge } from 'lucide-react';
+import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles, Download, Flame, Gauge, Mountain } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace, computeSplits } from '@/lib/geo';
 import { Share2 } from 'lucide-react';
@@ -21,6 +21,9 @@ interface Run {
   source: string;
   stravaActivityId?: string | null;
   stravaUploadId?: string | null;
+  elevationGainM?: number | null;
+  elevationLossM?: number | null;
+  avgSpeedKmh?: number | null;
 }
 
 export default function RunDetailPage({ params }: { params: { id: string } }) {
@@ -161,7 +164,7 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
           <div className="glass p-4">
             <Gauge className="w-4 h-4 text-rq-violet mb-1" />
             <div className="font-display text-xl font-black tabular-nums">
-              {(3600 / run.avgPaceSecPerKm).toFixed(1)}
+              {(() => { const displayKmh = run.avgSpeedKmh ?? parseFloat(((run.distanceMeters / run.durationSec) * 3.6).toFixed(1)); return displayKmh.toFixed(1); })()}
             </div>
             <div className="text-xs text-white/50">km/h</div>
           </div>
@@ -172,6 +175,18 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
             </div>
             <div className="text-xs text-white/50">kcal est.</div>
           </div>
+          {(run.elevationGainM || run.elevationLossM) && (
+            <div className="glass p-3 text-center">
+              <Mountain className="w-4 h-4 text-rq-lime mx-auto mb-0.5" />
+              <div className="font-display text-lg font-black text-rq-lime tabular-nums">
+                +{Math.round(run.elevationGainM ?? 0)}m
+              </div>
+              <div className="text-xs text-white/50">elevação</div>
+              {(run.elevationLossM ?? 0) > 0 && (
+                <div className="text-xs text-white/30">-{Math.round(run.elevationLossM!)}m</div>
+              )}
+            </div>
+          )}
           <div className="glass p-4">
             <MapPin className="w-4 h-4 text-rq-lime mb-1" />
             <div className="font-display text-xl font-black">{positions.length}</div>
