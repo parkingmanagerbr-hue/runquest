@@ -92,7 +92,11 @@ export class StravaHttpGateway implements StravaGateway {
     if (!r.ok) throw new Error(`Strava list failed: ${r.status} ${await r.text()}`);
     const data = await r.json() as any[];
     return data
-      .filter((a) => a.type === 'Run' || a.type === 'TrailRun' || a.type === 'VirtualRun')
+      .filter((a) => {
+        // Strava API v3: 'type' is deprecated since 2022, 'sport_type' is current
+        const t: string = a.sport_type ?? a.type ?? '';
+        return t === 'Run' || t === 'TrailRun' || t === 'VirtualRun';
+      })
       .map((a) => ({
         id: a.id,
         name: a.name,

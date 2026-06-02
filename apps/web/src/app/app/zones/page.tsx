@@ -168,11 +168,11 @@ export default function ZonesPage() {
 
         {loading && <div className="text-white/60 text-center py-10">Calculando zonas…</div>}
 
-        {!loading && runs.length < 3 && (
+        {!loading && runs.length === 0 && (
           <div className="glass p-8 text-center">
             <Heart className="w-10 h-10 mx-auto mb-3 text-rq-violet" />
-            <h2 className="font-bold text-lg mb-1">Poucas corridas ainda</h2>
-            <p className="text-white/60 text-sm mb-4">Complete pelo menos 3 corridas para ver suas zonas personalizadas.</p>
+            <h2 className="font-bold text-lg mb-1">Sem corridas ainda</h2>
+            <p className="text-white/60 text-sm mb-4">Complete pelo menos uma corrida de 2km+ para ver suas zonas personalizadas.</p>
             <Link href="/app/run" className="btn-primary inline-flex text-sm">Iniciar corrida</Link>
           </div>
         )}
@@ -204,7 +204,7 @@ export default function ZonesPage() {
             </div>
 
             {/* Distribution of your runs */}
-            {zoneDist.length > 0 && runs.length >= 3 && (
+            {zoneDist.length > 0 && runs.length >= 2 && (
               <div className="glass p-5">
                 <h2 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-4">Distribuição das suas corridas</h2>
                 <div className="space-y-3">
