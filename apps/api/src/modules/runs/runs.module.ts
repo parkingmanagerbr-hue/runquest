@@ -5,7 +5,7 @@ import type { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsInt, IsISO8601, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { ConfigService } from '@nestjs/config';
-import Anthropic from '@anthropic-ai/sdk';
+// AI provider: Gemini (multi-key rotation) replaces Anthropic
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -286,8 +286,21 @@ ${trkpts}
       where: { id: user.id },
       select: { isPremium: true, isOwner: true, level: true, streakDays: true },
     });
-    const apiKey = this.cfg.get<string>('ANTHROPIC_API_KEY');
-    if (!apiKey || (!u?.isPremium && !u?.isOwner)) {
+    if (!u?.isPremium && !u?.isOwner) {
+      return { analysis: null, premium: false };
+    }
+
+    // Collect Gemini keys (multi-key rotation)
+    const geminiKeys: string[] = [
+      this.cfg.get<string>('GEMINI_API_KEY') ?? '',
+      this.cfg.get<string>('GEMINI_API_KEY_2') ?? '',
+      this.cfg.get<string>('GEMINI_API_KEY_3') ?? '',
+      this.cfg.get<string>('GEMINI_API_KEY_4') ?? '',
+      this.cfg.get<string>('GEMINI_API_KEY_5') ?? '',
+      this.cfg.get<string>('GEMINI_API_KEY_6') ?? '',
+    ].filter(k => k.length > 0);
+
+    if (geminiKeys.length === 0) {
       return { analysis: null, premium: false };
     }
 
@@ -306,24 +319,37 @@ ${trkpts}
       ? recentRuns.map(r => `${(r.distanceMeters / 1000).toFixed(1)}km @ ${avgPaceStr(r.avgPaceSecPerKm)}/km`).join(', ')
       : 'first run';
 
-    const client = new Anthropic({ apiKey });
-    const msg = await client.messages.create({
-      model: 'claude-haiku-4-5',
-      max_tokens: 512,
-      messages: [{
-        role: 'user',
-        content: `You are a running coach. Analyze this run and give short, practical feedback in Brazilian Portuguese (2-3 sentences max):
+    const prompt = `Você é um treinador de corrida. Analise esta corrida e dê feedback curto e prático em português brasileiro (2-3 frases no máximo):
 
-This run: ${(run.distanceMeters / 1000).toFixed(2)}km, time ${Math.floor(run.durationSec / 60)}min ${run.durationSec % 60}s, pace ${avgPaceStr(run.avgPaceSecPerKm)}/km
-Recent runs: ${recentSummary}
-Runner level: ${u.level}, streak: ${u.streakDays} days
+Esta corrida: ${(run.distanceMeters / 1000).toFixed(2)}km, tempo ${Math.floor(run.durationSec / 60)}min ${run.durationSec % 60}s, pace ${avgPaceStr(run.avgPaceSecPerKm)}/km
+Corridas recentes: ${recentSummary}
+Nível do corredor: ${u.level}, sequência: ${u.streakDays} dias
 
-Give encouraging, specific coaching feedback comparing this run to recent ones. Include 1 improvement tip. Keep under 60 words. Use emoji.`
-      }],
-    });
+Dê feedback encorajador e específico comparando esta corrida com as recentes. Inclua 1 dica de melhoria. Máximo 60 palavras. Use emoji.`;
 
-    const text = (msg.content[0] as any).text as string;
-    return { analysis: text, premium: true };
+    // Try each Gemini key in rotation
+    for (const apiKey of geminiKeys) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+        const body = {
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 256, temperature: 0.7 },
+        };
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) continue;
+        const data: any = await res.json();
+        const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        if (text) return { analysis: text, premium: true };
+      } catch (_) {
+        continue;
+      }
+    }
+
+    return { analysis: null, premium: false };
   }
 }
 
