@@ -327,7 +327,7 @@ Nível do corredor: ${u.level}, sequência: ${u.streakDays} dias
 
 Dê feedback encorajador e específico comparando esta corrida com as recentes. Inclua 1 dica de melhoria. Máximo 60 palavras. Use emoji.`;
 
-    // Try each Gemini key in rotation
+    // 1) Try each Gemini key in rotation
     for (const apiKey of geminiKeys) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
@@ -343,6 +343,42 @@ Dê feedback encorajador e específico comparando esta corrida com as recentes. 
         if (!res.ok) continue;
         const data: any = await res.json();
         const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        if (text) return { analysis: text, premium: true };
+      } catch (_) {
+        continue;
+      }
+    }
+
+    // 2) Fallback: SambaNova (OpenAI-compatible, 8 keys, 3200 RPM)
+    const sambanovaKeys: string[] = [
+      this.cfg.get<string>('SAMBANOVA_API_KEY') ?? '',
+      this.cfg.get<string>('SAMBANOVA_API_KEY_2') ?? '',
+      this.cfg.get<string>('SAMBANOVA_API_KEY_3') ?? '',
+      this.cfg.get<string>('SAMBANOVA_API_KEY_4') ?? '',
+      this.cfg.get<string>('SAMBANOVA_API_KEY_5') ?? '',
+      this.cfg.get<string>('SAMBANOVA_API_KEY_6') ?? '',
+      this.cfg.get<string>('SAMBANOVA_API_KEY_7') ?? '',
+      this.cfg.get<string>('SAMBANOVA_API_KEY_8') ?? '',
+    ].filter(k => k.length > 0);
+
+    for (const apiKey of sambanovaKeys) {
+      try {
+        const res = await fetch('https://api.sambanova.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'Meta-Llama-3.3-70B-Instruct',
+            messages: [{ role: 'user', content: prompt }],
+            max_tokens: 256,
+            temperature: 0.7,
+          }),
+        });
+        if (!res.ok) continue;
+        const data: any = await res.json();
+        const text: string = data?.choices?.[0]?.message?.content ?? '';
         if (text) return { analysis: text, premium: true };
       } catch (_) {
         continue;
