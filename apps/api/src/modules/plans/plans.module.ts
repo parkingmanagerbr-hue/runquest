@@ -4,7 +4,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsString, IsInt, IsISO8601, IsOptional, IsArray, IsNumber, IsEnum, Min, Max } from 'class-validator';
 import { ConfigService } from '@nestjs/config';
-import Anthropic from '@anthropic-ai/sdk';
+// AI provider: Gemini + SambaNova multi-key fallback (no Anthropic SDK needed)
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -30,12 +30,65 @@ class AiGeneratePlanDto {
   @IsOptional() @IsString() notes?: string;
 }
 
+class CoachMessageDto {
+  @IsEnum(['user', 'assistant']) role!: 'user' | 'assistant';
+  @IsString() content!: string;
+}
+
+class CoachChatDto {
+  @IsArray() messages!: CoachMessageDto[];
+}
+
 @ApiTags('plans')
 @Controller('plans')
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class PlansController {
   constructor(private readonly prisma: PrismaService, private readonly cfg: ConfigService) {}
+
+  /** Multi-provider AI helper: Gemini (6 keys) → SambaNova (8 keys) */
+  private async callAi(prompt: string, opts?: { systemPrompt?: string; maxTokens?: number }): Promise<string> {
+    const maxTok = opts?.maxTokens ?? 1024;
+
+    // 1) Gemini
+    const geminiKeys = [1, 2, 3, 4, 5, 6].map(n => this.cfg.get<string>(`GEMINI_API_KEY${n === 1 ? '' : `_${n}`}`) ?? '').filter(Boolean);
+    for (const apiKey of geminiKeys) {
+      try {
+        const contents: any[] = opts?.systemPrompt
+          ? [{ role: 'user', parts: [{ text: opts.systemPrompt + '\n\n' + prompt }] }]
+          : [{ role: 'user', parts: [{ text: prompt }] }];
+        const body = { contents, generationConfig: { maxOutputTokens: maxTok, temperature: 0.7 } };
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        if (!res.ok) continue;
+        const data: any = await res.json();
+        const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        if (text) return text;
+      } catch { continue; }
+    }
+
+    // 2) SambaNova (OpenAI-compatible)
+    const sambaKeys = [1, 2, 3, 4, 5, 6, 7, 8].map(n => this.cfg.get<string>(`SAMBANOVA_API_KEY${n === 1 ? '' : `_${n}`}`) ?? '').filter(Boolean);
+    for (const apiKey of sambaKeys) {
+      try {
+        const messages: any[] = [];
+        if (opts?.systemPrompt) messages.push({ role: 'system', content: opts.systemPrompt });
+        messages.push({ role: 'user', content: prompt });
+        const res = await fetch('https://api.sambanova.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify({ model: 'Meta-Llama-3.3-70B-Instruct', messages, max_tokens: maxTok, temperature: 0.7 }),
+        });
+        if (!res.ok) continue;
+        const data: any = await res.json();
+        const text: string = data?.choices?.[0]?.message?.content ?? '';
+        if (text) return text;
+      } catch { continue; }
+    }
+
+    throw new Error('AI service unavailable — all providers exhausted');
+  }
 
   /** POST /plans/ai-generate — Premium only — Generates adaptive plan via Claude */
   @Post('ai-generate')
@@ -49,9 +102,6 @@ export class PlansController {
     if (!u?.isPremium && !u?.isOwner) {
       throw new ForbiddenException('AI Trainer is a Premium feature');
     }
-
-    const apiKey = this.cfg.get<string>('ANTHROPIC_API_KEY');
-    if (!apiKey) throw new ForbiddenException('AI service not configured');
 
     // Fetch recent runs for context
     const recentRuns = await this.prisma.run.findMany({
@@ -69,8 +119,6 @@ export class PlansController {
       .filter(r => new Date(r.startedAt) > new Date(Date.now() - 30 * 86400000))
       .reduce((a, r) => a + r.distanceMeters / 1000, 0)
       .toFixed(1);
-
-    const client = new Anthropic({ apiKey });
 
     const prompt = `You are an expert running coach. Generate a ${dto.level} training plan for a runner with these specs:
 
@@ -108,13 +156,7 @@ Rules:
 - Dates must start from ${dto.startDate}
 - distanceM and durationSec are approximate estimates`;
 
-    const msg = await client.messages.create({
-      model: 'claude-haiku-4-5',
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    const text = (msg.content[0] as any).text as string;
+    const text = await this.callAi(prompt, { maxTokens: 4096 });
     let plan: any;
     try {
       plan = JSON.parse(text.trim());
@@ -141,6 +183,79 @@ Rules:
         active: true,
       },
     });
+  }
+
+  /** POST /plans/coach-chat — Premium only — Conversational AI running coach */
+  @Post('coach-chat')
+  async coachChat(@CurrentUser() user: RequestUser, @Body() dto: CoachChatDto) {
+    // Premium gating (same rule as ai-generate)
+    const u = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { isPremium: true, isOwner: true, level: true, displayName: true,
+        weightKg: true, heightCm: true },
+    });
+    if (!u?.isPremium && !u?.isOwner) {
+      throw new ForbiddenException('AI Coach is a Premium feature');
+    }
+
+    // Validate + clamp history (last 12 turns, must start with a user message)
+    const incoming = Array.isArray(dto.messages) ? dto.messages : [];
+    const cleaned = incoming
+      .filter((m) => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+      .map((m) => ({ role: m.role, content: m.content.slice(0, 2000) }))
+      .slice(-12);
+    while (cleaned.length && cleaned[0].role !== 'user') cleaned.shift();
+    if (!cleaned.length) return { reply: 'Manda sua dúvida que eu te ajudo! 🏃' };
+
+    // Run context for grounded advice
+    const recentRuns = await this.prisma.run.findMany({
+      where: { userId: user.id },
+      orderBy: { startedAt: 'desc' },
+      take: 8,
+      select: { distanceMeters: true, durationSec: true, avgPaceSecPerKm: true, startedAt: true },
+    });
+    const avgPaceMin = recentRuns.length > 0
+      ? (recentRuns.reduce((a: number, r: any) => a + r.avgPaceSecPerKm, 0) / recentRuns.length / 60).toFixed(1)
+      : null;
+    const km30 = recentRuns
+      .filter((r: any) => new Date(r.startedAt) > new Date(Date.now() - 30 * 86400000))
+      .reduce((a: number, r: any) => a + r.distanceMeters / 1000, 0)
+      .toFixed(1);
+    const activePlan = await (this.prisma as any).trainingPlan.findFirst({
+      where: { userId: user.id, active: true },
+      select: { name: true, goal: true },
+    });
+
+    const system = [
+      'Você é o RunQuest Coach, um personal trainer de corrida experiente, motivador e direto.',
+      'Responda SEMPRE em português do Brasil, de forma concisa (no máximo ~150 palavras), prática e amigável.',
+      'Dê conselhos acionáveis sobre treino, ritmo, recuperação, nutrição básica e prevenção de lesões.',
+      'Use os dados do corredor quando relevante. Nunca dê diagnóstico médico — em caso de dor/lesão, recomende procurar um profissional de saúde.',
+      '',
+      'Dados do corredor:',
+      `- Nome: ${u.displayName ?? 'corredor'}`,
+      `- Nível (gamificação): ${u.level ?? 1}`,
+      avgPaceMin ? `- Pace médio recente: ${avgPaceMin} min/km` : '- Sem corridas registradas ainda',
+      `- Volume nos últimos 30 dias: ${km30} km`,
+      u.weightKg ? `- Peso: ${u.weightKg} kg` : '',
+      u.heightCm ? `- Altura: ${u.heightCm} cm` : '',
+      activePlan ? `- Plano ativo: ${activePlan.name} (objetivo: ${activePlan.goal})` : '- Sem plano de treino ativo',
+    ].filter(Boolean).join('\n');
+
+    // Build prompt from conversation history
+    const conversationText = cleaned.map(m => `${m.role === 'user' ? 'Corredor' : 'Coach'}: ${m.content}`).join('\n');
+    const lastUserMsg = cleaned.filter(m => m.role === 'user').pop()?.content ?? '';
+    const fullPrompt = cleaned.length > 1 ? conversationText + '\nCoach:' : lastUserMsg;
+
+    let reply: string;
+    try {
+      reply = await this.callAi(fullPrompt, { systemPrompt: system, maxTokens: 512 });
+      // Strip "Coach:" prefix if present
+      reply = reply.replace(/^Coach:\s*/i, '').trim();
+    } catch {
+      reply = 'Desculpe, não consegui responder agora. Tenta de novo!';
+    }
+    return { reply };
   }
 
   @Get()
