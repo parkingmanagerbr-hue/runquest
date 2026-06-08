@@ -8,6 +8,8 @@ import { tokens } from '@/lib/api';
 import { haversine, formatPace, formatDuration, formatDistance } from '@/lib/geo';
 import { useHeartRate } from '@/lib/useHeartRate';
 import { useAudioCoach } from '@/lib/useAudioCoach';
+import { saveActiveRun, loadActiveRun, clearActiveRun, type ActiveRun } from '@/lib/runPersistence';
+import { watchPosition as geoWatch, isNativePlatform, type GeoWatchHandle } from '@/lib/geolocation';
 
 interface RunResult {
   id: string;
@@ -87,12 +89,13 @@ export default function RunTrackingPage() {
   const [targetPace, setTargetPace] = useState(0);
   const [targetPaceInput, setTargetPaceInput] = useState('');
   const [liveSplits, setLiveSplits] = useState<{ km: number; paceSecPerKm: number }[]>([]);
+  const [recovered, setRecovered] = useState<ActiveRun | null>(null);
 
   const hr = useHeartRate();
   useAudioCoach(distance, duration, state === 'tracking');
 
   const wakeLockRef = useRef<any>(null);
-  const watchId = useRef<number | null>(null);
+  const watchId = useRef<GeoWatchHandle | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pointsRef = useRef<Point[]>([]);
   const distRef = useRef(0);
@@ -104,8 +107,25 @@ export default function RunTrackingPage() {
   const elevLossRef = useRef(0);
   const stateRef = useRef<string>('idle');
   const lowSpeedRef = useRef(0);
+  const targetPaceRef = useRef(0);
+  const saveCounterRef = useRef(0);
 
   useEffect(() => { stateRef.current = state; }, [state]);
+  useEffect(() => { targetPaceRef.current = targetPace; }, [targetPace]);
+
+  /** Grava o estado atual da corrida no localStorage (recuperação a frio). */
+  const persistProgress = useCallback(() => {
+    if (!startedAt || pointsRef.current.length < 2) return;
+    saveActiveRun({
+      startedAt: startedAt.toISOString(),
+      points: pointsRef.current,
+      distance: distRef.current,
+      duration: durationRef.current,
+      elevGain: elevGainRef.current,
+      elevLoss: elevLossRef.current,
+      targetPace: targetPaceRef.current,
+    });
+  }, [startedAt]);
 
   useEffect(() => {
     if (!tokens.hasSession()) router.replace('/auth/login');
@@ -120,6 +140,23 @@ export default function RunTrackingPage() {
     );
   }, [state]);
 
+  // Recuperação a frio: detecta uma corrida em andamento salva (queda/reload/telefone reiniciou)
+  useEffect(() => {
+    const saved = loadActiveRun();
+    if (saved) setRecovered(saved);
+  }, []);
+
+  // Salva ao sair/ocultar a aba — última chance antes do navegador descartar o estado
+  useEffect(() => {
+    const flush = () => { if (stateRef.current === 'tracking' || stateRef.current === 'paused') persistProgress(); };
+    document.addEventListener('visibilitychange', flush);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      document.removeEventListener('visibilitychange', flush);
+      window.removeEventListener('pagehide', flush);
+    };
+  }, [persistProgress]);
+
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState === 'visible' && stateRef.current === 'tracking') {
@@ -130,34 +167,41 @@ export default function RunTrackingPage() {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
-  const start = useCallback(() => {
+  const start = useCallback((fresh = true) => {
     if (!navigator.geolocation) { setError('GPS indisponível'); return; }
     setError(null);
-    setPoints([]); pointsRef.current = [];
-    setDistance(0); distRef.current = 0;
-    setDuration(0); durationRef.current = 0;
-    setLiveSplits([]);
-    setElevGain(0); elevGainRef.current = 0;
-    setElevLoss(0); elevLossRef.current = 0;
+    // Só zera tudo numa corrida NOVA. Ao retomar (pausa ou recuperação)
+    // preservamos distância, tempo, pontos e elevação acumulados.
+    if (fresh) {
+      setPoints([]); pointsRef.current = [];
+      setDistance(0); distRef.current = 0;
+      setDuration(0); durationRef.current = 0;
+      setLiveSplits([]);
+      setElevGain(0); elevGainRef.current = 0;
+      setElevLoss(0); elevLossRef.current = 0;
+      lastKmDistRef.current = 0;
+      lastKmTimeRef.current = 0;
+    }
     lastAltRef.current = null;
-    lastKmDistRef.current = 0;
-    lastKmTimeRef.current = 0;
     lowSpeedRef.current = 0;
     setAutoPausedHint(false);
     setCurrentSpeedMs(null);
-    if (!startedAt) setStartedAt(new Date());
+    if (fresh || !startedAt) setStartedAt(new Date());
     setState('tracking'); stateRef.current = 'tracking';
 
-    // Screen wake lock
-    navigator.wakeLock?.request('screen').then(wl => { wakeLockRef.current = wl; }).catch(() => {});
+    // Screen wake lock — só no PWA. No app nativo o plugin de background
+    // mantém o GPS vivo mesmo com a tela apagada, então não forçamos a tela ligada.
+    if (!isNativePlatform()) {
+      navigator.wakeLock?.request('screen').then(wl => { wakeLockRef.current = wl; }).catch(() => {});
+    }
 
-    watchId.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const acc = pos.coords.accuracy;
+    watchId.current = geoWatch(
+      (fix) => {
+        const acc = fix.accuracy;
         setGpsAccuracy(acc);
 
         // GPS Doppler speed — much more accurate than position diff
-        const spd = pos.coords.speed;
+        const spd = fix.speed;
         if (spd !== null && spd !== undefined && acc < 50) {
           setCurrentSpeedMs(spd);
           if (spd < 0.4) {
@@ -170,8 +214,8 @@ export default function RunTrackingPage() {
         }
 
         // Elevation
-        const alt = pos.coords.altitude;
-        const altAcc = pos.coords.altitudeAccuracy;
+        const alt = fix.altitude;
+        const altAcc = fix.altitudeAccuracy;
         if (alt != null && (altAcc == null || altAcc < 25)) {
           if (lastAltRef.current !== null) {
             const delta = alt - lastAltRef.current;
@@ -185,7 +229,7 @@ export default function RunTrackingPage() {
 
         if (acc > 35) return;
 
-        const p: Point = [pos.coords.latitude, pos.coords.longitude];
+        const p: Point = [fix.latitude, fix.longitude];
         const prev = pointsRef.current[pointsRef.current.length - 1];
         if (prev) {
           const d = haversine(prev, p);
@@ -207,30 +251,32 @@ export default function RunTrackingPage() {
         setPoints([...pointsRef.current]);
         setCurrent(p);
       },
-      e => setError('GPS: ' + e.message),
-      { enableHighAccuracy: true, maximumAge: 500, timeout: 15000 },
+      (msg) => setError(msg),
     );
 
     tickRef.current = setInterval(() => {
       if (stateRef.current === 'tracking') {
         setDuration(d => { const n = d + 1; durationRef.current = n; return n; });
+        // Auto-save a cada 5s para recuperação a frio (throttle p/ não pesar)
+        if ((saveCounterRef.current = (saveCounterRef.current + 1) % 5) === 0) persistProgress();
       }
     }, 1000);
-  }, [startedAt]);
+  }, [startedAt, persistProgress]);
 
   const pause = useCallback(() => {
     setState('paused'); stateRef.current = 'paused';
-    if (watchId.current != null) { navigator.geolocation.clearWatch(watchId.current); watchId.current = null; }
+    if (watchId.current != null) { watchId.current.clear(); watchId.current = null; }
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
     wakeLockRef.current?.release().catch(() => {});
-  }, []);
+    persistProgress();
+  }, [persistProgress]);
 
   const resume = useCallback(() => {
-    start();
+    start(false);
   }, [start]);
 
   const stop = async () => {
-    if (watchId.current != null) { navigator.geolocation.clearWatch(watchId.current); watchId.current = null; }
+    if (watchId.current != null) { watchId.current.clear(); watchId.current = null; }
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
     wakeLockRef.current?.release().catch(() => {});
 
@@ -267,6 +313,7 @@ export default function RunTrackingPage() {
       if (!r.ok) throw new Error(`API ${r.status}`);
       const run = await r.json();
       if (!run?.id) throw new Error('Resposta inválida');
+      clearActiveRun();
       setRunResult(run);
     } catch (e: any) {
       setState('paused'); stateRef.current = 'paused';
@@ -282,7 +329,35 @@ export default function RunTrackingPage() {
     setStartedAt(null); setCurrentSpeedMs(null);
     setElevGain(0); elevGainRef.current = 0;
     setElevLoss(0); elevLossRef.current = 0;
+    clearActiveRun();
   };
+
+  /** Restaura uma corrida recuperada e volta a rastrear de onde parou. */
+  const resumeRecovered = useCallback(() => {
+    if (!recovered) return;
+    pointsRef.current = recovered.points;
+    setPoints([...recovered.points]);
+    setCurrent(recovered.points[recovered.points.length - 1] ?? null);
+    distRef.current = recovered.distance; setDistance(recovered.distance);
+    durationRef.current = recovered.duration; setDuration(recovered.duration);
+    elevGainRef.current = recovered.elevGain; setElevGain(Math.round(recovered.elevGain));
+    elevLossRef.current = recovered.elevLoss; setElevLoss(Math.round(recovered.elevLoss));
+    lastKmDistRef.current = Math.floor(recovered.distance / 1000) * 1000;
+    lastKmTimeRef.current = recovered.duration;
+    if (recovered.targetPace > 0) {
+      setTargetPace(recovered.targetPace);
+      setTargetPaceInput(formatPace(recovered.targetPace));
+    }
+    setStartedAt(new Date(recovered.startedAt));
+    setRecovered(null);
+    // Pausado: o usuário toca ▶ para voltar a rastrear preservando o acumulado
+    setState('paused'); stateRef.current = 'paused';
+  }, [recovered]);
+
+  const discardRecovered = useCallback(() => {
+    clearActiveRun();
+    setRecovered(null);
+  }, []);
 
   const parseTargetPace = (s: string) => {
     const m = s.match(/^(\d+):(\d{2})$/);
@@ -330,6 +405,26 @@ export default function RunTrackingPage() {
       </header>
 
       <RunMap positions={points} current={current} height="42vh" />
+
+      {recovered && state === 'idle' && (
+        <div className="bg-rq-lime/10 border-b border-rq-lime/20 px-4 py-3">
+          <div className="max-w-5xl mx-auto flex items-center gap-3">
+            <Activity className="w-5 h-5 text-rq-lime shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-bold text-rq-lime">Corrida em andamento recuperada</div>
+              <div className="text-xs text-white/60">
+                {formatDistance(recovered.distance)} km · {formatDuration(recovered.duration)} salvos. Continuar de onde parou?
+              </div>
+            </div>
+            <button onClick={resumeRecovered}
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-rq-lime text-rq-ink text-xs font-bold hover:scale-105 active:scale-95 transition">
+              Retomar
+            </button>
+            <button onClick={discardRecovered}
+              className="shrink-0 text-white/40 text-xs hover:text-white/70">Descartar</button>
+          </div>
+        </div>
+      )}
 
       {error && <div className="bg-rq-orange/20 text-rq-orange px-4 py-1.5 text-xs text-center">{error}</div>}
       {autoPausedHint && state === 'tracking' && (
@@ -466,7 +561,7 @@ export default function RunTrackingPage() {
         {/* Controls */}
         <div className="flex items-center justify-center gap-5 py-2">
           {state === 'idle' && (
-            <button onClick={start}
+            <button onClick={() => start()}
               className="w-20 h-20 rounded-full bg-rq-lime text-rq-ink flex flex-col items-center justify-center gap-0.5 shadow-2xl shadow-rq-lime/30 hover:scale-105 active:scale-95 transition">
               <Play className="w-8 h-8 fill-current" />
               <span className="text-xs font-bold">Iniciar</span>

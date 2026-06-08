@@ -11,6 +11,7 @@ import { HealthModule } from './modules/health/health.module';
 import { StravaModule } from './modules/strava/strava.module';
 import { WorkoutsModule } from './modules/workouts/workouts.module';
 import { MissionsModule } from './modules/missions/missions.module';
+import { ChallengesModule } from './modules/challenges/challenges.module';
 import { TerritoriesModule } from './modules/territories/territories.module';
 import { PlansModule } from './modules/plans/plans.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
@@ -31,6 +32,7 @@ import { PushModule } from './modules/push/push.module';
     StravaModule,
     WorkoutsModule,
     MissionsModule,
+    ChallengesModule,
     TerritoriesModule,
     PlansModule,
     GamificationModule,

@@ -53,6 +53,7 @@ model User {
   stravaToken   StravaToken?
   missionProgress MissionProgress[]
   territories     Territory[]
+  challengeParticipations ChallengeParticipant[]
 
   @@index([email])
 }
@@ -410,4 +411,45 @@ model WebhookEvent {
   createdAt  DateTime @default(now())
 
   @@unique([provider, externalId])
+}
+
+/// Desafios da comunidade — eventos com janela de tempo (startsAt..endsAt) nos
+/// quais o usuário entra (join), acumula progresso a cada corrida dentro da
+/// janela e resgata a recompensa ao completar. Diferente de Mission (que é
+/// auto-atribuída diária/semanal): aqui o usuário opta por participar e há
+/// ranking entre participantes.
+model Challenge {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  title       String
+  description String
+  goalKind    String   // distance_km | runs_count | duration_min
+  goalValue   Float
+  xpReward    Int
+  coinReward  Int
+  startsAt    DateTime
+  endsAt      DateTime
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  participants ChallengeParticipant[]
+
+  @@index([active, endsAt])
+}
+
+model ChallengeParticipant {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId String    @db.Uuid
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  progress    Float     @default(0)
+  completed   Boolean   @default(false)
+  claimed     Boolean   @default(false)
+  joinedAt    DateTime  @default(now())
+  completedAt DateTime?
+  claimedAt   DateTime?
+
+  @@unique([userId, challengeId])
+  @@index([challengeId])
+  @@index([userId])
 }

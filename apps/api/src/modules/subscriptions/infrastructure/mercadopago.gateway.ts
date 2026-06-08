@@ -12,6 +12,7 @@ import {
  */
 @Injectable()
 export class MercadoPagoGateway implements PaymentGateway {
+  readonly name = 'mercadopago' as const;
   private readonly logger = new Logger(MercadoPagoGateway.name);
   private readonly client: MercadoPagoConfig;
   private readonly preapproval: PreApproval;

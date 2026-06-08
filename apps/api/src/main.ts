@@ -21,8 +21,9 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Raw body para validar HMAC do webhook MP
+  // Raw body para validar assinatura dos webhooks (HMAC MP / signature Stripe)
   app.use('/api/webhooks/mercadopago', raw({ type: 'application/json' }));
+  app.use('/api/webhooks/stripe', raw({ type: 'application/json' }));
   app.use(json({ limit: '2mb' }));
 
   app.setGlobalPrefix('api');

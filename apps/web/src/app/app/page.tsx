@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
 import Link from 'next/link';
-import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain, TrendingUp, TrendingDown, BarChart2, Layers } from 'lucide-react';
+import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain, TrendingUp, TrendingDown, BarChart2, Layers, Swords } from 'lucide-react';
 import { formatPace } from '@/lib/geo';
 
 interface WeekStats {
@@ -228,6 +228,13 @@ export default function AppDashboard() {
             </div>
             <h3 className="font-bold text-sm">Missões</h3>
             <p className="text-xs text-white/50">Diárias/semanais</p>
+          </Link>
+          <Link href="/app/challenges" className="glass p-4 hover:border-rq-orange/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-orange to-rq-gold flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <Swords className="w-4 h-4 text-rq-ink" />
+            </div>
+            <h3 className="font-bold text-sm">Desafios</h3>
+            <p className="text-xs text-white/50">Eventos da comunidade</p>
           </Link>
           <Link href="/app/territories" className="glass p-4 hover:border-rq-emerald/40 transition group">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-emerald to-cyan-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">

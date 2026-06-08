@@ -10,6 +10,7 @@ import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MissionsModule, MissionProgressService } from '../missions/missions.module';
+import { ChallengesModule, ChallengeProgressService } from '../challenges/challenges.module';
 import { TerritoriesModule, TerritoryService } from '../territories/territories.module';
 import { GamificationModule, BadgeUnlockService } from '../gamification/gamification.module';
 import { GoalsModule, GoalProgressService } from '../goals/goals.module';
@@ -36,6 +37,7 @@ export class RunsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly missions: MissionProgressService,
+    private readonly challenges: ChallengeProgressService,
     private readonly territories: TerritoryService,
     private readonly badges: BadgeUnlockService,
     private readonly goals: GoalProgressService,
@@ -107,8 +109,9 @@ export class RunsController {
       await this.prisma.user.update({ where: { id: user.id }, data: { level: newLevel } });
     }
 
-    // Missões + Goals
+    // Missões + Desafios + Goals
     await this.missions.applyRun(user.id, { distanceMeters: dto.distanceMeters, durationSec: dto.durationSec });
+    await this.challenges.applyRun(user.id, { distanceMeters: dto.distanceMeters, durationSec: dto.durationSec });
     await this.goals.applyRun(user.id, { distanceMeters: dto.distanceMeters, durationSec: dto.durationSec });
 
     // Territórios
@@ -390,7 +393,7 @@ Dê feedback encorajador e específico comparando esta corrida com as recentes. 
 }
 
 @Module({
-  imports: [MissionsModule, TerritoriesModule, GamificationModule, GoalsModule],
+  imports: [MissionsModule, ChallengesModule, TerritoriesModule, GamificationModule, GoalsModule],
   controllers: [RunsController],
 })
 export class RunsModule {}

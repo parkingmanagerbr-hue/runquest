@@ -4,6 +4,7 @@ import { SubscriptionRepository } from '../domain/subscription.repository';
 import { InvalidWebhookSignatureError } from '../../../shared/errors/domain-error';
 
 const makeGateway = (overrides: Partial<PaymentGateway> = {}): PaymentGateway => ({
+  name: 'mercadopago' as const,
   createCheckout: jest.fn(),
   verifyWebhook: jest.fn().mockReturnValue(true),
   parseEvent: jest.fn(),
@@ -63,7 +64,9 @@ describe('HandleWebhookUseCase', () => {
     const subs = makeSubs();
     const prisma = makePrisma();
     prisma.webhookEvent.findUnique.mockResolvedValue({ processedAt: new Date() });
-    const gw = makeGateway();
+    const gw = makeGateway({
+      parseEvent: jest.fn().mockResolvedValue({ type: 'ignored', externalId: 'dup-1' } as ProviderEvent),
+    });
     const uc = new HandleWebhookUseCase(gw, subs, prisma);
     await uc.execute(Buffer.from(JSON.stringify({ data: { id: 'dup-1' } })), {});
     expect(subs.upsertByMpId).not.toHaveBeenCalled();

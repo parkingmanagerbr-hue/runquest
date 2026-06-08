@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingBag, Coins, CheckCircle2, Lock } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, Coins, CheckCircle2, Lock, Crown } from 'lucide-react';
 import { tokens } from '@/lib/api';
 
 interface Item {
@@ -69,7 +69,10 @@ export default function ShopPage() {
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/app" className="text-white/70"><ArrowLeft className="w-5 h-5" /></Link>
           <h1 className="font-display font-bold">Loja</h1>
-          <div className="ml-auto flex items-center gap-1 text-rq-gold">
+          <Link href="/pricing" className="ml-auto flex items-center gap-1.5 text-xs bg-rq-gold/15 text-rq-gold border border-rq-gold/30 hover:bg-rq-gold/25 px-3 py-1.5 rounded-full font-bold transition">
+            <Crown className="w-3.5 h-3.5" /> Premium
+          </Link>
+          <div className="flex items-center gap-1 text-rq-gold">
             <Coins className="w-4 h-4" />
             <span className="font-bold tabular-nums">{data.coins}</span>
           </div>
@@ -92,7 +95,7 @@ export default function ShopPage() {
                   ) : i.owned ? (
                     <button onClick={() => equip(i.id)} disabled={busy === i.id} className="text-[10px] text-rq-lime hover:underline">Equipar</button>
                   ) : i.premiumOnly ? (
-                    <div className="text-[10px] text-rq-violet flex items-center justify-center gap-0.5"><Lock className="w-3 h-3" />Premium</div>
+                    <Link href="/pricing" className="text-[10px] text-rq-violet flex items-center justify-center gap-0.5 hover:underline"><Lock className="w-3 h-3" />Premium</Link>
                   ) : (
                     <button onClick={() => buy(i.id)} disabled={busy === i.id || data.coins < i.price}
                       className="text-[11px] flex items-center justify-center gap-0.5 text-rq-gold disabled:opacity-50 hover:underline">

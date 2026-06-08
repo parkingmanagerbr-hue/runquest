@@ -80,13 +80,20 @@ export const api = {
     request<{ accessToken: string; refreshToken: string }>(
       '/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }), auth: false },
     ),
-  checkout: (plan: 'MONTHLY' | 'YEARLY') =>
-    request<{ initPoint: string }>('/subscriptions/checkout', { method: 'POST', body: JSON.stringify({ plan }) }),
+  checkout: (plan: 'MONTHLY' | 'YEARLY', currency?: string, locale?: string) =>
+    request<{ initPoint: string }>('/subscriptions/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ plan, ...(currency ? { currency } : {}), ...(locale ? { locale } : {}) }),
+    }),
   listRuns: () => request<any[]>('/runs'),
   stravaStatus: () => request<{ connected: boolean; athleteId?: string | null; scope?: string | null; tokenValid?: boolean }>('/strava/status'),
   stravaAuthorizeUrl: () => request<{ url: string }>('/strava/authorize-url'),
   stravaImport: (sinceDays = 90) => request<{ imported: number; skipped: number }>(`/strava/import?sinceDays=${sinceDays}`, { method: 'POST' }),
   stravaDisconnect: () => request<void>('/strava/disconnect', { method: 'POST' }),
+  subscriptionMe: () =>
+    request<{ status: string; plan?: 'MONTHLY' | 'YEARLY'; nextPaymentAt?: string | null; cancelledAt?: string | null }>('/subscriptions/me'),
+  coachChat: (messages: { role: 'user' | 'assistant'; content: string }[]) =>
+    request<{ reply: string }>('/plans/coach-chat', { method: 'POST', body: JSON.stringify({ messages }) }),
 };
 
 export const tokens = {

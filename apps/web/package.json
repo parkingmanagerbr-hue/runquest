@@ -9,21 +9,29 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "cap:add:android": "cap add android",
+    "cap:sync": "cap sync",
+    "cap:open:android": "cap open android",
+    "cap:run:android": "cap run android"
   },
   "dependencies": {
+    "@capacitor-community/background-geolocation": "^1.2.26",
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
+    "@types/leaflet": "^1.9.12",
+    "clsx": "^2.1.1",
+    "jose": "^5.6.3",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.428.0",
     "next": "^14.2.5",
+    "next-pwa": "^5.6.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "next-pwa": "^5.6.0",
-    "zustand": "^4.5.4",
-    "leaflet": "^1.9.4",
     "react-leaflet": "^4.2.1",
-    "@types/leaflet": "^1.9.12",
-    "jose": "^5.6.3",
-    "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.2",
-    "lucide-react": "^0.428.0"
+    "zustand": "^4.5.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.46.0",

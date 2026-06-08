@@ -67,8 +67,11 @@ export default function AITrainerPage() {
             <Sparkles className="w-5 h-5 text-rq-lime" />
             <h1 className="font-display font-bold">Personal Trainer IA</h1>
           </div>
+          <Link href="/app/coach" className="ml-auto flex items-center gap-1.5 text-xs bg-white/5 border border-white/10 hover:border-rq-lime/40 px-3 py-1.5 rounded-full font-bold transition">
+            <Sparkles className="w-3.5 h-3.5 text-rq-lime" /> Chat com Coach
+          </Link>
           {isPremium && (
-            <span className="ml-auto text-xs bg-rq-lime/20 text-rq-lime border border-rq-lime/30 px-2 py-0.5 rounded-full font-bold">
+            <span className="text-xs bg-rq-lime/20 text-rq-lime border border-rq-lime/30 px-2 py-0.5 rounded-full font-bold">
               PREMIUM
             </span>
           )}
