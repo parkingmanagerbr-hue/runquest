@@ -264,9 +264,14 @@ export class RunsController {
     @Param('id') id: string,
     @Body() body: { notes: string },
   ) {
-    const run = await this.prisma.run.findFirst({ where: { id, userId: user.id } });
-    if (!run) throw new HttpException('Run not found', HttpStatus.NOT_FOUND);
-    await this.prisma.run.update({ where: { id }, data: { notes: body.notes ?? '' } });
+    try {
+      const run = await this.prisma.run.findFirst({ where: { id, userId: user.id } });
+      if (!run) throw new HttpException('Run not found', HttpStatus.NOT_FOUND);
+      await this.prisma.run.update({ where: { id }, data: { notes: body.notes ?? '' } });
+    } catch (e: any) {
+      if (e instanceof HttpException) throw e;
+      throw new HttpException('Run not found', HttpStatus.NOT_FOUND);
+    }
     return { ok: true };
   }
 
@@ -414,26 +419,30 @@ export class RunsPublicController {
   /** GET /runs/public/:id — Shareable run detail without authentication */
   @Get(':id')
   async findPublic(@Param('id') id: string) {
-    const run = await this.prisma.run.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        distanceMeters: true,
-        durationSec: true,
-        avgPaceSecPerKm: true,
-        startedAt: true,
-        elevationGainM: true,
-        // kcal: true, — field not yet in schema; add when Run.kcal migration is applied
-        pointsGeoJson: true,
-        user: {
-          select: {
-            displayName: true,
-            avatarUrl: true,
-            level: true,
+    let run: any = null;
+    try {
+      run = await this.prisma.run.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          distanceMeters: true,
+          durationSec: true,
+          avgPaceSecPerKm: true,
+          startedAt: true,
+          elevationGainM: true,
+          pointsGeoJson: true,
+          user: {
+            select: {
+              displayName: true,
+              avatarUrl: true,
+              level: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch {
+      throw new HttpException('Run not found', HttpStatus.NOT_FOUND);
+    }
     if (!run) throw new HttpException('Run not found', HttpStatus.NOT_FOUND);
     return run;
   }
