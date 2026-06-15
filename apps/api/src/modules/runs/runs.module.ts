@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Get, Header, Module, Param, Post, Query, Res, UseGuards,
+  Body, Controller, Get, Header, HttpException, HttpStatus, Module, Param, Post, Query, Res, UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -392,8 +392,42 @@ Dê feedback encorajador e específico comparando esta corrida com as recentes. 
   }
 }
 
+/** Public controller — NO JwtAuthGuard, no auth required */
+@ApiTags('runs-public')
+@Controller('runs/public')
+export class RunsPublicController {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /** GET /runs/public/:id — Shareable run detail without authentication */
+  @Get(':id')
+  async findPublic(@Param('id') id: string) {
+    const run = await this.prisma.run.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        distanceMeters: true,
+        durationSec: true,
+        avgPaceSecPerKm: true,
+        startedAt: true,
+        elevationGainM: true,
+        // kcal: true, — field not yet in schema; add when Run.kcal migration is applied
+        pointsGeoJson: true,
+        user: {
+          select: {
+            displayName: true,
+            avatarUrl: true,
+            level: true,
+          },
+        },
+      },
+    });
+    if (!run) throw new HttpException('Run not found', HttpStatus.NOT_FOUND);
+    return run;
+  }
+}
+
 @Module({
   imports: [MissionsModule, ChallengesModule, TerritoriesModule, GamificationModule, GoalsModule],
-  controllers: [RunsController],
+  controllers: [RunsController, RunsPublicController],
 })
 export class RunsModule {}
