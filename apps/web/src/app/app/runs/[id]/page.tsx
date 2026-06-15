@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles, Download, Flame, Gauge, Mountain } from 'lucide-react';
+import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles, Download, Flame, Gauge, Mountain, StickyNote, Check } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace, computeSplits } from '@/lib/geo';
 import { Share2 } from 'lucide-react';
@@ -24,6 +24,7 @@ interface Run {
   elevationGainM?: number | null;
   elevationLossM?: number | null;
   avgSpeedKmh?: number | null;
+  notes?: string | null;
 }
 
 export default function RunDetailPage({ params }: { params: { id: string } }) {
@@ -33,6 +34,9 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [notesSaved, setNotesSaved] = useState(false);
+  const [savingNotes, setSavingNotes] = useState(false);
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
@@ -41,10 +45,12 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
     fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/${id}`, h)
       .then(r => r.ok ? r.json() : null)
       .then(async (run: Run | null) => {
-        if (run?.id) { setRun(run); return; }
+        if (run?.id) { setRun(run); if (run.notes) setNotes(run.notes); return; }
         // Fallback: search in list
         const runs: Run[] = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs?limit=100`, h).then(r => r.json());
-        setRun(runs.find(r => r.id === id) ?? null);
+        const found = runs.find(r => r.id === id) ?? null;
+        setRun(found);
+        if (found?.notes) setNotes(found.notes);
       })
       .finally(() => setLoading(false));
   }, [id, router]);
@@ -101,19 +107,30 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
   const paceRange = maxPace - minPace || 1;
 
   const share = async () => {
-    const text = `Corri ${formatDistance(run.distanceMeters)}km em ${formatDuration(run.durationSec)} (pace ${formatPace(run.avgPaceSecPerKm)}/km) com o RunQuest 🏃‍♂️`;
+    const publicUrl = `${window.location.origin}/runs/${run.id}`;
+    const text = `Corri ${formatDistance(run.distanceMeters)}km em ${formatDuration(run.durationSec)} (pace ${formatPace(run.avgPaceSecPerKm)}/km) 🏃‍♂️`;
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: 'RunQuest',
-          text,
-          url: window.location.href,
-        });
+        await navigator.share({ title: 'RunQuest', text, url: publicUrl });
       } catch {}
     } else {
-      await navigator.clipboard.writeText(text + '\n' + window.location.href);
-      alert('Copiado!');
+      await navigator.clipboard.writeText(text + '\n' + publicUrl);
+      alert('Link copiado!');
     }
+  };
+
+  const saveNotes = async () => {
+    setSavingNotes(true);
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/${run.id}/notes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
+        body: JSON.stringify({ notes }),
+      });
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 2000);
+    } catch {}
+    setSavingNotes(false);
   };
 
   return (
@@ -210,6 +227,29 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
           {analysis
             ? <p className="text-sm text-white/80 leading-relaxed">{analysis}</p>
             : <p className="text-sm text-white/40">Toque em Analisar para receber feedback personalizado do seu coach IA.</p>}
+        </div>
+
+        {/* Personal notes */}
+        <div className="glass p-5 mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-sm uppercase tracking-wider text-white/60 flex items-center gap-2">
+              <StickyNote className="w-4 h-4 text-rq-gold" /> Notas pessoais
+            </h2>
+            <button onClick={saveNotes} disabled={savingNotes}
+              className={`text-xs flex items-center gap-1 px-3 py-1.5 rounded-lg transition ${
+                notesSaved ? 'text-rq-lime' : 'btn-ghost text-white/60'
+              }`}>
+              {notesSaved ? <><Check className="w-3 h-3" /> Salvo!</> : savingNotes ? 'Salvando…' : 'Salvar'}
+            </button>
+          </div>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            onBlur={notes !== (run.notes ?? '') ? saveNotes : undefined}
+            rows={3}
+            placeholder="Como foi essa corrida? Clima, como se sentiu, objetivos…"
+            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 resize-none text-sm text-white/80 placeholder-white/30 focus:border-rq-gold/40 focus:outline-none transition"
+          />
         </div>
 
         {splits.length > 0 && (

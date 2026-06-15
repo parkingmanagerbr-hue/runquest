@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Get, Header, HttpException, HttpStatus, Module, Param, Post, Query, Res, UseGuards,
+  Body, Controller, Get, Header, HttpException, HttpStatus, Module, Param, Patch, Post, Query, Res, UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -255,6 +255,19 @@ export class RunsController {
     const run = await this.prisma.run.findFirst({ where: { id, userId: user.id } });
     if (!run) return null;
     return run;
+  }
+
+  /** PATCH /runs/:id/notes — Save personal notes for a run */
+  @Patch(':id/notes')
+  async updateNotes(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() body: { notes: string },
+  ) {
+    const run = await this.prisma.run.findFirst({ where: { id, userId: user.id } });
+    if (!run) throw new HttpException('Run not found', HttpStatus.NOT_FOUND);
+    await this.prisma.run.update({ where: { id }, data: { notes: body.notes ?? '' } });
+    return { ok: true };
   }
 
   /** GET /runs/:id/gpx — Download GPX file for external apps */

@@ -180,6 +180,7 @@ model Run {
   elevationLossM    Float?
   avgSpeedKmh       Float?
   pointsGeoJson   Json
+  notes           String?
   source          String   @default("GPS")
   opId            String?  @unique
   stravaActivityId BigInt? @unique
