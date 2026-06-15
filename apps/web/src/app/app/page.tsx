@@ -1,11 +1,92 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
 import Link from 'next/link';
-import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain, TrendingUp, TrendingDown, BarChart2, Layers, Swords } from 'lucide-react';
+import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain, TrendingUp, TrendingDown, BarChart2, Layers, Swords, X, ChevronRight, Smartphone } from 'lucide-react';
 import { formatPace } from '@/lib/geo';
+
+const ONBOARDING_KEY = 'rq.onboarded.v2';
+
+const ONBOARDING_STEPS = [
+  {
+    icon: '🏃',
+    title: 'Bem-vindo ao RunQuest!',
+    text: 'Seu app de corrida com gamificação. Ganhe XP, conquiste territórios e evolua a cada km rodado.',
+    cta: 'Vamos lá →',
+  },
+  {
+    icon: '📍',
+    title: 'Inicie sua primeira corrida',
+    text: 'Use o GPS do seu celular para registrar qualquer corrida. Ou importe seus treinos do Strava automaticamente.',
+    cta: 'Continuar →',
+    action: null,
+  },
+  {
+    icon: '🏆',
+    title: 'Missões, badges e territórios',
+    text: 'Complete missões diárias, conquiste territórios no mapa, desbloqueie badges e suba no ranking semanal.',
+    cta: 'Começar agora',
+  },
+];
+
+function OnboardingModal({ onDone }: { onDone: () => void }) {
+  const [step, setStep] = useState(0);
+  const s = ONBOARDING_STEPS[step];
+
+  const next = () => {
+    if (step < ONBOARDING_STEPS.length - 1) {
+      setStep(step + 1);
+    } else {
+      onDone();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="glass w-full max-w-sm p-8 text-center relative animate-fadeIn">
+        <button onClick={onDone} className="absolute top-4 right-4 text-white/40 hover:text-white/70">
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Step indicator */}
+        <div className="flex justify-center gap-2 mb-6">
+          {ONBOARDING_STEPS.map((_, i) => (
+            <div key={i} className={`h-1.5 rounded-full transition-all ${i === step ? 'bg-rq-lime w-6' : 'bg-white/20 w-1.5'}`} />
+          ))}
+        </div>
+
+        <div className="text-6xl mb-5">{s.icon}</div>
+        <h2 className="font-display text-2xl font-black mb-3">{s.title}</h2>
+        <p className="text-white/60 text-sm leading-relaxed mb-8">{s.text}</p>
+
+        {step === 1 && (
+          <div className="flex gap-2 mb-4">
+            <Link href="/app/run" onClick={onDone}
+              className="flex-1 btn-primary py-2.5 flex items-center justify-center gap-2 text-sm">
+              <Smartphone className="w-4 h-4" /> GPS
+            </Link>
+            <Link href="/app/devices" onClick={onDone}
+              className="flex-1 btn-ghost py-2.5 flex items-center justify-center gap-2 text-sm">
+              <Link2 className="w-4 h-4" /> Strava
+            </Link>
+          </div>
+        )}
+
+        <button onClick={next}
+          className={`w-full py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+            step === ONBOARDING_STEPS.length - 1
+              ? 'bg-gradient-to-r from-rq-lime to-rq-emerald text-rq-ink hover:opacity-90'
+              : 'btn-ghost'
+          }`}>
+          {s.cta}
+          {step < ONBOARDING_STEPS.length - 1 && <ChevronRight className="w-4 h-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 interface WeekStats {
   runs: number;
@@ -29,6 +110,12 @@ export default function AppDashboard() {
   const [todayWorkout, setTodayWorkout] = useState<{ label: string; distanceM?: number; durationSec?: number; workoutId?: string; planName: string } | null>(null);
   const [recentRuns, setRecentRuns] = useState<{ id: string; startedAt: string; distanceMeters: number; durationSec: number; avgPaceSecPerKm: number }[]>([]);
   const [missions, setMissions] = useState<{ id: string; title: string; description: string; type: string; progress: number; target: number; claimed: boolean; completed: boolean; xpReward: number; coinReward: number }[]>([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  const dismissOnboarding = useCallback(() => {
+    localStorage.setItem(ONBOARDING_KEY, '1');
+    setShowOnboarding(false);
+  }, []);
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
@@ -43,6 +130,8 @@ export default function AppDashboard() {
       .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setRecentRuns(d)).catch(() => {});
     fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/missions`, h)
       .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setMissions(d.filter((m: any) => !m.claimed).slice(0, 3))).catch(() => {});
+    // Onboarding: show for new users that haven't seen it
+    if (!localStorage.getItem(ONBOARDING_KEY)) setShowOnboarding(true);
     // Lê ?strava=connected da URL pós-callback
     const params = new URLSearchParams(window.location.search);
     if (params.get('strava')) {
@@ -473,6 +562,8 @@ export default function AppDashboard() {
           </div>
         )}
       </section>
+
+      {showOnboarding && <OnboardingModal onDone={dismissOnboarding} />}
     </main>
   );
 }

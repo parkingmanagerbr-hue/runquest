@@ -23,3 +23,8 @@ html, body { background: #0E0A2A; color: #F2F1FA; }
 .gradient-text {
   @apply bg-gradient-to-br from-rq-lime via-emerald-300 to-rq-violet bg-clip-text text-transparent;
 }
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-fadeIn { animation: fadeIn 0.25s ease-out both; }
