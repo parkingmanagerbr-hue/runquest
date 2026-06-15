@@ -110,6 +110,7 @@ export default function AppDashboard() {
   const [todayWorkout, setTodayWorkout] = useState<{ label: string; distanceM?: number; durationSec?: number; workoutId?: string; planName: string } | null>(null);
   const [recentRuns, setRecentRuns] = useState<{ id: string; startedAt: string; distanceMeters: number; durationSec: number; avgPaceSecPerKm: number }[]>([]);
   const [missions, setMissions] = useState<{ id: string; title: string; description: string; type: string; progress: number; target: number; claimed: boolean; completed: boolean; xpReward: number; coinReward: number }[]>([]);
+  const [goals, setGoals] = useState<{ id: string; kind: string; period: string; target: number; progress: number; completed: boolean }[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const dismissOnboarding = useCallback(() => {
@@ -130,6 +131,8 @@ export default function AppDashboard() {
       .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setRecentRuns(d)).catch(() => {});
     fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/missions`, h)
       .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setMissions(d.filter((m: any) => !m.claimed).slice(0, 3))).catch(() => {});
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/goals`, h)
+      .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setGoals(d.slice(0, 3))).catch(() => {});
     // Onboarding: show for new users that haven't seen it
     if (!localStorage.getItem(ONBOARDING_KEY)) setShowOnboarding(true);
     // Lê ?strava=connected da URL pós-callback
@@ -506,6 +509,42 @@ export default function AppDashboard() {
                         <CheckCircle2 className="w-3 h-3" /> Pronto para resgatar! → <Link href="/app/missions" className="underline">Resgatar</Link>
                       </div>
                     )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Active goals preview */}
+        {goals.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-white/50 flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5 text-rq-lime" /> Metas
+              </h2>
+              <Link href="/app/goals" className="text-xs text-rq-lime hover:underline">Gerenciar →</Link>
+            </div>
+            <div className="space-y-2">
+              {goals.map(g => {
+                const pct = Math.min(100, (g.progress / g.target) * 100);
+                const kindLabel: Record<string, string> = { distance_km: 'km', runs_count: 'corridas', duration_min: 'min' };
+                const periodLabel: Record<string, string> = { WEEKLY: 'Sem', MONTHLY: 'Mês', YEARLY: 'Ano' };
+                return (
+                  <div key={g.id} className={`glass p-3 ${g.completed ? 'border-rq-lime/40' : ''}`}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm font-bold tabular-nums">
+                        {g.target} {kindLabel[g.kind] ?? g.kind}
+                        <span className="text-white/40 text-xs font-normal ml-1">{periodLabel[g.period] ?? g.period}</span>
+                      </span>
+                      <span className="text-xs text-white/40 tabular-nums">
+                        {g.kind === 'distance_km' ? g.progress.toFixed(1) : Math.floor(g.progress)}/{g.target}
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, background: g.completed ? 'var(--rq-lime, #a3e635)' : 'linear-gradient(to right, #a3e635, #34d399)' }} />
+                    </div>
                   </div>
                 );
               })}

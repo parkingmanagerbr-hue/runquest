@@ -1,5 +1,6 @@
 import { Controller, Module, Post, Headers, UnauthorizedException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { PushService } from './push.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -26,9 +27,10 @@ export class PushController {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 86_400_000);
 
+    type PushUser = { id: string; displayName: string; streakDays: number; runs: { distanceMeters: number; durationSec: number }[] };
     // Fetch all users with push subscription
-    const users = await this.prisma.user.findMany({
-      where: { pushSubscription: { not: null } },
+    const users = (await this.prisma.user.findMany({
+      where: { NOT: { pushSubscription: { equals: Prisma.AnyNull } } },
       select: {
         id: true,
         displayName: true,
@@ -38,7 +40,7 @@ export class PushController {
           select: { distanceMeters: true, durationSec: true },
         },
       },
-    });
+    })) as unknown as PushUser[];
 
     let sent = 0;
     let skipped = 0;
