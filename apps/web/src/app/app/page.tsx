@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
 import Link from 'next/link';
-import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain, TrendingUp, TrendingDown, BarChart2, Layers, Swords, X, ChevronRight, Smartphone } from 'lucide-react';
+import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain, TrendingUp, TrendingDown, BarChart2, Layers, Swords, X, ChevronRight, Smartphone, Timer } from 'lucide-react';
 import { formatPace } from '@/lib/geo';
 
 const ONBOARDING_KEY = 'rq.onboarded.v2';
@@ -416,6 +416,13 @@ export default function AppDashboard() {
             </div>
             <h3 className="font-bold text-sm">Trainer IA</h3>
             <p className="text-xs text-white/50">{me.isPremium || me.isOwner ? 'Plano adaptativo' : '🔒 Premium'}</p>
+          </Link>
+          <Link href="/app/race-predictor" className="glass p-4 hover:border-rq-lime/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-lime/70 to-emerald-600 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <Timer className="w-4 h-4 text-rq-ink" />
+            </div>
+            <h3 className="font-bold text-sm">Previsor</h3>
+            <p className="text-xs text-white/50">Previsão de prova</p>
           </Link>
         </div>
 
