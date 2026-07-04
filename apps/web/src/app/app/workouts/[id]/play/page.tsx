@@ -1,21 +1,19 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Play, Pause, SkipForward, X } from 'lucide-react';
+import { ArrowLeft, Play, Pause, SkipForward, SkipBack, X } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatDuration } from '@/lib/geo';
+import { useWorkoutEngine, type RawSegment } from '@/lib/useWorkoutEngine';
 
-interface Segment {
-  id: string; order: number; kind: string;
-  durationSec?: number; distanceM?: number; repeats: number; notes?: string;
+interface Workout {
+  id: string;
+  name: string;
+  segments: RawSegment[];
+  totalDurationSec: number;
 }
-interface Workout { id: string; name: string; segments: Segment[]; totalDurationSec: number; }
 
-const KIND_LABEL: Record<string, string> = {
-  WARMUP: 'Aquecimento', INTERVAL_FAST: 'TIRO FORTE', INTERVAL_SLOW: 'Recuperação',
-  TEMPO: 'Tempo', EASY: 'Leve', COOLDOWN: 'Volta calma', REST: 'Descanso', CUSTOM: 'Custom',
-};
 const KIND_BG: Record<string, string> = {
   WARMUP: 'from-yellow-500/40 to-amber-500/30',
   INTERVAL_FAST: 'from-rq-orange/60 to-red-500/40',
@@ -27,131 +25,57 @@ const KIND_BG: Record<string, string> = {
   CUSTOM: 'from-rq-lime/40 to-emerald-500/30',
 };
 
-// Expande segmentos com repeats em uma lista linear de passos
-function expand(segs: Segment[]): { kind: string; durationSec: number; label: string }[] {
-  const out: { kind: string; durationSec: number; label: string }[] = [];
-  for (const s of segs) {
-    for (let r = 0; r < s.repeats; r++) {
-      out.push({
-        kind: s.kind,
-        durationSec: s.durationSec ?? 60,
-        label: s.repeats > 1 ? `${KIND_LABEL[s.kind]} ${r + 1}/${s.repeats}` : KIND_LABEL[s.kind],
-      });
-    }
-  }
-  return out;
-}
-
-// Web Audio beep
-function beep(freq = 880, durMs = 200, vol = 0.4) {
-  try {
-    const Ctx = (window.AudioContext || (window as any).webkitAudioContext);
-    const ctx = new Ctx();
-    const osc = ctx.createOscillator(); const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = freq; osc.type = 'sine';
-    gain.gain.value = vol;
-    osc.start();
-    setTimeout(() => { osc.stop(); ctx.close(); }, durMs);
-  } catch {}
-}
-
-// TTS leve via Web Speech API
-function speak(text: string) {
-  try {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'pt-BR'; u.rate = 1.05; u.pitch = 1;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
-  } catch {}
-}
-
 export default function WorkoutPlayerPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const router = useRouter();
   const [workout, setWorkout] = useState<Workout | null>(null);
-  const [steps, setSteps] = useState<{ kind: string; durationSec: number; label: string }[]>([]);
-  const [idx, setIdx] = useState(0);
-  const [remaining, setRemaining] = useState(0);
-  const [running, setRunning] = useState(false);
-  const [done, setDone] = useState(false);
-  const tickRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
+    if (!tokens.hasSession()) {
+      router.replace('/auth/login');
+      return;
+    }
     fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/workouts/${id}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
     })
-      .then(r => r.json()).then((w: Workout) => {
-        setWorkout(w);
-        const list = expand(w.segments);
-        setSteps(list);
-        setRemaining(list[0]?.durationSec ?? 0);
-      });
+      .then((r) => r.json())
+      .then((w: Workout) => setWorkout(w));
   }, [id, router]);
 
-  // tick
-  useEffect(() => {
-    if (!running) return;
-    tickRef.current = setInterval(() => {
-      setRemaining(r => {
-        if (r <= 1) {
-          // próximo segmento
-          beep(1320, 250);
-          setTimeout(() => {
-            setIdx(i => {
-              const next = i + 1;
-              if (next >= steps.length) { setRunning(false); setDone(true); speak('Treino finalizado, parabéns!'); return i; }
-              const nextStep = steps[next];
-              speak(nextStep.label);
-              setRemaining(nextStep.durationSec);
-              return next;
-            });
-          }, 50);
-          return 0;
-        }
-        if (r === 4) beep(660, 120, 0.25);
-        if (r === 3) beep(660, 120, 0.25);
-        if (r === 2) beep(660, 120, 0.25);
-        return r - 1;
-      });
-    }, 1000);
-    return () => { if (tickRef.current) clearInterval(tickRef.current); };
-  }, [running, steps]);
+  const eng = useWorkoutEngine(workout?.segments ?? null);
 
-  const togglePlay = () => {
-    if (!running && idx === 0 && remaining === steps[0]?.durationSec) {
-      // primeiro play — fala o primeiro segmento
-      speak(steps[0].label);
-      beep(880, 200);
-    }
-    setRunning(r => !r);
-  };
-  const skip = () => {
-    if (idx + 1 >= steps.length) return;
-    setIdx(i => {
-      const next = i + 1;
-      setRemaining(steps[next].durationSec);
-      speak(steps[next].label);
-      return next;
-    });
-  };
+  if (!workout) {
+    return <main className="min-h-screen flex items-center justify-center text-white/60">Carregando…</main>;
+  }
 
-  if (!workout) return <main className="min-h-screen flex items-center justify-center text-white/60">Carregando…</main>;
-
-  const cur = steps[idx];
-  const totalRemaining = steps.slice(idx).reduce((a, s, i) => a + (i === 0 ? remaining : s.durationSec), 0);
-  const progress = cur ? 1 - remaining / cur.durationSec : 0;
+  const { cur, next, idx, steps, remaining, running, done, totalRemaining, progress } = eng;
+  const soon = running && remaining <= 3 && !!next; // pré-aviso visual do próximo bloco
 
   return (
-    <main className={`min-h-screen bg-gradient-to-br ${cur ? KIND_BG[cur.kind] ?? KIND_BG.CUSTOM : 'from-rq-ink to-rq-night'} transition-colors duration-500`}>
+    <main
+      className={`min-h-screen bg-gradient-to-br ${
+        cur ? KIND_BG[cur.kind] ?? KIND_BG.CUSTOM : 'from-rq-ink to-rq-night'
+      } transition-colors duration-500`}
+    >
       <header className="sticky top-0 z-30 backdrop-blur-md bg-black/30 border-b border-white/5">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
-          <Link href="/app/workouts" className="text-white/80"><ArrowLeft className="w-5 h-5" /></Link>
+          <Link href="/app/workouts" className="text-white/80">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
           <h1 className="font-display font-bold">{workout.name}</h1>
-          <div className="ml-auto text-xs text-white/70 tabular-nums">{idx + 1}/{steps.length} · {formatDuration(totalRemaining)} restantes</div>
+          <div className="ml-auto text-xs text-white/70 tabular-nums">
+            {idx + 1}/{steps.length} · {formatDuration(totalRemaining)} restantes
+          </div>
         </div>
       </header>
+
+      {/* Barra de progresso global do treino */}
+      <div className="h-1 bg-white/10">
+        <div
+          className="h-full bg-white/70 transition-[width] duration-500"
+          style={{ width: `${steps.length ? ((idx + progress) / steps.length) * 100 : 0}%` }}
+        />
+      </div>
 
       <section className="max-w-3xl mx-auto px-6 py-12 flex flex-col items-center text-center">
         {done ? (
@@ -160,41 +84,86 @@ export default function WorkoutPlayerPage({ params }: { params: { id: string } }
             <h2 className="font-display text-4xl font-black mb-2">Concluído!</h2>
             <p className="text-white/70 mb-8">Treino finalizado. Salve sua corrida ou volte aos treinos.</p>
             <div className="flex gap-3">
-              <Link href="/app/run" className="btn-primary">Iniciar corrida</Link>
-              <Link href="/app/workouts" className="btn-ghost">Voltar</Link>
+              <Link href="/app/run" className="btn-primary">
+                Iniciar corrida
+              </Link>
+              <Link href="/app/workouts" className="btn-ghost">
+                Voltar
+              </Link>
             </div>
           </>
         ) : (
           <>
-            <div className="text-sm uppercase tracking-widest text-white/70 mb-3">{cur?.label}</div>
-            <div className="font-display text-[180px] leading-none font-black tabular-nums mb-6">
+            <div className="text-sm uppercase tracking-widest text-white/70 mb-3 flex items-center gap-2">
+              {cur?.label}
+              {cur?.isLastRep && (
+                <span className="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold">ÚLTIMA</span>
+              )}
+            </div>
+
+            <div
+              className={`font-display text-[180px] leading-none font-black tabular-nums mb-6 transition-transform ${
+                soon ? 'scale-110' : ''
+              }`}
+            >
               {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}
             </div>
 
+            {cur?.distanceM && (
+              <div className="-mt-4 mb-4 text-white/60 text-sm">alvo ~{cur.distanceM} m</div>
+            )}
+
             <div className="w-full max-w-md h-2 rounded-full bg-white/15 overflow-hidden mb-12">
-              <div className="h-full bg-white/90 transition-[width] duration-1000 ease-linear"
-                   style={{ width: `${progress * 100}%` }} />
+              <div
+                className="h-full bg-white/90 transition-[width] duration-500 ease-linear"
+                style={{ width: `${progress * 100}%` }}
+              />
             </div>
 
-            <div className="flex items-center gap-6">
-              <Link href="/app/workouts" className="text-white/60 hover:text-white">
-                <X className="w-8 h-8" />
-              </Link>
-              <button onClick={togglePlay}
-                className="w-24 h-24 rounded-full bg-white text-rq-ink shadow-2xl flex items-center justify-center hover:scale-105 transition">
+            <div className="flex items-center gap-5">
+              <button
+                onClick={eng.prev}
+                disabled={idx <= 0}
+                className="text-white/60 hover:text-white disabled:opacity-30"
+                aria-label="Anterior"
+              >
+                <SkipBack className="w-8 h-8" />
+              </button>
+              <button
+                onClick={eng.toggle}
+                className="w-24 h-24 rounded-full bg-white text-rq-ink shadow-2xl flex items-center justify-center hover:scale-105 transition"
+                aria-label={running ? 'Pausar' : 'Iniciar'}
+              >
                 {running ? <Pause className="w-10 h-10" /> : <Play className="w-10 h-10 ml-1" />}
               </button>
-              <button onClick={skip} disabled={idx >= steps.length - 1} className="text-white/60 hover:text-white disabled:opacity-30">
+              <button
+                onClick={eng.skip}
+                disabled={idx >= steps.length - 1}
+                className="text-white/60 hover:text-white disabled:opacity-30"
+                aria-label="Próximo"
+              >
                 <SkipForward className="w-8 h-8" />
               </button>
             </div>
 
-            {/* Próximo */}
-            {idx + 1 < steps.length && (
-              <div className="mt-12 text-sm text-white/60">
-                Próximo: <span className="font-bold text-white">{steps[idx + 1].label}</span> · {formatDuration(steps[idx + 1].durationSec)}
+            {/* Próximo bloco — pré-aviso destacado nos últimos segundos */}
+            {next && (
+              <div
+                className={`mt-12 text-sm transition-all ${
+                  soon ? 'text-white font-bold scale-105' : 'text-white/60'
+                }`}
+              >
+                {soon ? 'Prepare-se: ' : 'Próximo: '}
+                <span className="font-bold text-white">{next.label}</span> ·{' '}
+                {formatDuration(next.durationSec)}
               </div>
             )}
+
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2">
+              <Link href="/app/workouts" className="text-white/40 hover:text-white/80 inline-flex items-center gap-1 text-xs">
+                <X className="w-4 h-4" /> Encerrar
+              </Link>
+            </div>
           </>
         )}
       </section>

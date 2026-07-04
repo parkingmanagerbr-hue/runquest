@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Play, Trash2, Clock, Repeat, Zap } from 'lucide-react';
+import { ArrowLeft, Plus, Play, Trash2, Clock, Repeat, Zap, MapPin } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatDuration } from '@/lib/geo';
 
@@ -121,6 +121,10 @@ export default function WorkoutsPage() {
                 <div className="flex gap-2 mt-auto">
                   <Link href={`/app/workouts/${w.id}/play`} className="btn-primary flex-1 text-sm py-2">
                     <Play className="w-3.5 h-3.5" /> Iniciar
+                  </Link>
+                  <Link href={`/app/run?workout=${w.id}`} title="Correr com GPS + voz"
+                    className="btn-ghost text-sm py-2 px-3 flex items-center gap-1.5 text-cyan-300 border-cyan-400/30">
+                    <MapPin className="w-3.5 h-3.5" /> GPS
                   </Link>
                   {!w.isTemplate && (
                     <button onClick={() => remove(w.id)} className="btn-ghost text-sm py-2 px-3">

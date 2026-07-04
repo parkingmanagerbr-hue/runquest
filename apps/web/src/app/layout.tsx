@@ -7,7 +7,6 @@ export const metadata: Metadata = {
   description:
     'App de corrida gamificado: conquiste territórios no mapa, complete missões, evolua com Personal Trainer IA. Disponível como PWA, Android e iOS.',
   manifest: '/manifest.webmanifest',
-  themeColor: '#000000',
   appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'RunQuest' },
   icons: {
     icon: [

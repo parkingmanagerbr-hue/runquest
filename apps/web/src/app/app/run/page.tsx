@@ -8,6 +8,7 @@ import { tokens } from '@/lib/api';
 import { haversine, formatPace, formatDuration, formatDistance } from '@/lib/geo';
 import { useHeartRate } from '@/lib/useHeartRate';
 import { useAudioCoach } from '@/lib/useAudioCoach';
+import { useWorkoutEngine, type RawSegment } from '@/lib/useWorkoutEngine';
 import { saveActiveRun, loadActiveRun, clearActiveRun, type ActiveRun } from '@/lib/runPersistence';
 import { watchPosition as geoWatch, isNativePlatform, type GeoWatchHandle } from '@/lib/geolocation';
 
@@ -90,9 +91,38 @@ export default function RunTrackingPage() {
   const [targetPaceInput, setTargetPaceInput] = useState('');
   const [liveSplits, setLiveSplits] = useState<{ km: number; paceSecPerKm: number }[]>([]);
   const [recovered, setRecovered] = useState<ActiveRun | null>(null);
+  const [workout, setWorkout] = useState<{ id: string; name: string; segments: RawSegment[] } | null>(null);
+  const [workoutList, setWorkoutList] = useState<{ id: string; name: string }[]>([]);
 
   const hr = useHeartRate();
-  useAudioCoach(distance, duration, state === 'tracking');
+  // O engine de intervalo segue o estado da corrida: avança em 'tracking', congela em 'paused'.
+  const wk = useWorkoutEngine(workout?.segments ?? null, { controlledRunning: state === 'tracking' });
+  const workoutActive = !!workout;
+  // Sem voz duelando: com treino ativo, o coach de km cala (o engine já narra).
+  useAudioCoach(distance, duration, state === 'tracking' && !workoutActive);
+
+  const apiHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('rq.at')}` });
+  const loadWorkout = useCallback((id: string) => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/workouts/${id}`, { headers: apiHeaders() })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((w) => { if (w?.segments) setWorkout(w); })
+      .catch(() => {});
+  }, []);
+
+  // Deep-link ?workout=<id> (ex.: botão "Correr com GPS" na tela de treinos)
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('workout');
+    if (id) loadWorkout(id);
+  }, [loadWorkout]);
+
+  // Lista de treinos p/ o seletor no idle
+  useEffect(() => {
+    if (state !== 'idle') return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/workouts`, { headers: apiHeaders() })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setWorkoutList(Array.isArray(d) ? d : (d?.items ?? [])))
+      .catch(() => {});
+  }, [state]);
 
   const wakeLockRef = useRef<any>(null);
   const watchId = useRef<GeoWatchHandle | null>(null);
@@ -435,6 +465,39 @@ export default function RunTrackingPage() {
 
       <section className="flex-1 px-4 py-4 max-w-5xl mx-auto w-full space-y-3">
 
+        {/* Overlay do treino intervalado — o diferencial vs. INTVL: intervalo guiado por
+            voz rodando JUNTO com GPS/mapa/territórios. */}
+        {workoutActive && (state === 'tracking' || state === 'paused') && wk.cur && (
+          <div className="glass p-4 border border-cyan-400/30 bg-gradient-to-br from-cyan-500/10 to-transparent">
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-[11px] uppercase tracking-widest text-cyan-200/90 font-bold flex items-center gap-2">
+                {wk.cur.label}
+                {wk.cur.isLastRep && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-cyan-400/25 text-[9px]">ÚLTIMA</span>
+                )}
+              </div>
+              <div className="text-[10px] text-white/40 tabular-nums">
+                {wk.idx + 1}/{wk.steps.length}
+              </div>
+            </div>
+            <div className="flex items-end justify-between gap-3">
+              <div className="font-display text-5xl font-black tabular-nums leading-none">
+                {Math.floor(wk.remaining / 60)}:{String(wk.remaining % 60).padStart(2, '0')}
+              </div>
+              {wk.next && (
+                <div className="text-right text-[11px] text-white/50 pb-1">
+                  próximo<br />
+                  <span className="text-white/80 font-bold">{wk.next.label}</span> · {formatDuration(wk.next.durationSec)}
+                </div>
+              )}
+            </div>
+            <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
+              <div className="h-full bg-cyan-300 transition-[width] duration-500 ease-linear"
+                style={{ width: `${wk.progress * 100}%` }} />
+            </div>
+          </div>
+        )}
+
         {/* Primary: Time + Distance (always accurate) */}
         <div className="grid grid-cols-2 gap-3">
           <div className="glass p-4">
@@ -604,6 +667,35 @@ export default function RunTrackingPage() {
         {/* Idle config */}
         {state === 'idle' && (
           <div className="space-y-3">
+            {/* Seletor de treino intervalado (opcional) */}
+            <div className="glass p-4">
+              <div className="text-xs text-white/50 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <Activity className="w-3.5 h-3.5 text-cyan-300" /> Treino guiado (opcional)
+              </div>
+              {workout ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold truncate">{workout.name}</div>
+                    <div className="text-[11px] text-white/40">
+                      {workout.segments.reduce((a, s) => a + Math.max(1, s.repeats || 1), 0)} blocos · voz + GPS juntos
+                    </div>
+                  </div>
+                  <button onClick={() => setWorkout(null)} className="text-white/30 text-xs hover:text-white/70">✕ remover</button>
+                </div>
+              ) : (
+                <select
+                  value=""
+                  onChange={(e) => e.target.value && loadWorkout(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-300/50"
+                >
+                  <option value="">Correr livre (sem treino)</option>
+                  {workoutList.map((w) => (
+                    <option key={w.id} value={w.id} className="bg-rq-night">{w.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
             <div className="glass p-4">
               <div className="text-xs text-white/50 uppercase tracking-wider mb-2 flex items-center gap-2">
                 <Zap className="w-3.5 h-3.5 text-cyan-300" /> Pace alvo (opcional)
