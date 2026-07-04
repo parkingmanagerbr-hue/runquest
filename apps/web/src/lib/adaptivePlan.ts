@@ -218,6 +218,44 @@ export function buildWeek(paces: TrainingPaces, load: LoadSummary, opts: BuildWe
   return { weekIndex: opts.weekIndex, targetKm, deload, acwrGated, sessions, note };
 }
 
+export interface ScheduledEntry {
+  date: string; // YYYY-MM-DD
+  label: string;
+  distanceM?: number;
+  durationSec?: number;
+  completed: boolean;
+}
+
+/**
+ * Gera N semanas de sessões DATADAS para persistir como plano (POST /plans →
+ * aparece no /calendar). Distribui as sessões da semana em dias distintos,
+ * espalhados de forma uniforme (não usa o day interno, que pode colidir).
+ */
+export function buildSchedule(
+  paces: TrainingPaces,
+  load: LoadSummary,
+  opts: { goal: Goal; daysPerWeek: number; base: number; weeks: number; startDate: Date },
+): ScheduledEntry[] {
+  const out: ScheduledEntry[] = [];
+  for (let wi = 0; wi < opts.weeks; wi++) {
+    const w = buildWeek(paces, load, { goal: opts.goal, daysPerWeek: opts.daysPerWeek, weekIndex: wi, base: opts.base });
+    const n = w.sessions.length;
+    w.sessions.forEach((s, i) => {
+      const dayOffset = n > 1 ? Math.round((i * 6) / (n - 1)) : 3; // 0..6 distintos
+      const d = new Date(opts.startDate);
+      d.setDate(d.getDate() + wi * 7 + dayOffset);
+      out.push({
+        date: d.toISOString().slice(0, 10),
+        label: `${SESSION_ICON[s.kind]} ${s.title}`,
+        distanceM: s.estDistanceM,
+        durationSec: s.estDurationSec,
+        completed: false,
+      });
+    });
+  }
+  return out;
+}
+
 /** Converte uma sessão em corpo do POST /workouts. */
 export function sessionToWorkoutBody(s: PlanSession) {
   return {

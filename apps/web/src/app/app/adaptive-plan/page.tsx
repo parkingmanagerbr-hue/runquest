@@ -2,14 +2,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, TrendingUp, Activity, ShieldCheck, ShieldAlert, MapPin, Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Activity, ShieldCheck, ShieldAlert, MapPin, Play, ChevronLeft, ChevronRight, CalendarPlus, CheckCircle2 } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatPace, formatDuration } from '@/lib/geo';
 import { estimatePaces, pacesFromReference, ZONE_LABEL, type RunLite, type PaceZone } from '@/lib/trainingPaces';
 import {
-  assessLoad, baseWeeklyKm, buildWeek, sessionToWorkoutBody, GOAL_LABEL, SESSION_ICON,
+  assessLoad, baseWeeklyKm, buildWeek, buildSchedule, sessionToWorkoutBody, GOAL_LABEL, SESSION_ICON,
   type Goal, type PlanSession,
 } from '@/lib/adaptivePlan';
+
+/** Próxima segunda-feira (YYYY-MM-DD) — início natural de um plano. */
+function nextMondayISO(): string {
+  const d = new Date();
+  const dow = d.getDay(); // 0=dom
+  const add = ((8 - (dow === 0 ? 7 : dow)) % 7) || 7;
+  d.setDate(d.getDate() + add);
+  return d.toISOString().slice(0, 10);
+}
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? '/api';
 const ZONES: PaceZone[] = ['recovery', 'easy', 'marathon', 'threshold', 'interval', 'repetition'];
@@ -29,6 +38,10 @@ export default function AdaptivePlanPage() {
   const [weekIndex, setWeekIndex] = useState(0);
   const [manualTime, setManualTime] = useState(''); // fallback quando não há corridas
   const [launching, setLaunching] = useState<string | null>(null);
+  const [planWeeks, setPlanWeeks] = useState(8);
+  const [startDate, setStartDate] = useState(nextMondayISO());
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
@@ -77,6 +90,33 @@ export default function AdaptivePlanPage() {
     } catch {
       setLaunching(null);
       alert('Não consegui criar o treino. Tente de novo.');
+    }
+  }
+
+  async function saveToCalendar() {
+    setSaving(true);
+    setSaved(false);
+    try {
+      const schedule = buildSchedule(paces, load, {
+        goal, daysPerWeek, base, weeks: planWeeks, startDate: new Date(startDate + 'T00:00:00'),
+      });
+      const r = await fetch(`${API}/plans`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
+        body: JSON.stringify({
+          name: `Plano Adaptativo · ${GOAL_LABEL[goal]}`,
+          goal: `${GOAL_LABEL[goal]} · ${planWeeks} semanas · ${daysPerWeek}x/sem`,
+          weeks: planWeeks,
+          startDate,
+          scheduledWorkouts: schedule,
+        }),
+      });
+      if (!r.ok) throw new Error('falhou');
+      setSaved(true);
+    } catch {
+      alert('Não consegui salvar o plano no calendário. Tente de novo.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -235,6 +275,43 @@ export default function AdaptivePlanPage() {
           <p className="text-[11px] text-white/30 mt-4">
             Paces via Riegel + zonas de treino; progressão de ~8%/semana com deload a cada 4ª e trava de segurança por ACWR.
             Ajuste para clima, terreno e forma do dia.
+          </p>
+        </div>
+
+        {/* Salvar no calendário */}
+        <div className="glass p-5">
+          <h2 className="font-bold text-sm uppercase tracking-wider text-white/50 mb-3 flex items-center gap-2">
+            <CalendarPlus className="w-3.5 h-3.5 text-rq-lime" /> Salvar no calendário
+          </h2>
+          <p className="text-xs text-white/50 mb-4">
+            Gera o bloco completo, semana a semana (com progressão, deload e segurança), e agenda no seu calendário.
+          </p>
+          <div className="flex flex-wrap gap-4 items-end">
+            <label className="text-sm">
+              <span className="text-[11px] text-white/40 block mb-1">Duração</span>
+              <select value={planWeeks} onChange={(e) => { setPlanWeeks(Number(e.target.value)); setSaved(false); }}
+                className="rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm focus:border-rq-lime/50 outline-none">
+                {[4, 6, 8, 12, 16].map((w) => <option key={w} value={w} className="bg-rq-night">{w} semanas</option>)}
+              </select>
+            </label>
+            <label className="text-sm">
+              <span className="text-[11px] text-white/40 block mb-1">Início</span>
+              <input type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setSaved(false); }}
+                className="rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm focus:border-rq-lime/50 outline-none" />
+            </label>
+            <button onClick={saveToCalendar} disabled={saving}
+              className="btn-primary text-sm py-2.5 px-5 disabled:opacity-50">
+              {saving ? 'Salvando…' : <><CalendarPlus className="w-4 h-4" /> Agendar plano</>}
+            </button>
+          </div>
+          {saved && (
+            <div className="mt-4 flex items-center gap-2 text-sm text-rq-lime bg-rq-lime/10 border border-rq-lime/20 rounded-xl px-4 py-2.5">
+              <CheckCircle2 className="w-4 h-4" /> Plano agendado!
+              <Link href="/app/calendar" className="underline ml-1">Ver no calendário</Link>
+            </div>
+          )}
+          <p className="text-[11px] text-white/30 mt-3">
+            Substitui o plano ativo atual (só um plano fica ativo por vez).
           </p>
         </div>
       </section>
