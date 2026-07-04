@@ -8,7 +8,8 @@ import { tokens } from '@/lib/api';
 import { haversine, formatPace, formatDuration, formatDistance } from '@/lib/geo';
 import { useHeartRate } from '@/lib/useHeartRate';
 import { useAudioCoach } from '@/lib/useAudioCoach';
-import { useWorkoutEngine, type RawSegment } from '@/lib/useWorkoutEngine';
+import { useWorkoutEngine, speak, type RawSegment } from '@/lib/useWorkoutEngine';
+import { ghostProgress, leadChangeCallout, finishCallout } from '@/lib/ghostRace';
 import { saveActiveRun, loadActiveRun, clearActiveRun, type ActiveRun } from '@/lib/runPersistence';
 import { watchPosition as geoWatch, isNativePlatform, type GeoWatchHandle } from '@/lib/geolocation';
 
@@ -93,6 +94,13 @@ export default function RunTrackingPage() {
   const [recovered, setRecovered] = useState<ActiveRun | null>(null);
   const [workout, setWorkout] = useState<{ id: string; name: string; segments: RawSegment[] } | null>(null);
   const [workoutList, setWorkoutList] = useState<{ id: string; name: string }[]>([]);
+  // Fantasma / parceiro virtual
+  const [ghostPace, setGhostPace] = useState(0); // s/km, 0 = desligado
+  const [ghostLabel, setGhostLabel] = useState('');
+  const [ghostTargetM, setGhostTargetM] = useState(0); // linha de chegada (0 = aberto)
+  const [prs, setPrs] = useState<{ label: string; best: { paceSecPerKm: number; distanceMeters: number; durationSec: number } | null }[]>([]);
+  const ghostAheadRef = useRef<boolean | null>(null);
+  const ghostFinishedRef = useRef(false);
 
   const hr = useHeartRate();
   // O engine de intervalo segue o estado da corrida: avança em 'tracking', congela em 'paused'.
@@ -123,6 +131,38 @@ export default function RunTrackingPage() {
       .then((d) => setWorkoutList(Array.isArray(d) ? d : (d?.items ?? [])))
       .catch(() => {});
   }, [state]);
+
+  // PRs p/ escolher um fantasma (seu recorde) no idle
+  useEffect(() => {
+    if (state !== 'idle') return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/stats/prs`, { headers: apiHeaders() })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setPrs(Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, [state]);
+
+  // Fantasma só corre quando não há treino ativo (evita duelo de vozes)
+  const ghostActive = ghostPace > 0 && !workout;
+  const ghost = ghostActive
+    ? ghostProgress({ elapsedSec: duration, youMeters: distance, ghostPaceSecPerKm: ghostPace, targetDistanceM: ghostTargetM || undefined })
+    : null;
+
+  // Narra ultrapassagens e a chegada
+  useEffect(() => {
+    if (!ghost || state !== 'tracking') return;
+    const phrase = leadChangeCallout(ghostAheadRef.current, ghost);
+    if (Math.abs(ghost.gapMeters) >= 8) ghostAheadRef.current = ghost.ahead;
+    if (phrase) {
+      speak(phrase);
+      try { navigator.vibrate?.(ghost.ahead ? [120, 60, 120] : 200); } catch {}
+    }
+    if (ghost.finished && !ghostFinishedRef.current) {
+      ghostFinishedRef.current = true;
+      speak(finishCallout(ghost));
+      try { navigator.vibrate?.([120, 60, 120, 60, 240]); } catch {}
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [distance, duration, ghostActive]);
 
   const wakeLockRef = useRef<any>(null);
   const watchId = useRef<GeoWatchHandle | null>(null);
@@ -211,6 +251,8 @@ export default function RunTrackingPage() {
       setElevLoss(0); elevLossRef.current = 0;
       lastKmDistRef.current = 0;
       lastKmTimeRef.current = 0;
+      ghostAheadRef.current = null;
+      ghostFinishedRef.current = false;
     }
     lastAltRef.current = null;
     lowSpeedRef.current = 0;
@@ -498,6 +540,40 @@ export default function RunTrackingPage() {
           </div>
         )}
 
+        {/* Overlay do FANTASMA — corrida ao vivo contra o seu recorde/pace-alvo.
+            Nem Strava nem INTVL fazem isso ao vivo. */}
+        {ghost && (state === 'tracking' || state === 'paused') && (
+          <div className={`glass p-4 border ${ghost.ahead ? 'border-rq-lime/40 bg-gradient-to-br from-rq-lime/10 to-transparent' : 'border-rq-orange/40 bg-gradient-to-br from-rq-orange/10 to-transparent'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-[11px] uppercase tracking-widest font-bold text-white/70 flex items-center gap-1.5">
+                👻 vs {ghostLabel}
+              </div>
+              <div className={`text-sm font-black tabular-nums ${ghost.ahead ? 'text-rq-lime' : 'text-rq-orange'}`}>
+                {ghost.ahead ? '▲' : '▼'} {Math.abs(ghost.gapMeters)} m
+                <span className="text-[11px] font-normal text-white/50 ml-1">
+                  ({ghost.ahead ? '+' : '−'}{formatDuration(Math.abs(ghost.gapSec))})
+                </span>
+              </div>
+            </div>
+            {/* Pista: você (lime) e fantasma (branco) */}
+            <div className="space-y-1.5">
+              {[{ who: 'você', m: ghost.youMeters, color: 'bg-rq-lime', emoji: '🏃' }, { who: 'fantasma', m: ghost.ghostMeters, color: 'bg-white/50', emoji: '👻' }].map((lane) => {
+                const denom = ghostTargetM > 0 ? ghostTargetM : Math.max(ghost.youMeters, ghost.ghostMeters, 1);
+                const pct = Math.min(100, (lane.m / denom) * 100);
+                return (
+                  <div key={lane.who} className="relative h-5 rounded-full bg-white/5 overflow-hidden">
+                    <div className={`absolute inset-y-0 left-0 ${lane.color} rounded-full transition-[width] duration-700 ease-linear`} style={{ width: `${pct}%` }} />
+                    <span className="absolute top-1/2 -translate-y-1/2 text-xs" style={{ left: `calc(${pct}% - 10px)` }}>{lane.emoji}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="text-[10px] text-white/40 mt-1.5 tabular-nums">
+              {ghostTargetM > 0 ? `alvo ${(ghostTargetM / 1000).toFixed(1)} km · ` : ''}fantasma a {formatPace(ghostPace)}/km
+            </div>
+          </div>
+        )}
+
         {/* Primary: Time + Distance (always accurate) */}
         <div className="grid grid-cols-2 gap-3">
           <div className="glass p-4">
@@ -693,6 +769,43 @@ export default function RunTrackingPage() {
                     <option key={w.id} value={w.id} className="bg-rq-night">{w.name}</option>
                   ))}
                 </select>
+              )}
+            </div>
+
+            {/* Fantasma / parceiro virtual — corra contra o seu recorde */}
+            <div className="glass p-4">
+              <div className="text-xs text-white/50 uppercase tracking-wider mb-2 flex items-center gap-2">
+                👻 Fantasma / parceiro virtual (opcional)
+              </div>
+              {workout ? (
+                <p className="text-xs text-white/40">Desativado com treino guiado — remova o treino para correr contra um fantasma.</p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => { setGhostPace(0); setGhostLabel(''); setGhostTargetM(0); ghostAheadRef.current = null; ghostFinishedRef.current = false; }}
+                      className={`px-3 py-1.5 rounded-xl text-sm font-bold transition ${ghostPace === 0 ? 'bg-white/10 border border-white/20' : 'bg-white/5 border border-white/10 hover:border-white/20 text-white/50'}`}>
+                      Nenhum
+                    </button>
+                    {prs.filter((p) => p.best).map((p) => (
+                      <button key={p.label}
+                        onClick={() => { setGhostPace(p.best!.paceSecPerKm); setGhostTargetM(p.best!.distanceMeters); setGhostLabel(`recorde ${p.label}`); ghostAheadRef.current = null; ghostFinishedRef.current = false; }}
+                        className={`px-3 py-1.5 rounded-xl text-sm font-bold transition ${ghostLabel === `recorde ${p.label}` ? 'bg-rq-lime/20 border border-rq-lime/50 text-rq-lime' : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
+                        🏆 {p.label} · {formatPace(p.best!.paceSecPerKm)}
+                      </button>
+                    ))}
+                    {targetPace > 0 && (
+                      <button
+                        onClick={() => { setGhostPace(targetPace); setGhostTargetM(0); setGhostLabel('pace alvo'); ghostAheadRef.current = null; ghostFinishedRef.current = false; }}
+                        className={`px-3 py-1.5 rounded-xl text-sm font-bold transition ${ghostLabel === 'pace alvo' ? 'bg-cyan-400/20 border border-cyan-400/50 text-cyan-300' : 'bg-white/5 border border-white/10 hover:border-white/20'}`}>
+                        ⚡ Pace alvo · {formatPace(targetPace)}
+                      </button>
+                    )}
+                  </div>
+                  {ghostPace > 0
+                    ? <div className="text-xs text-rq-lime mt-2">👻 Correndo contra: {ghostLabel} ({formatPace(ghostPace)}/km){ghostTargetM > 0 ? ` até ${(ghostTargetM / 1000).toFixed(1)} km` : ''}</div>
+                    : prs.every((p) => !p.best) && <div className="text-[11px] text-white/30 mt-2">Complete corridas para desbloquear fantasmas dos seus recordes — ou defina um pace alvo abaixo.</div>}
+                </>
               )}
             </div>
 
