@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles, Download, Flame, Gauge, Mountain, StickyNote, Check } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace, computeSplits } from '@/lib/geo';
-import { Share2 } from 'lucide-react';
+import { Share2, ImageDown } from 'lucide-react';
+import { buildRunCardSvg } from '@/lib/runCard';
 
 const RunMap = dynamic(() => import('@/components/RunMap').then(m => m.RunMap), { ssr: false });
 
@@ -27,6 +28,26 @@ interface Run {
   notes?: string | null;
 }
 
+/** Rasteriza um SVG (string) em PNG via canvas — só no cliente. */
+function svgToPng(svg: string, w: number, h: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { URL.revokeObjectURL(url); reject(new Error('no ctx')); return; }
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob null'))), 'image/png');
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img load')); };
+    img.src = url;
+  });
+}
+
 export default function RunDetailPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const router = useRouter();
@@ -37,6 +58,7 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
   const [notes, setNotes] = useState('');
   const [notesSaved, setNotesSaved] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
+  const [cardBusy, setCardBusy] = useState(false);
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
@@ -119,6 +141,38 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
     }
   };
 
+  // Gera o card visual (SVG → PNG) e compartilha/baixa como imagem.
+  const shareCard = async () => {
+    if (!run) return;
+    setCardBusy(true);
+    try {
+      const svg = buildRunCardSvg({
+        coordinates: run.pointsGeoJson?.coordinates ?? [],
+        distanceMeters: run.distanceMeters,
+        durationSec: run.durationSec,
+        avgPaceSecPerKm: run.avgPaceSecPerKm,
+        dateLabel: date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
+        elevationGainM: run.elevationGainM,
+        title: date.toLocaleDateString('pt-BR', { weekday: 'long' }).replace(/^./, (c) => c.toUpperCase()),
+      });
+      const blob = await svgToPng(svg, 1080, 1350);
+      const file = new File([blob], `runquest-${run.id}.png`, { type: 'image/png' });
+      const nav = navigator as Navigator & { canShare?: (d: any) => boolean };
+      if (nav.share && nav.canShare?.({ files: [file] })) {
+        await nav.share({ files: [file], title: 'RunQuest', text: `Corri ${formatDistance(run.distanceMeters)} km 🏃‍♂️` });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = file.name; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    } catch {
+      alert('Não consegui gerar o card. Tente de novo.');
+    } finally {
+      setCardBusy(false);
+    }
+  };
+
   const saveNotes = async () => {
     setSavingNotes(true);
     try {
@@ -140,6 +194,9 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
           <Link href="/app" className="text-white/70 hover:text-white"><ArrowLeft className="w-5 h-5" /></Link>
           <h1 className="font-display font-bold capitalize">{dateStr} · {timeStr}</h1>
           <div className="ml-auto flex items-center gap-2">
+            <button onClick={shareCard} disabled={cardBusy} className="btn-ghost text-xs py-1.5 px-3 disabled:opacity-50">
+              <ImageDown className="w-3.5 h-3.5" /> {cardBusy ? 'Gerando…' : 'Card'}
+            </button>
             <button onClick={share} className="btn-ghost text-xs py-1.5 px-3">
               <Share2 className="w-3.5 h-3.5" /> Compartilhar
             </button>
