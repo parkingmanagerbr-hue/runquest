@@ -434,6 +434,13 @@ export default function AppDashboard() {
             <h3 className="font-bold text-sm">Plano Adaptativo</h3>
             <p className="text-xs text-white/50">Paces + carga, grátis</p>
           </Link>
+          <Link href="/app/fitness" className="glass p-4 hover:border-rq-lime/40 transition group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-rq-violet flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              <BarChart2 className="w-4 h-4 text-rq-ink" />
+            </div>
+            <h3 className="font-bold text-sm">Evolução</h3>
+            <p className="text-xs text-white/50">Está ficando + rápido?</p>
+          </Link>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
