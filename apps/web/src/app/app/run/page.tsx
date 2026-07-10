@@ -2,11 +2,12 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, Pause, Square, MapPin, Activity, ArrowLeft, Heart, Zap, Trophy, Flame, Star, TrendingUp, Mountain, Navigation } from 'lucide-react';
+import { Play, Pause, Square, MapPin, Activity, ArrowLeft, Heart, Zap, Trophy, Flame, Star, TrendingUp, Mountain, Navigation, Footprints } from 'lucide-react';
 import Link from 'next/link';
 import { tokens } from '@/lib/api';
 import { haversine, formatPace, formatDuration, formatDistance } from '@/lib/geo';
 import { useHeartRate } from '@/lib/useHeartRate';
+import { useCadence } from '@/lib/useCadence';
 import { useAudioCoach } from '@/lib/useAudioCoach';
 import { useWorkoutEngine, speak, type RawSegment } from '@/lib/useWorkoutEngine';
 import { ghostProgress, leadChangeCallout, finishCallout } from '@/lib/ghostRace';
@@ -103,6 +104,7 @@ export default function RunTrackingPage() {
   const ghostFinishedRef = useRef(false);
 
   const hr = useHeartRate();
+  const cad = useCadence();
   // O engine de intervalo segue o estado da corrida: avança em 'tracking', congela em 'paused'.
   const wk = useWorkoutEngine(workout?.segments ?? null, { controlledRunning: state === 'tracking' });
   const workoutActive = !!workout;
@@ -467,6 +469,12 @@ export default function RunTrackingPage() {
             {gpsAccuracy && <span className="text-[9px] text-white/30 ml-0.5">±{Math.round(gpsAccuracy)}m</span>}
           </div>
           <div className="ml-auto flex items-center gap-3">
+            <button onClick={cad.connected ? cad.disconnect : cad.connect}
+              className={`flex items-center gap-1 text-xs ${cad.connected ? 'text-rq-emerald' : 'text-white/40'}`}
+              title="Sensor de cadência/velocidade Bluetooth">
+              <Footprints className={`w-3.5 h-3.5 ${cad.connected ? 'animate-pulse' : ''}`} />
+              {cad.reading?.cadenceSpm ? <span className="tabular-nums font-bold">{cad.reading.cadenceSpm}</span> : <span>SPM</span>}
+            </button>
             <button onClick={hr.connected ? hr.disconnect : hr.connect}
               className={`flex items-center gap-1 text-xs ${hr.connected ? 'text-rq-orange' : 'text-white/40'}`}>
               <Heart className={`w-3.5 h-3.5 ${hr.connected ? 'fill-current animate-pulse' : ''}`} />
@@ -623,7 +631,7 @@ export default function RunTrackingPage() {
 
         {/* Secondary stats row */}
         {(state === 'tracking' || state === 'paused') && (
-          <div className="grid grid-cols-4 gap-2">
+          <div className={`grid gap-2 ${cad.connected ? 'grid-cols-5' : 'grid-cols-4'}`}>
             <div className="glass p-2.5 text-center">
               <div className="text-[9px] text-white/40 mb-0.5">km/h</div>
               <div className="font-display text-base font-black tabular-nums">{kmh ?? '—'}</div>
@@ -647,6 +655,14 @@ export default function RunTrackingPage() {
                 {hr.bpm ?? '—'}
               </div>
             </div>
+            {cad.connected && (
+              <div className="glass p-2.5 text-center">
+                <div className="text-[9px] text-white/40 mb-0.5">spm</div>
+                <div className="font-display text-base font-black text-rq-emerald tabular-nums">
+                  {cad.reading?.cadenceSpm ?? '—'}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

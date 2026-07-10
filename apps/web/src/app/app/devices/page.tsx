@@ -2,15 +2,19 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Watch, Bluetooth, Link2, CheckCircle2, ExternalLink, Heart, Smartphone } from 'lucide-react';
+import { ArrowLeft, Watch, Bluetooth, Link2, CheckCircle2, ExternalLink, Heart, Smartphone, Footprints } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { useHeartRate } from '@/lib/useHeartRate';
+import { useCadence } from '@/lib/useCadence';
 
 export default function DevicesPage() {
   const router = useRouter();
   const [strava, setStrava] = useState<{ connected: boolean; athleteId?: string | null } | null>(null);
-  const [hrConnected, setHrConnected] = useState(false);
-  const [hrBpm, setHrBpm] = useState<number | null>(null);
-  const [hrConnecting, setHrConnecting] = useState(false);
+  // Hooks compartilhados com a tela de corrida (/app/run) — qualquer dispositivo
+  // com o serviço BLE padrão de frequência cardíaca ou de cadência/velocidade
+  // funciona aqui, de qualquer fabricante (Polar, Garmin, Wahoo, Coros, Stryd…).
+  const hr = useHeartRate();
+  const cad = useCadence();
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
@@ -26,32 +30,6 @@ export default function DevicesPage() {
     if (!confirm('Desconectar Strava?')) return;
     await api.stravaDisconnect();
     setStrava({ connected: false });
-  };
-
-  const connectHR = async () => {
-    if (!('bluetooth' in navigator)) { alert('Web Bluetooth não suportado neste browser.'); return; }
-    setHrConnecting(true);
-    try {
-      const device = await (navigator as any).bluetooth.requestDevice({
-        filters: [{ services: ['heart_rate'] }],
-        optionalServices: ['battery_service'],
-      });
-      const server = await device.gatt.connect();
-      const service = await server.getPrimaryService('heart_rate');
-      const char = await service.getCharacteristic('heart_rate_measurement');
-      await char.startNotifications();
-      char.addEventListener('characteristicvaluechanged', (e: any) => {
-        const val = e.target.value;
-        const flags = val.getUint8(0);
-        const bpm = flags & 0x01 ? val.getUint16(1, true) : val.getUint8(1);
-        setHrBpm(bpm);
-        setHrConnected(true);
-      });
-      setHrConnected(true);
-    } catch (e: any) {
-      if (e.name !== 'NotFoundError') alert('Erro BLE: ' + e.message);
-    }
-    setHrConnecting(false);
   };
 
   return (
@@ -127,25 +105,56 @@ export default function DevicesPage() {
             : <button onClick={connectStrava} className="btn-primary text-sm py-2 px-4 w-full">Conectar Strava</button>}
         </div>
 
-        {/* BLE HR */}
+        {/* BLE HR — qualquer cinta/relógio com o serviço padrão heart_rate */}
         <div className="glass p-5">
           <div className="flex items-center gap-4 mb-3">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rq-orange to-red-500 flex items-center justify-center shrink-0">
-              <Heart className={`w-6 h-6 text-white ${hrConnected ? 'fill-white animate-pulse' : ''}`} />
+              <Heart className={`w-6 h-6 text-white ${hr.connected ? 'fill-white animate-pulse' : ''}`} />
             </div>
             <div className="flex-1">
-              <h2 className="font-bold">Cinta cardíaca Bluetooth</h2>
-              {hrConnected
-                ? <p className="text-sm text-rq-orange">Conectada · {hrBpm ? `${hrBpm} bpm` : 'aguardando dados...'}</p>
-                : <p className="text-sm text-white/60">Polar H10, Wahoo TICKR, Garmin HRM — qualquer cinta BLE</p>}
+              <h2 className="font-bold">Frequência cardíaca (Bluetooth)</h2>
+              {hr.connected
+                ? <p className="text-sm text-rq-orange">Conectada · {hr.bpm ? `${hr.bpm} bpm` : 'aguardando dados…'}</p>
+                : <p className="text-sm text-white/60">Polar H10, Wahoo TICKR, Garmin HRM, qualquer relógio/cinta BLE</p>}
             </div>
+            {hr.connected && (
+              <button onClick={hr.disconnect} className="text-white/30 hover:text-rq-orange text-xs shrink-0">Desconectar</button>
+            )}
           </div>
-          <button onClick={connectHR} disabled={hrConnecting || hrConnected}
+          {hr.error && <p className="text-xs text-rq-orange mb-2">{hr.error}</p>}
+          <button onClick={hr.connect} disabled={hr.connecting || hr.connected}
             className="btn-ghost text-sm py-2 px-4 w-full disabled:opacity-50 flex items-center justify-center gap-2">
             <Bluetooth className="w-4 h-4" />
-            {hrConnected ? 'Conectada' : hrConnecting ? 'Conectando...' : 'Conectar via Bluetooth'}
+            {hr.connected ? 'Conectada' : hr.connecting ? 'Conectando…' : 'Conectar via Bluetooth'}
           </button>
           <p className="text-xs text-white/40 mt-2 text-center">Funciona durante a corrida · Android Chrome · Samsung Browser</p>
+        </div>
+
+        {/* BLE Cadência/Velocidade — foot pod ou relógio com Running Speed & Cadence */}
+        <div className="glass p-5">
+          <div className="flex items-center gap-4 mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rq-emerald to-cyan-600 flex items-center justify-center shrink-0">
+              <Footprints className={`w-6 h-6 text-white ${cad.connected ? 'animate-pulse' : ''}`} />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-bold">Cadência / Foot Pod (Bluetooth)</h2>
+              {cad.connected
+                ? <p className="text-sm text-rq-emerald">
+                    {cad.deviceName} · {cad.reading?.cadenceSpm ? `${cad.reading.cadenceSpm} spm` : 'aguardando dados…'}
+                    {cad.reading?.speedMs != null ? ` · ${(cad.reading.speedMs * 3.6).toFixed(1)} km/h` : ''}
+                  </p>
+                : <p className="text-sm text-white/60">Stryd, foot pods e relógios com sensor de corrida BLE (Running Speed &amp; Cadence)</p>}
+            </div>
+            {cad.connected && (
+              <button onClick={cad.disconnect} className="text-white/30 hover:text-rq-orange text-xs shrink-0">Desconectar</button>
+            )}
+          </div>
+          {cad.error && <p className="text-xs text-rq-orange mb-2">{cad.error}</p>}
+          <button onClick={cad.connect} disabled={cad.connecting || cad.connected}
+            className="btn-ghost text-sm py-2 px-4 w-full disabled:opacity-50 flex items-center justify-center gap-2">
+            <Bluetooth className="w-4 h-4" />
+            {cad.connected ? 'Conectado' : cad.connecting ? 'Conectando…' : 'Conectar via Bluetooth'}
+          </button>
         </div>
 
         {/* Celular GPS */}
