@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Get, Post, Query, Param, Res, UseGuards, Req, HttpCode,
+  Body, Controller, Get, Post, Query, Param, Res, UseGuards, HttpCode,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';

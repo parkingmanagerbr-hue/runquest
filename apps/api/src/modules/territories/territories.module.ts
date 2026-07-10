@@ -1,8 +1,8 @@
 import {
-  Controller, Get, Injectable, Logger, Module, Query, UseGuards,
+  Controller, Get, Injectable, Logger, Module, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { latLngToCell, cellToBoundary, polygonToCells } from 'h3-js';
+import { latLngToCell, cellToBoundary } from 'h3-js';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';

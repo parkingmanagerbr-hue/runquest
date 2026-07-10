@@ -2,7 +2,7 @@ import {
   Body, Controller, Delete, Get, Injectable, Module, Param, Post, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { IsIn, IsInt, IsNumber, Min } from 'class-validator';
+import { IsIn, IsNumber, Min } from 'class-validator';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';

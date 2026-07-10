@@ -187,6 +187,9 @@ export class StravaWebhookHandler {
         }
       } catch {}
     }
+    if (territoryStats.newCaptures > 0) {
+      this.logger.log(`Strava run: ${territoryStats.newCaptures} novos territórios (${territoryStats.visited} visitados) p/ user ${userId}`);
+    }
     const totalTerritories = await (this.prisma as any).territory.count({
       where: { userId, capturedAt: { not: null } },
     });
