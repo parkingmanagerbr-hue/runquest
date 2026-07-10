@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Settings as Cog, Save } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import { tokens } from '@/lib/api';
 
 interface Settings {

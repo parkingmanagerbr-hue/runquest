@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, Sparkles, Coins, Heart, Award, Calendar, Activity, Flame, Zap, Timer } from 'lucide-react';
+import { ArrowLeft, Coins, Award, Activity, Flame, Zap, Timer } from 'lucide-react';
 import { tokens } from '@/lib/api';
-import { formatDistance, formatDuration, formatPace } from '@/lib/geo';
+import { formatDuration, formatPace } from '@/lib/geo';
 
 interface PR { label: string; best: { runId: string; paceSecPerKm: number; durationSec: number; distanceMeters: number; date: string } | null }
 
@@ -90,7 +90,6 @@ export default function ProfilePage() {
   const pct = Math.min(100, (xpInLevel / xpForNext) * 100);
 
   const unlockedBadges = badges.filter(b => b.unlocked);
-  const lockedBadges = badges.filter(b => !b.unlocked);
 
   return (
     <main className="min-h-screen bg-rq-aurora">

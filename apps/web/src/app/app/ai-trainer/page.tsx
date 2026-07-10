@@ -20,6 +20,8 @@ const LEVELS = [
   { id: 'avancado', label: 'Avançado', desc: '> 40 km/semana' },
 ];
 
+interface AiPlan { name: string; goal: string; weeks: number; scheduledWorkouts?: unknown[] }
+
 export default function AITrainerPage() {
   const router = useRouter();
   const [isPremium, setIsPremium] = useState<boolean | null>(null);
@@ -29,7 +31,7 @@ export default function AITrainerPage() {
   const [notes, setNotes] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<AiPlan | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -50,8 +52,8 @@ export default function AITrainerPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? 'Erro ao gerar plano');
       setResult(data);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     }
     setLoading(false);
   };

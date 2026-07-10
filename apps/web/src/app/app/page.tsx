@@ -130,7 +130,7 @@ export default function AppDashboard() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs?limit=3`, h)
       .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setRecentRuns(d)).catch(() => {});
     fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/missions`, h)
-      .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setMissions(d.filter((m: any) => !m.claimed).slice(0, 3))).catch(() => {});
+      .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setMissions(d.filter((m: { claimed: boolean }) => !m.claimed).slice(0, 3))).catch(() => {});
     fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/goals`, h)
       .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setGoals(d.slice(0, 3))).catch(() => {});
     // Onboarding: show for new users that haven't seen it
@@ -149,14 +149,14 @@ export default function AppDashboard() {
     try {
       const { initPoint } = await api.checkout(plan);
       window.location.href = initPoint;
-    } catch (e: any) { alert(e.message); }
+    } catch (e) { alert(e instanceof Error ? e.message : String(e)); }
   };
 
   const connectStrava = async () => {
     try {
       const { url } = await api.stravaAuthorizeUrl();
       window.location.href = url;
-    } catch (e: any) { alert(e.message); }
+    } catch (e) { alert(e instanceof Error ? e.message : String(e)); }
   };
 
   const importStrava = async () => {
@@ -164,14 +164,14 @@ export default function AppDashboard() {
     try {
       const r = await api.stravaImport(90);
       alert(`Importadas: ${r.imported} | Já existiam: ${r.skipped}`);
-    } catch (e: any) { alert(e.message); }
+    } catch (e) { alert(e instanceof Error ? e.message : String(e)); }
     finally { setImporting(false); }
   };
 
   const disconnectStrava = async () => {
     if (!confirm('Desconectar Strava?')) return;
     try { await api.stravaDisconnect(); setStrava({ connected: false }); }
-    catch (e: any) { alert(e.message); }
+    catch (e) { alert(e instanceof Error ? e.message : String(e)); }
   };
 
   const logout = () => { tokens.clear(); router.push('/'); };

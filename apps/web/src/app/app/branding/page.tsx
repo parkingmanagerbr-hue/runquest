@@ -44,6 +44,8 @@ export default function BrandingPage() {
       {preview && (
         <div className="mt-8 glass p-6">
           <h2 className="font-bold mb-3">Preview</h2>
+          {/* next/image não serve p/ preview de blob/data URL local sem dimensões — img é o certo aqui */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={preview} alt="logo" className="max-w-xs rounded-2xl" />
         </div>
       )}

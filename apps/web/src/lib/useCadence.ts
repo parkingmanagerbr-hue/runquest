@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { bleCharacteristicValue, type BleDevice, type BleNavigator, type BleRemoteGATTCharacteristic } from './bluetooth';
 
 /**
  * Hook que conecta a QUALQUER sensor de corrida com o serviço BLE padrão
@@ -66,13 +67,11 @@ export function useCadence() {
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const deviceRef = useRef<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const charRef = useRef<any>(null);
+  const deviceRef = useRef<BleDevice | null>(null);
+  const charRef = useRef<BleRemoteGATTCharacteristic | null>(null);
 
   const onValue = useCallback((e: Event) => {
-    const value = (e.target as any).value as DataView;
+    const value = bleCharacteristicValue(e);
     if (!value) return;
     setReading(parseRscMeasurement(value));
   }, []);
@@ -84,7 +83,7 @@ export function useCadence() {
     }
     setError(null); setConnecting(true);
     try {
-      const device = await (navigator as any).bluetooth.requestDevice({
+      const device = await (navigator as unknown as BleNavigator).bluetooth.requestDevice({
         filters: [{ services: ['running_speed_and_cadence'] }],
         optionalServices: ['battery_service'],
       });
@@ -100,8 +99,8 @@ export function useCadence() {
       ch.addEventListener('characteristicvaluechanged', onValue);
       charRef.current = ch;
       setConnected(true);
-    } catch (e: any) {
-      if (e?.name !== 'NotFoundError') setError(e?.message ?? 'Falha ao conectar');
+    } catch (e) {
+      if (e instanceof Error && e.name !== 'NotFoundError') setError(e.message);
     } finally {
       setConnecting(false);
     }

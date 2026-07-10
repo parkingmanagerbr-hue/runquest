@@ -2,13 +2,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, TrendingUp, MapPinned, Sparkles } from 'lucide-react';
+import { ArrowLeft, Trophy, TrendingUp, MapPinned, Sparkles, type LucideIcon } from 'lucide-react';
 import { tokens } from '@/lib/api';
 
 type Kind = 'xp' | 'distance' | 'territories';
 interface Row { rank: number; userId: string; displayName: string; avatar?: string; level: number; value: number; isMe: boolean; }
 
-const TABS: { k: Kind; label: string; icon: any; unit: string }[] = [
+const TABS: { k: Kind; label: string; icon: LucideIcon; unit: string }[] = [
   { k: 'xp', label: 'XP', icon: Sparkles, unit: 'XP' },
   { k: 'distance', label: 'Distância', icon: TrendingUp, unit: 'km' },
   { k: 'territories', label: 'Territórios', icon: MapPinned, unit: 'cap.' },

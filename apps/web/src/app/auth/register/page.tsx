@@ -26,8 +26,8 @@ export default function RegisterPage() {
       const r = await api.register(form);
       tokens.save(r.accessToken, r.refreshToken);
       router.push('/app');
-    } catch (e: any) {
-      setErr(e.message ?? t('auth.register.error'));
+    } catch (e) {
+      setErr((e instanceof Error ? e.message : '') || t('auth.register.error'));
     } finally { setLoading(false); }
   };
 

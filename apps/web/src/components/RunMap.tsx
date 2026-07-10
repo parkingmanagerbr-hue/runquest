@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 
 // Fix Leaflet default icons in Next/Webpack
 if (typeof window !== 'undefined') {
-  // @ts-ignore
+  // @ts-expect-error — _getIconUrl é interno do Leaflet, sem tipo público
   delete L.Icon.Default.prototype._getIconUrl;
   L.Icon.Default.mergeOptions({
     iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',

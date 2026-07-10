@@ -48,8 +48,8 @@ export default function AdaptivePlanPage() {
     fetch(`${API}/runs?limit=100`, { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } })
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => {
-        const arr = Array.isArray(d) ? d : (d?.items ?? []);
-        setRuns(arr.map((r: any) => ({ distanceMeters: r.distanceMeters, durationSec: r.durationSec, startedAt: r.startedAt })));
+        const arr: RunLite[] = Array.isArray(d) ? d : (d?.items ?? []);
+        setRuns(arr.map((r) => ({ distanceMeters: r.distanceMeters, durationSec: r.durationSec, startedAt: r.startedAt })));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -138,6 +138,8 @@ export default function AdaptivePlanPage() {
           <strong className="text-white">Coaching que se adapta a você.</strong> Calcula seus paces de treino a
           partir das suas corridas e monta a semana ajustando pela sua carga (ACWR) e evolução — grátis, no seu ritmo.
         </div>
+
+        {loading && <div className="text-white/60">Carregando suas corridas…</div>}
 
         {/* Avaliação de forma */}
         <div className="glass p-5">

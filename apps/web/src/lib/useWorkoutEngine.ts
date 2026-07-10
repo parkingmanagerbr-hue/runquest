@@ -94,7 +94,7 @@ let sharedCtx: AudioContext | null = null;
 function getCtx(): AudioContext | null {
   try {
     if (!sharedCtx) {
-      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!Ctx) return null;
       sharedCtx = new Ctx();
     }
@@ -186,7 +186,7 @@ export function useWorkoutEngine(
   const rafRef = useRef<number | null>(null);
   const spokenSecRef = useRef<number>(-1); // último segundo falado nesta contagem
   const halfCuedRef = useRef<boolean>(false);
-  const wakeRef = useRef<any>(null);
+  const wakeRef = useRef<WakeLockSentinel | null>(null);
   const idxRef = useRef(0);
   const stepsRef = useRef<Step[]>(steps);
 
@@ -209,7 +209,7 @@ export function useWorkoutEngine(
     async function acquire() {
       try {
         if (running && 'wakeLock' in navigator) {
-          wakeRef.current = await (navigator as any).wakeLock.request('screen');
+          wakeRef.current = await navigator.wakeLock.request('screen');
         }
       } catch {}
     }

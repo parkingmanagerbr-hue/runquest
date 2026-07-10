@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { bleCharacteristicValue, type BleDevice, type BleNavigator, type BleRemoteGATTCharacteristic } from './bluetooth';
 
 /**
  * Hook que conecta a uma cinta cardíaca BLE (serviço heart_rate 0x180D).
@@ -12,13 +13,11 @@ export function useHeartRate() {
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const deviceRef = useRef<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const charRef = useRef<any>(null);
+  const deviceRef = useRef<BleDevice | null>(null);
+  const charRef = useRef<BleRemoteGATTCharacteristic | null>(null);
 
   const onValue = useCallback((e: Event) => {
-    const value = (e.target as any).value as DataView;
+    const value = bleCharacteristicValue(e);
     if (!value) return;
     // Per Bluetooth GATT spec: byte 0 = flags. Bit 0 = format (0=uint8, 1=uint16).
     const flags = value.getUint8(0);
@@ -34,7 +33,7 @@ export function useHeartRate() {
     }
     setError(null); setConnecting(true);
     try {
-      const device = await (navigator as any).bluetooth.requestDevice({
+      const device = await (navigator as unknown as BleNavigator).bluetooth.requestDevice({
         filters: [{ services: ['heart_rate'] }],
         optionalServices: ['battery_service'],
       });
@@ -49,8 +48,8 @@ export function useHeartRate() {
       ch.addEventListener('characteristicvaluechanged', onValue);
       charRef.current = ch;
       setConnected(true);
-    } catch (e: any) {
-      setError(e?.message ?? 'Falha ao conectar');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Falha ao conectar');
     } finally {
       setConnecting(false);
     }

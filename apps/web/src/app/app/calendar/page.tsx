@@ -2,9 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Calendar as CalIcon, CheckCircle2, Play, Sparkles } from 'lucide-react';
+import { ArrowLeft, Calendar as CalIcon, CheckCircle2, Sparkles } from 'lucide-react';
 import { tokens } from '@/lib/api';
-import { formatDuration } from '@/lib/geo';
 
 interface ScheduledWorkout {
   date: string;
@@ -80,7 +79,7 @@ export default function CalendarPage() {
         const target = new Date(start);
         target.setDate(target.getDate() + w * 7 + d);
         const found = plan.scheduledWorkouts.find(sw => sw.date === target.toISOString().slice(0, 10));
-        if (found) ws.push(found); else ws.push({ date: target.toISOString().slice(0, 10), label: '', completed: false } as any);
+        if (found) ws.push(found); else ws.push({ date: target.toISOString().slice(0, 10), label: '', completed: false });
       }
       weeks.push(ws);
     }

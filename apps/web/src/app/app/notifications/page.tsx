@@ -10,7 +10,7 @@ interface Notif {
   id: string;
   type: string;
   title: string;
-  data?: any;
+  data?: Record<string, unknown>;
   readAt?: string | null;
   createdAt: string;
 }
@@ -45,7 +45,10 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
+    // Ao abrir a tela: carrega e marca tudo como lido (ação única de montagem).
+    // load/markRead são recriados a cada render — incluí-los reexecutaria em loop.
     load().then(markRead);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   return (

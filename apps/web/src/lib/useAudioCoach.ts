@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useRef } from 'react';
-import { formatPace, formatDuration } from './geo';
 
 interface Settings {
   audioCoachEnabled: boolean;

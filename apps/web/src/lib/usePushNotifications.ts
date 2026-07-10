@@ -50,7 +50,7 @@ export function usePushNotifications() {
         body: JSON.stringify(sub.toJSON()),
       });
       setSubscribed(true);
-    } catch (e: any) {
+    } catch (e) {
       console.error('Push subscribe failed:', e);
     }
     setLoading(false);

@@ -27,8 +27,8 @@ export default function LoginPage() {
       const r = await api.login({ email, password });
       tokens.save(r.accessToken, r.refreshToken);
       router.push('/app');
-    } catch (e: any) {
-      setErr(e.message ?? t('auth.login.error'));
+    } catch (e) {
+      setErr((e instanceof Error ? e.message : '') || t('auth.login.error'));
     } finally { setLoading(false); }
   };
 

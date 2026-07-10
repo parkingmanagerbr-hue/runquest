@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Trash2, Save, ChevronUp, ChevronDown, Zap } from 'lucide-react';
@@ -59,6 +59,10 @@ export default function NewWorkoutPage() {
   const [saving, setSaving] = useState(false);
   const [segments, setSegments] = useState<Seg[]>([]);
 
+  useEffect(() => {
+    if (!tokens.hasSession()) router.replace('/auth/login');
+  }, [router]);
+
   const pace = useMemo(() => defaultPace(), []);
 
   const addSeg = (patch: Partial<Seg> = {}) => setSegments((s) => [...s, mk(patch)]);
@@ -111,8 +115,8 @@ export default function NewWorkoutPage() {
       });
       if (!r.ok) throw new Error(`API ${r.status}`);
       router.replace('/app/workouts');
-    } catch (e: any) {
-      alert(e.message);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }

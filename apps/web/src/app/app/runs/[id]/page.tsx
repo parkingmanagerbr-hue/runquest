@@ -86,7 +86,7 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
       }).then(r => r.json());
       if (r.analysis) setAnalysis(r.analysis);
       else if (!r.premium) setAnalysis('💎 Análise IA disponível para assinantes Premium');
-    } catch (e: any) { setAnalysis('Erro: ' + e.message); }
+    } catch (e) { setAnalysis('Erro: ' + (e instanceof Error ? e.message : String(e))); }
     setAnalyzing(false);
   };
 
@@ -97,7 +97,7 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
         headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
       }).then(r => r.json());
       alert(`Enviado pro Strava (upload #${r.uploadId})`);
-    } catch (e: any) { alert(e.message); }
+    } catch (e) { alert(e instanceof Error ? e.message : String(e)); }
   };
 
   if (loading) return <main className="min-h-screen flex items-center justify-center text-white/60">Carregando…</main>;
@@ -157,7 +157,7 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
       });
       const blob = await svgToPng(svg, 1080, 1350);
       const file = new File([blob], `runquest-${run.id}.png`, { type: 'image/png' });
-      const nav = navigator as Navigator & { canShare?: (d: any) => boolean };
+      const nav = navigator as Navigator & { canShare?: (d: { files?: File[] }) => boolean };
       if (nav.share && nav.canShare?.({ files: [file] })) {
         await nav.share({ files: [file], title: 'RunQuest', text: `Corri ${formatDistance(run.distanceMeters)} km 🏃‍♂️` });
       } else {

@@ -166,7 +166,7 @@ export default function RunTrackingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [distance, duration, ghostActive]);
 
-  const wakeLockRef = useRef<any>(null);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const watchId = useRef<GeoWatchHandle | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pointsRef = useRef<Point[]>([]);
@@ -389,9 +389,9 @@ export default function RunTrackingPage() {
       if (!run?.id) throw new Error('Resposta inválida');
       clearActiveRun();
       setRunResult(run);
-    } catch (e: any) {
+    } catch (e) {
       setState('paused'); stateRef.current = 'paused';
-      alert('Erro ao salvar: ' + e.message);
+      alert('Erro ao salvar: ' + (e instanceof Error ? e.message : String(e)));
     }
   };
 
@@ -637,9 +637,10 @@ export default function RunTrackingPage() {
               <div className="font-display text-base font-black tabular-nums">{kmh ?? '—'}</div>
             </div>
             <div className="glass p-2.5 text-center">
-              <div className="text-[9px] text-white/40 mb-0.5 flex items-center justify-center gap-0.5">↑elev</div>
-              <div className="font-display text-base font-black text-rq-lime tabular-nums">
-                {elevGain > 0 ? `+${elevGain}` : '—'}
+              <div className="text-[9px] text-white/40 mb-0.5 flex items-center justify-center gap-0.5"><Mountain className="w-2.5 h-2.5" /> elev</div>
+              <div className="font-display text-base font-black tabular-nums">
+                <span className="text-rq-lime">{elevGain > 0 ? `+${elevGain}` : '—'}</span>
+                {elevLoss > 0 && <span className="text-rq-orange text-sm"> /-{elevLoss}</span>}
               </div>
               <div className="text-[9px] text-white/30">m</div>
             </div>

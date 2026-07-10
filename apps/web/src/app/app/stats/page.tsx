@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, TrendingUp, Activity, Flame, Gauge, Calendar, Zap } from 'lucide-react';
 import { tokens } from '@/lib/api';
-import { formatPace } from '@/lib/geo';
 
 interface Run {
   id: string;
@@ -130,7 +129,6 @@ export default function StatsPage() {
   }), [runs]);
 
   const totalKm = runs.reduce((a, r) => a + r.distanceMeters / 1000, 0);
-  const totalDuration = runs.reduce((a, r) => a + r.durationSec, 0);
   const totalCal = Math.round(totalKm * 70 * 1.036);
 
   // Activity heatmap: last 52 weeks × 7 days
@@ -146,7 +144,7 @@ export default function StatsPage() {
     startDate.setDate(today.getDate() - today.getDay() - 52 * 7);
 
     const weeks: { date: string; km: number }[][] = [];
-    let current = new Date(startDate);
+    const current = new Date(startDate);
     while (current <= today) {
       const week: { date: string; km: number }[] = [];
       for (let d = 0; d < 7; d++) {

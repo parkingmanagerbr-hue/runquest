@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, TrendingUp, TrendingDown, Minus, Trophy, Activity } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Minus, Trophy, Activity, type LucideIcon } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { computeFitnessTrend, type FitnessTrend } from '@/lib/fitnessTrend';
 import type { RunLite } from '@/lib/trainingPaces';
@@ -15,7 +15,7 @@ function fmt5k(sec: number | null): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-const VERDICT: Record<FitnessTrend['trend'], { label: string; color: string; icon: any; note: string }> = {
+const VERDICT: Record<FitnessTrend['trend'], { label: string; color: string; icon: LucideIcon; note: string }> = {
   improving: { label: 'Você está evoluindo', color: 'text-rq-lime', icon: TrendingUp, note: 'Seu 5K estimado vem caindo — o treino está pegando. 🚀' },
   flat: { label: 'Forma estável', color: 'text-cyan-300', icon: Minus, note: 'Manutenção. Para evoluir, adicione qualidade (tiros/tempo) ou volume gradual.' },
   declining: { label: 'Forma em queda', color: 'text-rq-orange', icon: TrendingDown, note: 'Ritmo caindo — pode ser fadiga acumulada. Considere uma semana leve.' },
@@ -32,8 +32,8 @@ export default function FitnessPage() {
     fetch(`${API}/runs?limit=200`, { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } })
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => {
-        const arr = Array.isArray(d) ? d : (d?.items ?? []);
-        setRuns(arr.map((r: any) => ({ distanceMeters: r.distanceMeters, durationSec: r.durationSec, startedAt: r.startedAt })));
+        const arr: RunLite[] = Array.isArray(d) ? d : (d?.items ?? []);
+        setRuns(arr.map((r) => ({ distanceMeters: r.distanceMeters, durationSec: r.durationSec, startedAt: r.startedAt })));
       })
       .catch(() => {})
       .finally(() => setLoading(false));

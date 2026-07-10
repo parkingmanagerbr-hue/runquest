@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Activity, Clock, TrendingUp, ChevronRight, MapPin, Download } from 'lucide-react';
+import { ArrowLeft, Activity, Clock, TrendingUp, ChevronRight, MapPin, Download, Zap } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace } from '@/lib/geo';
 
@@ -74,7 +74,6 @@ export default function HistoryPage() {
     const now = new Date();
     return Array.from({ length: 6 }, (_, i) => {
       const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const monthRuns = runs.filter(r => {
         const rd = new Date(r.startedAt);
         return rd.getFullYear() === d.getFullYear() && rd.getMonth() === d.getMonth();
@@ -106,7 +105,7 @@ export default function HistoryPage() {
 
       <section className="max-w-5xl mx-auto px-6 py-6 space-y-5">
         {/* Summary stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="glass p-4">
             <Activity className="w-4 h-4 text-rq-lime mb-1" />
             <div className="font-display text-2xl font-black">{runs.length}</div>
@@ -121,6 +120,11 @@ export default function HistoryPage() {
             <Clock className="w-4 h-4 text-rq-lime mb-1" />
             <div className="font-display text-lg font-black tabular-nums">{formatDuration(totalDuration)}</div>
             <div className="text-xs text-white/50">tempo total</div>
+          </div>
+          <div className="glass p-4">
+            <Zap className="w-4 h-4 text-rq-lime mb-1" />
+            <div className="font-display text-2xl font-black tabular-nums">{avgPace > 0 ? formatPace(avgPace) : '—'}</div>
+            <div className="text-xs text-white/50">pace médio</div>
           </div>
         </div>
 

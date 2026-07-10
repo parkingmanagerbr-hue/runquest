@@ -64,7 +64,7 @@ async function request<T>(path: string, init: RequestInit & { auth?: boolean } =
 
 export const api = {
   register: (data: { email: string; password: string; displayName: string }) =>
-    request<{ accessToken: string; refreshToken: string; user: any }>(
+    request<{ accessToken: string; refreshToken: string; user: unknown }>(
       '/auth/register', { method: 'POST', body: JSON.stringify(data), auth: false },
     ),
   login: (data: { email: string; password: string }) =>
@@ -85,7 +85,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ plan, ...(currency ? { currency } : {}), ...(locale ? { locale } : {}) }),
     }),
-  listRuns: () => request<any[]>('/runs'),
+  listRuns: () => request<unknown[]>('/runs'),
   stravaStatus: () => request<{ connected: boolean; athleteId?: string | null; scope?: string | null; tokenValid?: boolean }>('/strava/status'),
   stravaAuthorizeUrl: () => request<{ url: string }>('/strava/authorize-url'),
   stravaImport: (sinceDays = 90) => request<{ imported: number; skipped: number }>(`/strava/import?sinceDays=${sinceDays}`, { method: 'POST' }),

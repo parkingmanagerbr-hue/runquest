@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, ShoppingBag, Coins, CheckCircle2, Lock, Crown } from 'lucide-react';
+import { ArrowLeft, Coins, CheckCircle2, Lock, Crown } from 'lucide-react';
 import { tokens } from '@/lib/api';
 
 interface Item {

@@ -117,6 +117,11 @@ function MissionCard({ m, onClaim, loading }: { m: Mission; onClaim: () => void;
       <div className="flex items-start gap-2 mb-2">
         <Sparkles className="w-4 h-4 text-rq-gold shrink-0 mt-0.5" />
         <h3 className="font-bold leading-tight">{m.title}</h3>
+        {SCOPE_LABEL[m.scope] && (
+          <span className="shrink-0 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-white/10 text-white/60">
+            {SCOPE_LABEL[m.scope]}
+          </span>
+        )}
         {m.claimed && <CheckCircle2 className="w-4 h-4 text-rq-lime ml-auto shrink-0" />}
       </div>
       <p className="text-xs text-white/60 mb-3 min-h-[2lh]">{m.description}</p>
