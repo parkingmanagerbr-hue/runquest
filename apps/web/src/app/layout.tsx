@@ -1,6 +1,13 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
+import { Sora, Inter } from 'next/font/google';
 import { I18nProvider } from '@/lib/i18n';
+
+// Fontes auto-hospedadas pelo Next (zero request externo em runtime, sem layout
+// shift). Antes, --font-display/--font-body não eram definidas em lugar nenhum
+// e tudo caía em system-ui. Sora = display esportivo; Inter = corpo legível.
+const display = Sora({ subsets: ['latin'], weight: ['600', '700', '800'], variable: '--font-display', display: 'swap' });
+const body = Inter({ subsets: ['latin'], variable: '--font-body', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'RunQuest — Corra. Conquiste. Evolua.',
@@ -32,7 +39,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={`${display.variable} ${body.variable}`}>
       <body className="font-body antialiased">
         <I18nProvider>{children}</I18nProvider>
       </body>

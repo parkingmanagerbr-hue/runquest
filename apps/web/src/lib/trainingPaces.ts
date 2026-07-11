@@ -57,7 +57,8 @@ function pacesFrom5k(ref5kSec: number): Record<PaceZone, number> {
 export function estimatePaces(runs: RunLite[], now = 0): TrainingPaces {
   const NONE: TrainingPaces = { ref5kSec: 0, paces: pacesFrom5k(1500), source: 'none' };
   if (!runs?.length) return NONE;
-  const nowMs = now || parseDateSafe(runs[0]?.startedAt) || 0;
+  // Sem `now` explícito → agora real (não a 1ª corrida do array, que dependeria da ordem).
+  const nowMs = now || Date.now();
 
   let best = Infinity;
   for (const r of runs) {

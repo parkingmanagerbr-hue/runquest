@@ -309,7 +309,7 @@ export function useWorkoutEngine(
 
       if (r <= 0) {
         beep(1320, 260, 0.4);
-        advance(1);
+        advance(1); // muda idx → o efeito reconstrói o loop pro próximo bloco (idx nas deps)
       } else {
         rafRef.current = requestAnimationFrame(loop);
       }
@@ -318,7 +318,11 @@ export function useWorkoutEngine(
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [running, advance]);
+    // `idx` nas deps é ESSENCIAL: sem ele, ao chegar em r<=0 o loop chama
+    // advance() e não reagenda — como running/advance não mudam, o efeito não
+    // re-executa e a contagem congela no 2º bloco. Com idx, cada transição de
+    // bloco derruba e reconstrói o loop (re-âncora no anchorRef novo).
+  }, [running, advance, idx]);
 
   const toggle = useCallback(() => {
     if (controlled !== undefined) return; // pai controla o play/pause

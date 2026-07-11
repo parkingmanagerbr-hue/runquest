@@ -2,17 +2,27 @@
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
-// Fix Leaflet default icons in Next/Webpack
-if (typeof window !== 'undefined') {
-  // @ts-expect-error — _getIconUrl é interno do Leaflet, sem tipo público
-  delete L.Icon.Default.prototype._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  });
+/**
+ * Marcador de posição CSS puro (divIcon) — evita baixar 3 imagens do unpkg.com
+ * que o Leaflet usa por padrão (falham offline / com sinal ruim, justamente
+ * quando um app de corrida mais precisa do mapa). É um ponto lime da marca com
+ * halo, mais bonito que o pino padrão. Criado client-side (RunMap é ssr:false).
+ */
+function useRunnerIcon() {
+  return useMemo(
+    () =>
+      L.divIcon({
+        className: '',
+        html:
+          '<div style="width:16px;height:16px;border-radius:9999px;background:#A8FF3E;' +
+          'border:2px solid #0E0A2A;box-shadow:0 0 0 4px rgba(168,255,62,.25),0 0 10px rgba(168,255,62,.7)"></div>',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+      }),
+    [],
+  );
 }
 
 function FollowMap({ pos }: { pos: [number, number] | null }) {
@@ -35,6 +45,7 @@ export function RunMap({
   zoom?: number;
 }) {
   const center = current || positions[positions.length - 1] || [-23.5505, -46.6333];
+  const icon = useRunnerIcon();
   return (
     <div style={{ height, width: '100%', borderRadius: 16, overflow: 'hidden' }}>
       <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%' }}>
@@ -45,7 +56,7 @@ export function RunMap({
         {positions.length > 1 && (
           <Polyline positions={positions} pathOptions={{ color: '#A8FF3E', weight: 5, opacity: 0.9 }} />
         )}
-        {current && <Marker position={current} />}
+        {current && <Marker position={current} icon={icon} />}
         {current && <FollowMap pos={current} />}
       </MapContainer>
     </div>

@@ -10,9 +10,10 @@ import { useCadence } from '@/lib/useCadence';
 export default function DevicesPage() {
   const router = useRouter();
   const [strava, setStrava] = useState<{ connected: boolean; athleteId?: string | null } | null>(null);
-  // Hooks compartilhados com a tela de corrida (/app/run) — qualquer dispositivo
-  // com o serviço BLE padrão de frequência cardíaca ou de cadência/velocidade
-  // funciona aqui, de qualquer fabricante (Polar, Garmin, Wahoo, Coros, Stryd…).
+  // Mesmos hooks BLE usados na tela de corrida (/app/run) — funcionam com
+  // qualquer dispositivo do serviço padrão de FC ou cadência/velocidade, de
+  // qualquer fabricante (Polar, Garmin, Wahoo, Coros, Stryd…). Obs.: a conexão
+  // é por página (não persiste ao navegar); reconecte na tela de corrida.
   const hr = useHeartRate();
   const cad = useCadence();
 

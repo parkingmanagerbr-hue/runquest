@@ -1,6 +1,6 @@
 'use client';
 import dynamic from 'next/dynamic';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Play, Pause, Square, MapPin, Activity, ArrowLeft, Heart, Zap, Trophy, Flame, Star, TrendingUp, Mountain, Navigation, Footprints } from 'lucide-react';
 import Link from 'next/link';
@@ -172,6 +172,11 @@ export default function RunTrackingPage() {
   const pointsRef = useRef<Point[]>([]);
   const distRef = useRef(0);
   const durationRef = useRef(0);
+  // Cronometragem ancorada em wall-clock: duração = base acumulada + (agora -
+  // início do segmento atual). Sobrevive ao throttle de setInterval quando a
+  // aba vai pro fundo (senão a corrida grava menos tempo e pace falso-rápido).
+  const durationBaseRef = useRef(0);
+  const segStartRef = useRef(0);
   const lastKmDistRef = useRef(0);
   const lastKmTimeRef = useRef(0);
   const lastAltRef = useRef<number | null>(null);
@@ -239,9 +244,22 @@ export default function RunTrackingPage() {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
+  // Cleanup ao desmontar (ex.: usuário navega pra fora no meio da corrida):
+  // encerra GPS watch, o tick e libera o wake lock — senão vazam e disparam
+  // setState em componente desmontado + GPS/tela ligados sem ninguém consumindo.
+  useEffect(() => () => {
+    if (watchId.current) { watchId.current.clear(); watchId.current = null; }
+    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
+    wakeLockRef.current?.release().catch(() => {});
+  }, []);
+
   const start = useCallback((fresh = true) => {
     if (!navigator.geolocation) { setError('GPS indisponível'); return; }
     setError(null);
+    // Defensivo: nunca deixar watch/tick antigos vivos ao (re)iniciar — senão
+    // dois intervalos incrementariam a duração em dobro.
+    if (watchId.current) { watchId.current.clear(); watchId.current = null; }
+    if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
     // Só zera tudo numa corrida NOVA. Ao retomar (pausa ou recuperação)
     // preservamos distância, tempo, pontos e elevação acumulados.
     if (fresh) {
@@ -261,6 +279,9 @@ export default function RunTrackingPage() {
     setAutoPausedHint(false);
     setCurrentSpeedMs(null);
     if (fresh || !startedAt) setStartedAt(new Date());
+    // Âncora do relógio: base = tempo já acumulado; segmento começa agora.
+    durationBaseRef.current = durationRef.current;
+    segStartRef.current = Date.now();
     setState('tracking'); stateRef.current = 'tracking';
 
     // Screen wake lock — só no PWA. No app nativo o plugin de background
@@ -330,7 +351,9 @@ export default function RunTrackingPage() {
 
     tickRef.current = setInterval(() => {
       if (stateRef.current === 'tracking') {
-        setDuration(d => { const n = d + 1; durationRef.current = n; return n; });
+        // Recalcula do relógio: correto mesmo se o tick foi throttled em background.
+        const n = durationBaseRef.current + Math.round((Date.now() - segStartRef.current) / 1000);
+        durationRef.current = n; setDuration(n);
         // Auto-save a cada 5s para recuperação a frio (throttle p/ não pesar)
         if ((saveCounterRef.current = (saveCounterRef.current + 1) % 5) === 0) persistProgress();
       }
@@ -450,7 +473,11 @@ export default function RunTrackingPage() {
     ? displayPace < targetPace * 0.97 ? 'fast' : displayPace > targetPace * 1.03 ? 'slow' : 'on'
     : 'none';
 
-  const weightKg = (() => { try { return JSON.parse(localStorage.getItem('rq.settings') ?? '{}').weightKg || 70; } catch { return 70; } })();
+  // Estático por sessão — evita JSON.parse do localStorage a cada render (a tela
+  // re-renderiza a cada fix de GPS e a cada segundo).
+  const weightKg = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem('rq.settings') ?? '{}').weightKg || 70; } catch { return 70; }
+  }, []);
   const calories = Math.round(distance / 1000 * weightKg * 1.036);
   const signal = gpsSignal(gpsAccuracy);
 

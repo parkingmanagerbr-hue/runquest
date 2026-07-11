@@ -56,10 +56,12 @@ export function useHeartRate() {
   }, [onValue]);
 
   const disconnect = useCallback(async () => {
+    try { charRef.current?.removeEventListener('characteristicvaluechanged', onValue); } catch {}
     try { await charRef.current?.stopNotifications(); } catch {}
     try { deviceRef.current?.gatt?.disconnect(); } catch {}
+    charRef.current = null;
     setConnected(false); setBpm(null);
-  }, []);
+  }, [onValue]);
 
   useEffect(() => () => { void disconnect(); }, [disconnect]);
 
