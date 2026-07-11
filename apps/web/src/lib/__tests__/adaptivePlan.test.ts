@@ -1,0 +1,108 @@
+import { describe, it, expect } from 'vitest';
+import { estimatePaces, pacesFromReference, type RunLite } from '../trainingPaces';
+import {
+  assessLoad, baseWeeklyKm, buildWeek, buildSchedule, sessionToWorkoutBody,
+} from '../adaptivePlan';
+
+const now = Date.parse('2026-07-04T12:00:00Z');
+const iso = (d: number) => new Date(now - d * 86400000).toISOString();
+const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
+
+const runs: RunLite[] = [
+  { distanceMeters: 5000, durationSec: 1500, startedAt: iso(3) },
+  { distanceMeters: 10000, durationSec: 3200, startedAt: iso(9) },
+  { distanceMeters: 8000, durationSec: 2600, startedAt: iso(15) },
+];
+const paces = estimatePaces(runs, now);
+const load = assessLoad(runs, now);
+const base = baseWeeklyKm(load, '10k');
+
+describe('assessLoad (ACWR)', () => {
+  it('calcula agudo/crônico/acwr finitos', () => {
+    expect(Number.isFinite(load.acwr)).toBe(true);
+    expect(['low', 'ok', 'high', 'none']).toContain(load.status);
+  });
+  it('carga alta recente → status high', () => {
+    const hi = assessLoad([
+      { distanceMeters: 40000, durationSec: 12000, startedAt: iso(1) },
+      { distanceMeters: 3000, durationSec: 1000, startedAt: iso(20) },
+    ], now);
+    expect(hi.acwr).toBeGreaterThan(1.3);
+    expect(hi.status).toBe('high');
+  });
+  it('sem histórico → status none', () => {
+    expect(assessLoad([], now).status).toBe('none');
+  });
+});
+
+describe('buildWeek', () => {
+  it('gera semana com sessões e segmentos válidos', () => {
+    const w = buildWeek(paces, load, { goal: '10k', daysPerWeek: 4, weekIndex: 0, base });
+    expect(w.sessions.length).toBeGreaterThan(0);
+    expect(w.targetKm).toBeGreaterThan(0);
+    for (const s of w.sessions) {
+      expect(s.segments.length).toBeGreaterThan(0);
+      expect(s.segments.every((seg) => Number.isFinite(seg.repeats))).toBe(true);
+      expect(Number.isFinite(s.estDistanceM)).toBe(true);
+      expect(Number.isFinite(s.estDurationSec)).toBe(true);
+    }
+  });
+  it('semana 4 (idx3) é deload', () => {
+    expect(buildWeek(paces, load, { goal: '10k', daysPerWeek: 4, weekIndex: 3, base }).deload).toBe(true);
+  });
+  it('progressão ~8%/semana quando carga permite', () => {
+    const w0 = buildWeek(paces, load, { goal: '10k', daysPerWeek: 4, weekIndex: 0, base });
+    const w1 = buildWeek(paces, load, { goal: '10k', daysPerWeek: 4, weekIndex: 1, base });
+    expect(w1.targetKm).toBeGreaterThan(w0.targetKm);
+  });
+  it('ACWR alto trava a progressão', () => {
+    const hi = assessLoad([
+      { distanceMeters: 40000, durationSec: 12000, startedAt: iso(1) },
+      { distanceMeters: 3000, durationSec: 1000, startedAt: iso(20) },
+    ], now);
+    const w = buildWeek(paces, hi, { goal: 'half', daysPerWeek: 5, weekIndex: 2, base: baseWeeklyKm(hi, 'half') });
+    expect(w.acwrGated).toBe(true);
+    expect(Number.isFinite(w.targetKm)).toBe(true);
+  });
+
+  it('sessionToWorkoutBody produz corpo válido do POST /workouts', () => {
+    const w = buildWeek(paces, load, { goal: '10k', daysPerWeek: 4, weekIndex: 0, base });
+    const body = sessionToWorkoutBody(w.sessions[0]);
+    expect(body.name).toBeTruthy();
+    expect(Array.isArray(body.segments)).toBe(true);
+    expect(body.isTemplate).toBe(false);
+  });
+});
+
+describe('buildSchedule', () => {
+  const start = new Date('2026-07-06T00:00:00'); // segunda
+  for (const weeks of [4, 8, 12]) {
+    it(`weeks=${weeks}: datas válidas, na janela, dias distintos por semana`, () => {
+      const sched = buildSchedule(paces, load, { goal: '10k', daysPerWeek: 4, base, weeks, startDate: start });
+      expect(sched.length).toBeGreaterThan(0);
+      expect(sched.every((e) => isDate(e.date))).toBe(true);
+      expect(sched.every((e) => (e.durationSec ?? 0) > 0 && Number.isFinite(e.durationSec))).toBe(true);
+      expect(sched.every((e) => !!e.label && e.completed === false)).toBe(true);
+      const first = Date.parse(sched[0].date);
+      const last = Date.parse(sched[sched.length - 1].date);
+      expect(first).toBeGreaterThanOrEqual(Date.parse('2026-07-06'));
+      expect(last).toBeLessThan(Date.parse('2026-07-06') + weeks * 7 * 86400000);
+      // sem colisão de data dentro da mesma semana
+      for (let wi = 0; wi < weeks; wi++) {
+        const wkStart = Date.parse('2026-07-06') + wi * 7 * 86400000;
+        const dates = sched.filter((e) => {
+          const t = Date.parse(e.date);
+          return t >= wkStart && t < wkStart + 7 * 86400000;
+        }).map((e) => e.date);
+        expect(new Set(dates).size).toBe(dates.length);
+      }
+    });
+  }
+
+  it('funciona com referência manual e 6 dias/semana', () => {
+    const pm = pacesFromReference(5000, 25 * 60);
+    const l0 = assessLoad([], now);
+    const sm = buildSchedule(pm, l0, { goal: 'marathon', daysPerWeek: 6, base: baseWeeklyKm(l0, 'marathon'), weeks: 8, startDate: start });
+    expect(sm.every((e) => Number.isFinite(e.distanceM))).toBe(true);
+  });
+});
