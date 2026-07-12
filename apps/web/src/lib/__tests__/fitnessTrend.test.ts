@@ -91,6 +91,14 @@ describe('computeFitnessTrend', () => {
     expect(t.trend).toBe('flat');
   });
 
+  it('amostra pequena (4 sem) com tendência fraca+ruído → flat (corte por df, não t≥2)', () => {
+    // slope=-11.5, t=-2.90, df=2. Com t-crítico correto (4.30) NÃO é significativo;
+    // com o corte ingênuo 2.0 seria "improving" falso. 4 pontos ruidosos ≠ tendência.
+    const durs = [1505, 1485, 1490, 1465]; // do mais antigo (w=3) ao atual (w=0)
+    const runs = durs.map((d, i) => ({ distanceMeters: 5000, durationSec: d, startedAt: daysAgo((3 - i) * 7 + 1) }));
+    expect(computeFitnessTrend(runs, now, 12).trend).toBe('flat');
+  });
+
   it('descarta outlier de GPS (5K em 8min = 1:36/km) — não vira o melhor', () => {
     const t = computeFitnessTrend([
       { distanceMeters: 5000, durationSec: 1500, startedAt: daysAgo(3) }, // 5:00/km real

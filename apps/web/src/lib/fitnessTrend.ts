@@ -35,6 +35,19 @@ export interface FitnessTrend {
   totalKm: number;
 }
 
+/** t crítico de Student (95% bicaudal) por graus de liberdade. Amostra pequena
+ *  exige t bem maior que o 1.96 assintótico — evita superdeclarar tendência. */
+const T95: Record<number, number> = {
+  1: 12.71, 2: 4.30, 3: 3.18, 4: 2.78, 5: 2.57, 6: 2.45, 7: 2.36, 8: 2.31, 9: 2.26, 10: 2.23,
+};
+function tCritical95(df: number): number {
+  if (df <= 0) return Infinity;
+  if (df <= 10) return T95[df];
+  if (df <= 20) return 2.09;
+  if (df <= 30) return 2.04;
+  return 1.98;
+}
+
 /** Predição de 5K de uma corrida de esforço plausível (senão null). */
 function predicted5k(r: RunLite): number | null {
   if (!isPlausibleEffort(r)) return null;
@@ -106,7 +119,9 @@ export function computeFitnessTrend(runs: RunLite[], now: number, weeks = 12): F
     const seSlope = df > 0 && Sxx > 0 ? Math.sqrt(sse / df / Sxx) : 0;
     // t de Student da inclinação. seSlope=0 com slope≠0 (ajuste perfeito) ⇒ ±∞ (significativo).
     const t = seSlope > 0 ? slope / seSlope : slope !== 0 ? Infinity : 0;
-    const significant = Math.abs(t) >= 2;
+    // Corte por graus de liberdade (não 1.96 assintótico): amostra pequena exige
+    // t MAIOR, senão declara tendência a partir de ruído.
+    const significant = Math.abs(t) >= tCritical95(df);
     trend = significant && Math.abs(slope) > 1 ? (slope < 0 ? 'improving' : 'declining') : 'flat';
   }
 
