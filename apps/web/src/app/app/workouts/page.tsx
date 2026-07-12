@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Play, Trash2, Clock, Repeat, Zap, MapPin } from 'lucide-react';
+import { ArrowLeft, Plus, Play, Trash2, Clock, Repeat, Zap, MapPin, Dumbbell } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { formatDuration } from '@/lib/geo';
 
@@ -75,7 +75,10 @@ export default function WorkoutsPage() {
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/app" className="text-white/70"><ArrowLeft className="w-5 h-5" /></Link>
           <h1 className="font-display font-bold">Treinos</h1>
-          <Link href="/app/workouts/new" className="ml-auto btn-primary text-sm py-2 px-4">
+          <Link href="/app/workouts/templates" className="ml-auto btn-ghost text-sm py-2 px-3">
+            <Dumbbell className="w-4 h-4" /> Modelos
+          </Link>
+          <Link href="/app/workouts/new" className="btn-primary text-sm py-2 px-4">
             <Plus className="w-4 h-4" /> Novo treino
           </Link>
         </div>

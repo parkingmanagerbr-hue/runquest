@@ -14,7 +14,26 @@ env:
   IMAGE_WEB: ghcr.io/parkingmanagerbr-hue/runquest-web
 
 jobs:
+  # Gate de qualidade: lint + testes dos dois apps. O build/deploy SÓ roda se
+  # este job passar (needs abaixo) — produção nunca sobe com teste vermelho.
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Prisma client (api typecheck precisa)
+        run: pnpm --filter @runquest/api prisma:generate
+      - name: Lint (web + api)
+        run: pnpm -r lint
+      - name: Testes unitários (web vitest + api jest)
+        run: pnpm -r test
+
   build-api:
+    needs: verify
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
@@ -35,6 +54,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-web:
+    needs: verify
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
