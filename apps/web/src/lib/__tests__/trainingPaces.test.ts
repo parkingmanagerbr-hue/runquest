@@ -55,6 +55,16 @@ describe('estimatePaces', () => {
     const only = estimatePaces([{ distanceMeters: 800, durationSec: 200, startedAt: iso(1) }], now);
     expect(only.source).toBe('none');
   });
+
+  it('descarta outlier de GPS (pace impossível) sem corromper o estimador', () => {
+    const clean = estimatePaces([{ distanceMeters: 5000, durationSec: 1500, startedAt: iso(3) }], now);
+    const withGlitch = estimatePaces([
+      { distanceMeters: 5000, durationSec: 1500, startedAt: iso(3) },
+      { distanceMeters: 5000, durationSec: 480, startedAt: iso(5) }, // 1:36/km = glitch
+    ], now);
+    // o glitch é descartado → estimativa idêntica à do dado limpo
+    expect(withGlitch.ref5kSec).toBe(clean.ref5kSec);
+  });
 });
 
 describe('pacesFromReference', () => {

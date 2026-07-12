@@ -87,11 +87,16 @@ export default function FitnessPage() {
                 <h2 className={`font-display text-2xl font-black ${v.color}`}>{v.label}</h2>
               </div>
               <p className="text-sm text-white/60">{v.note}</p>
-              {trend.trend !== 'insufficient' && trend.deltaSecPerWeek !== 0 && (
-                <div className="mt-3 text-sm">
-                  <span className="text-white/50">Ritmo do 5K: </span>
-                  <span className={`font-bold ${trend.deltaSecPerWeek < 0 ? 'text-rq-lime' : 'text-rq-orange'}`}>
-                    {trend.deltaSecPerWeek < 0 ? '▼' : '▲'} {Math.abs(trend.deltaSecPerWeek)}s por semana
+              {trend.trend !== 'insufficient' && (trend.trend === 'improving' || trend.trend === 'declining') && (
+                <div className="mt-3 flex items-center gap-4 text-sm">
+                  <span>
+                    <span className="text-white/50">Ritmo do 5K: </span>
+                    <span className={`font-bold ${trend.deltaSecPerWeek < 0 ? 'text-rq-lime' : 'text-rq-orange'}`}>
+                      {trend.deltaSecPerWeek < 0 ? '▼' : '▲'} {Math.abs(trend.deltaSecPerWeek)}s por semana
+                    </span>
+                  </span>
+                  <span className="text-white/40 text-xs" title="R² da regressão — o quão bem a reta explica seus dados">
+                    confiança {Math.round(trend.r2 * 100)}%
                   </span>
                 </div>
               )}

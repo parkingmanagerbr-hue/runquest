@@ -62,4 +62,40 @@ describe('computeFitnessTrend', () => {
     ], now, 12);
     expect(t.best5kSec).toBeNull();
   });
+
+  // ── Boas práticas de estatística/ML ────────────────────────────────────────
+  it('UMA semana rápida entre semanas planas NÃO vira "melhorando" (fix de autocorrelação)', () => {
+    // 9 semanas planas (1500s) exceto UMA rápida (1200s) 3 semanas atrás. Com a
+    // série suavizada de 3 semanas, esse pico se propagaria p/ 3 semanas recentes
+    // e a regressão diria "melhorando" — falso. Sobre os melhores-por-semana
+    // independentes, é só 1 ponto → sem significância → flat.
+    const runs = [];
+    for (let w = 8; w >= 0; w--) {
+      runs.push({ distanceMeters: 5000, durationSec: w === 2 ? 1200 : 1500, startedAt: daysAgo(w * 7 + 1) });
+    }
+    const t = computeFitnessTrend(runs, now, 12);
+    expect(t.trend).toBe('flat'); // um pico isolado não é tendência
+    expect(t.r2).toBeLessThan(0.6); // ajuste ruim
+  });
+
+  it('tendência limpa e forte → R² alto', () => {
+    const runs = [];
+    for (let w = 8; w >= 0; w--) runs.push({ distanceMeters: 5000, durationSec: 1600 - (8 - w) * 20, startedAt: daysAgo(w * 7 + 1) });
+    expect(computeFitnessTrend(runs, now, 12).r2).toBeGreaterThan(0.9);
+  });
+
+  it('dados ruidosos sem tendência → flat (não superinterpreta ruído)', () => {
+    const noisy = [1500, 1450, 1520, 1480, 1510, 1490, 1505, 1495, 1500];
+    const runs = noisy.map((d, i) => ({ distanceMeters: 5000, durationSec: d, startedAt: daysAgo((8 - i) * 7 + 1) }));
+    const t = computeFitnessTrend(runs, now, 12);
+    expect(t.trend).toBe('flat');
+  });
+
+  it('descarta outlier de GPS (5K em 8min = 1:36/km) — não vira o melhor', () => {
+    const t = computeFitnessTrend([
+      { distanceMeters: 5000, durationSec: 1500, startedAt: daysAgo(3) }, // 5:00/km real
+      { distanceMeters: 5000, durationSec: 480, startedAt: daysAgo(5) },  // glitch impossível
+    ], now, 12);
+    expect(t.best5kSec).toBeGreaterThan(1000); // não pegou o glitch de 480s
+  });
 });

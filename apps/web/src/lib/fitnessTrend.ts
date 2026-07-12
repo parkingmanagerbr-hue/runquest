@@ -2,12 +2,19 @@
  * EVOLUÇÃO DE FORMA — "estou ficando mais rápido?"
  *
  * Das corridas reais (distância/tempo/data), estima o 5K equivalente (Riegel)
- * semana a semana usando uma janela móvel de 3 semanas (a forma reflete o
- * melhor esforço recente), calcula o volume semanal e a TENDÊNCIA por regressão
- * linear no 5K estimado. Só usa dados que já existem — honesto e puro.
+ * por semana e calcula a TENDÊNCIA por regressão linear.
+ *
+ * Boas práticas de estatística/ML aplicadas:
+ *  - Limpeza de dado: descarta outliers (glitch de GPS) via isPlausibleEffort.
+ *  - Independência: a regressão roda sobre o MELHOR DE CADA SEMANA (observações
+ *    independentes), NÃO sobre a série suavizada de 3 semanas — carregar o mesmo
+ *    valor pra frente autocorrelaciona os pontos e enviesa a inclinação.
+ *  - Significância: só declara improving/declining se a inclinação for
+ *    estatisticamente significativa (|t| ≥ 2) E |slope| relevante; senão "flat".
+ *    Reporta R² para transparência. A série suavizada fica só para o gráfico.
  */
 
-import { riegelPredict, type RunLite } from './trainingPaces';
+import { riegelPredict, isPlausibleEffort, type RunLite } from './trainingPaces';
 
 const WEEK_MS = 7 * 86400000;
 
@@ -15,21 +22,22 @@ export interface WeekPoint {
   weekStartMs: number; // início do bucket (7 dias)
   km: number;
   runs: number;
-  est5kSec: number | null; // melhor 5K estimado na janela móvel (menor = melhor)
+  est5kSec: number | null; // 5K estimado suavizado (janela 3 sem) — só p/ o gráfico
 }
 
 export interface FitnessTrend {
   weeks: WeekPoint[]; // do mais antigo ao mais recente
   trend: 'improving' | 'flat' | 'declining' | 'insufficient';
   deltaSecPerWeek: number; // inclinação do 5K estimado (negativo = mais rápido)
+  r2: number; // qualidade do ajuste (0..1); baixo = ruidoso/sem tendência clara
   best5kSec: number | null;
   latest5kSec: number | null;
   totalKm: number;
 }
 
-/** Predição de 5K de uma corrida (só corridas de esforço ≥1,5 km). */
+/** Predição de 5K de uma corrida de esforço plausível (senão null). */
 function predicted5k(r: RunLite): number | null {
-  if (!(r.distanceMeters >= 1500) || !(r.durationSec > 0)) return null;
+  if (!isPlausibleEffort(r)) return null;
   const p = riegelPredict(r.distanceMeters, r.durationSec, 5000);
   return p > 0 ? p : null;
 }
@@ -54,40 +62,66 @@ export function computeFitnessTrend(runs: RunLite[], now: number, weeks = 12): F
     if (p != null) preds[bi].push(p);
   }
 
+  // Melhor 5K REAL de cada semana (observação independente p/ a regressão).
+  const rawBest: (number | null)[] = preds.map((arr) => (arr.length ? Math.min(...arr) : null));
+
   const points: WeekPoint[] = [];
   for (let wi = 0; wi < nWeeks; wi++) {
-    // janela móvel de 3 semanas (wi-2..wi) → melhor 5K
-    let best: number | null = null;
+    // Série SUAVIZADA (janela de 3 semanas) — só para o gráfico, não p/ a regressão.
+    let smooth: number | null = null;
     for (let j = Math.max(0, wi - 2); j <= wi; j++) {
-      for (const p of preds[j]) if (best == null || p < best) best = p;
+      for (const p of preds[j]) if (smooth == null || p < smooth) smooth = p;
     }
     points.push({
       weekStartMs: nowWeekStart - (nWeeks - 1 - wi) * WEEK_MS,
       km: Math.round(km[wi] * 10) / 10,
       runs: runCount[wi],
-      est5kSec: best != null ? Math.round(best) : null,
+      est5kSec: smooth != null ? Math.round(smooth) : null,
     });
   }
 
-  // Regressão linear sobre as semanas COM estimativa (x = índice, y = 5K seg)
-  const pts = points.map((p, i) => ({ x: i, y: p.est5kSec })).filter((p): p is { x: number; y: number } => p.y != null);
+  // ── Regressão sobre os melhores-por-semana independentes ────────────────────
+  const pts = rawBest
+    .map((y, x) => ({ x, y }))
+    .filter((p): p is { x: number; y: number } => p.y != null);
+
   let slope = 0;
+  let r2 = 0;
   let trend: FitnessTrend['trend'] = 'insufficient';
-  if (pts.length >= 3) {
+
+  if (pts.length >= 4) {
     const n = pts.length;
-    const sx = pts.reduce((a, p) => a + p.x, 0);
-    const sy = pts.reduce((a, p) => a + p.y, 0);
-    const sxx = pts.reduce((a, p) => a + p.x * p.x, 0);
-    const sxy = pts.reduce((a, p) => a + p.x * p.y, 0);
-    const denom = n * sxx - sx * sx;
-    slope = denom !== 0 ? (n * sxy - sx * sy) / denom : 0;
-    trend = slope < -1 ? 'improving' : slope > 1 ? 'declining' : 'flat';
+    const mx = pts.reduce((a, p) => a + p.x, 0) / n;
+    const my = pts.reduce((a, p) => a + p.y, 0) / n;
+    let Sxx = 0, Sxy = 0, Syy = 0;
+    for (const p of pts) {
+      Sxx += (p.x - mx) ** 2;
+      Sxy += (p.x - mx) * (p.y - my);
+      Syy += (p.y - my) ** 2;
+    }
+    slope = Sxx > 0 ? Sxy / Sxx : 0;
+    const sse = Math.max(0, Syy - (Sxx > 0 ? (Sxy * Sxy) / Sxx : 0));
+    r2 = Syy > 0 ? 1 - sse / Syy : 1; // sem variância em y = ajuste "perfeito" (linha plana)
+    const df = n - 2;
+    const seSlope = df > 0 && Sxx > 0 ? Math.sqrt(sse / df / Sxx) : 0;
+    // t de Student da inclinação. seSlope=0 com slope≠0 (ajuste perfeito) ⇒ ±∞ (significativo).
+    const t = seSlope > 0 ? slope / seSlope : slope !== 0 ? Infinity : 0;
+    const significant = Math.abs(t) >= 2;
+    trend = significant && Math.abs(slope) > 1 ? (slope < 0 ? 'improving' : 'declining') : 'flat';
   }
 
-  const allPreds = pts.map((p) => p.y);
-  const best5kSec = allPreds.length ? Math.min(...allPreds) : null;
+  const allRaw = pts.map((p) => p.y);
+  const best5kSec = allRaw.length ? Math.min(...allRaw) : null;
   const latest5kSec = [...points].reverse().find((p) => p.est5kSec != null)?.est5kSec ?? null;
   const totalKm = Math.round(points.reduce((a, p) => a + p.km, 0) * 10) / 10;
 
-  return { weeks: points, trend, deltaSecPerWeek: Math.round(slope * 10) / 10, best5kSec, latest5kSec, totalKm };
+  return {
+    weeks: points,
+    trend,
+    deltaSecPerWeek: Math.round(slope * 10) / 10,
+    r2: Math.round(r2 * 100) / 100,
+    best5kSec,
+    latest5kSec,
+    totalKm,
+  };
 }

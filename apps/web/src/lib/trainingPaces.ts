@@ -29,6 +29,21 @@ export function riegelPredict(refDistM: number, refDurSec: number, targetDistM: 
   return refDurSec * Math.pow(targetDistM / refDistM, 1.06);
 }
 
+/**
+ * Pace mais rápido fisiologicamente plausível (s/km). O recorde mundial dos 5 km
+ * é ~2:35/km; qualquer coisa abaixo de ~2:20/km numa corrida amadora é erro de
+ * GPS/sensor. Limpeza de dado (best practice de ML): descartar o outlier em vez
+ * de deixar um único fix corrompido puxar todo o estimador de MIN.
+ */
+const MIN_PLAUSIBLE_PACE = 140; // 2:20/km
+
+/** Corrida serve de "esforço" p/ estimar forma? (distância mínima + pace plausível) */
+export function isPlausibleEffort(r: RunLite): boolean {
+  if (!(r.distanceMeters >= 1500) || !(r.durationSec > 0)) return false;
+  const pace = (r.durationSec / r.distanceMeters) * 1000;
+  return pace >= MIN_PLAUSIBLE_PACE;
+}
+
 // Offsets (s/km) de cada zona relativos ao pace de 5K. Aproximação estilo
 // Daniels: intervalado ≈ pace de 5K, limiar mais lento, fácil bem mais lento.
 const ZONE_OFFSET: Record<PaceZone, number> = {
@@ -62,7 +77,7 @@ export function estimatePaces(runs: RunLite[], now = 0): TrainingPaces {
 
   let best = Infinity;
   for (const r of runs) {
-    if (!(r.distanceMeters >= 1500) || !(r.durationSec > 0)) continue;
+    if (!isPlausibleEffort(r)) continue; // descarta outliers (glitch de GPS)
     const pred = riegelPredict(r.distanceMeters, r.durationSec, 5000);
     if (pred <= 0) continue;
     // penaliza corridas antigas (> 90 dias) em ~1% por mês além disso
