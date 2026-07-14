@@ -14,6 +14,7 @@ import { ChallengesModule, ChallengeProgressService } from '../challenges/challe
 import { TerritoriesModule, TerritoryService } from '../territories/territories.module';
 import { GamificationModule, BadgeUnlockService } from '../gamification/gamification.module';
 import { GoalsModule, GoalProgressService } from '../goals/goals.module';
+import { computeStreak, computeRunRewards, levelForXp } from './run-rewards';
 
 class CreateRunDto {
   @IsISO8601() startedAt!: string;
@@ -67,29 +68,16 @@ export class RunsController {
       },
     });
 
-    const distKm = dto.distanceMeters / 1000;
-
     // Streak
     const u = await this.prisma.user.findUnique({
       where: { id: user.id },
       select: { lastRunAt: true, streakDays: true, longestStreak: true } as any,
     }) as any;
-    let newStreak = 1;
-    if (u?.lastRunAt) {
-      const last = new Date(u.lastRunAt); last.setHours(0, 0, 0, 0);
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      const diffDays = Math.round((today.getTime() - last.getTime()) / 86400000);
-      if (diffDays === 0) newStreak = u.streakDays;
-      else if (diffDays === 1) newStreak = (u.streakDays ?? 0) + 1;
-      else newStreak = 1;
-    }
+    const newStreak = computeStreak(u?.lastRunAt ? new Date(u.lastRunAt) : null, new Date(), u?.streakDays ?? 0);
     const longestStreak = Math.max(u?.longestStreak ?? 0, newStreak);
 
-    // STREAK MULTIPLIER: cap 7 dias = 1.35x
-    const streakMult = 1 + Math.min(newStreak, 7) * 0.05;
-    const baseXp = distKm * 10 + dto.durationSec / 60 + (distKm > 5 ? 20 : 0);
-    const xpGain = Math.round(baseXp * streakMult);
-    const coinGain = Math.round(distKm * 10);
+    // XP + moedas + multiplicador de streak (cap 7 dias = 1.35×)
+    const { xpGain, coinGain, streakMult } = computeRunRewards(dto.distanceMeters, dto.durationSec, newStreak);
 
     const updatedUser = await this.prisma.user.update({
       where: { id: user.id },
@@ -103,8 +91,7 @@ export class RunsController {
         totalDistanceM: { increment: dto.distanceMeters },
       } as any,
     });
-    let newLevel = updatedUser.level;
-    while (updatedUser.xp >= Math.round(100 * Math.pow(newLevel, 1.5))) newLevel++;
+    const newLevel = levelForXp(updatedUser.xp, updatedUser.level);
     if (newLevel !== updatedUser.level) {
       await this.prisma.user.update({ where: { id: user.id }, data: { level: newLevel } });
     }
