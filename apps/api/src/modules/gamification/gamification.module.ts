@@ -5,6 +5,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { badgeQualifies, type BadgeContext } from './badge-rules';
 
 /** Avalia se user desbloqueia novos badges. Chamado pós-run. */
 @Injectable()
@@ -12,15 +13,7 @@ export class BadgeUnlockService {
   private readonly logger = new Logger(BadgeUnlockService.name);
   constructor(private readonly prisma: PrismaService) {}
 
-  async checkAndUnlock(userId: string, ctx: {
-    totalRuns?: number;
-    totalDistanceM?: number;
-    streak?: number;
-    level?: number;
-    territories?: number;
-    singleRunDistanceM?: number;
-    singleRunPaceSecPerKm?: number;
-  }): Promise<{ id: string; code: string; title: string; icon: string; xp: number; coins: number }[]> {
+  async checkAndUnlock(userId: string, ctx: BadgeContext): Promise<{ id: string; code: string; title: string; icon: string; xp: number; coins: number }[]> {
     const badges = await (this.prisma as any).badge.findMany();
     const already = await (this.prisma as any).userBadge.findMany({
       where: { userId },
@@ -30,21 +23,7 @@ export class BadgeUnlockService {
     const unlocked: any[] = [];
     for (const b of badges) {
       if (ownedIds.has(b.id)) continue;
-      let qualifies = false;
-      switch (b.requirementKind) {
-        case 'total_runs': qualifies = (ctx.totalRuns ?? 0) >= b.requirementValue; break;
-        case 'total_distance': qualifies = (ctx.totalDistanceM ?? 0) >= b.requirementValue; break;
-        case 'streak': qualifies = (ctx.streak ?? 0) >= b.requirementValue; break;
-        case 'level': qualifies = (ctx.level ?? 0) >= b.requirementValue; break;
-        case 'territories': qualifies = (ctx.territories ?? 0) >= b.requirementValue; break;
-        case 'single_run_distance': qualifies = (ctx.singleRunDistanceM ?? 0) >= b.requirementValue; break;
-        case 'pace_under':
-          qualifies = ctx.singleRunPaceSecPerKm != null
-            && ctx.singleRunPaceSecPerKm > 0
-            && ctx.singleRunPaceSecPerKm <= b.requirementValue;
-          break;
-      }
-      if (!qualifies) continue;
+      if (!badgeQualifies(b.requirementKind, b.requirementValue, ctx)) continue;
       await (this.prisma as any).userBadge.create({ data: { id: crypto.randomUUID(), userId, badgeId: b.id } });
       if (b.xpReward > 0 || b.coinReward > 0) {
         await this.prisma.user.update({
