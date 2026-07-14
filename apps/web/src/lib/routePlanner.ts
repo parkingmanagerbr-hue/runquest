@@ -71,7 +71,8 @@ export function loadRoutes(): SavedRoute[] {
 
 export function saveRoute(name: string, points: LatLng[]): SavedRoute {
   const route: SavedRoute = {
-    id: `rt-${Date.now().toString(36)}`,
+    // Date.now sozinho colide se 2 percursos forem salvos no mesmo ms — sufixo aleatório garante unicidade.
+    id: `rt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
     name: name || 'Percurso',
     points,
     distanceM: routeDistanceM(points),

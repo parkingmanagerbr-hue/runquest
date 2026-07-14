@@ -11,5 +11,21 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['tests/**', 'node_modules/**', '.next/**', 'dist/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'text'],
+      // Cobertura mede a LÓGICA PURA (motores testáveis). Hooks de efeito
+      // colateral (BLE/GPS/speech/push), o cliente HTTP e i18n são integração,
+      // não unidade pura — ficam de fora do alvo (seriam ruído no número).
+      include: [
+        'src/lib/trainingPaces.ts', 'src/lib/adaptivePlan.ts', 'src/lib/ghostRace.ts',
+        'src/lib/runCard.ts', 'src/lib/fitnessTrend.ts', 'src/lib/routePlanner.ts',
+        'src/lib/workoutTemplates.ts', 'src/lib/geo.ts', 'src/lib/pricing.ts',
+        'src/lib/runPersistence.ts', 'src/lib/bluetooth.ts',
+      ],
+      // Piso de cobertura — o build FALHA se cair abaixo (atual ~99% stmts).
+      // Ninguém adiciona lógica pura sem testar. Margem p/ pequenas flutuações.
+      thresholds: { statements: 95, branches: 80, functions: 95, lines: 95 },
+    },
   },
 });

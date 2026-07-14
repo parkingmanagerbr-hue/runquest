@@ -1,5 +1,9 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { pricingForCurrency, currencyForCountry, PRICING, DEFAULT_CURRENCY } from '../pricing';
+import {
+  pricingForCurrency, currencyForCountry, detectCurrency, formatPrice,
+  yearlySavingsPct, yearlyPerMonth, PRICING, DEFAULT_CURRENCY,
+} from '../pricing';
 
 describe('pricingForCurrency', () => {
   it('moeda conhecida retorna sua tabela', () => {
@@ -34,5 +38,41 @@ describe('currencyForCountry', () => {
       expect(p.monthly).toBeGreaterThan(0);
       expect(p.yearly).toBeGreaterThan(p.monthly); // anual > mensal
     }
+  });
+});
+
+describe('detectCurrency (pelo locale do navegador)', () => {
+  const setLangs = (langs: string[]) =>
+    Object.defineProperty(navigator, 'languages', { value: langs, configurable: true });
+
+  it('pt-BR → BRL', () => {
+    setLangs(['pt-BR']);
+    expect(detectCurrency()).toBe('BRL');
+  });
+  it('en-US → USD', () => {
+    setLangs(['en-US']);
+    expect(detectCurrency()).toBe('USD');
+  });
+  it('locale inválido → default', () => {
+    setLangs(['xx-zz-invalid']);
+    expect(detectCurrency()).toBe(DEFAULT_CURRENCY);
+  });
+});
+
+describe('formatação e economia', () => {
+  it('formatPrice usa a moeda/locale (sem lançar)', () => {
+    const s = formatPrice(19.9, PRICING.BRL);
+    expect(typeof s).toBe('string');
+    expect(s).toContain('19');
+  });
+  it('yearlySavingsPct: anual é mais barato que 12× mensal', () => {
+    for (const p of Object.values(PRICING)) {
+      const pct = yearlySavingsPct(p);
+      expect(pct).toBeGreaterThan(0);
+      expect(pct).toBeLessThan(100);
+    }
+  });
+  it('yearlyPerMonth = anual/12', () => {
+    expect(yearlyPerMonth(PRICING.USD)).toBeCloseTo(PRICING.USD.yearly / 12, 6);
   });
 });

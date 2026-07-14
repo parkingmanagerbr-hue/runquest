@@ -43,4 +43,16 @@ describe('geo helpers', () => {
   it('computeSplits: rota curta (<1km) → vazio', () => {
     expect(computeSplits([[-46.63, -23.55], [-46.63, -23.5505]], 60)).toEqual([]);
   });
+
+  it('computeSplits: rota de ~2 km → 2 splits com pace finito e positivo', () => {
+    // 23 pontos a 0,001° de latitude (~111 m cada) ≈ 2,4 km. Coords em [lng,lat].
+    const coords = Array.from({ length: 23 }, (_, i) => [-46.63, -23.55 + i * 0.001]);
+    const splits = computeSplits(coords, 720); // 12 min
+    expect(splits.length).toBe(2);
+    expect(splits.map((s) => s.km)).toEqual([1, 2]);
+    for (const s of splits) {
+      expect(Number.isFinite(s.paceSecPerKm)).toBe(true);
+      expect(s.paceSecPerKm).toBeGreaterThan(0);
+    }
+  });
 });
