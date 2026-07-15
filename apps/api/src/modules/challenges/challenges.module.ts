@@ -136,19 +136,24 @@ export class ChallengesController {
     if (!part.completed) return { error: 'NOT_COMPLETED' };
     if (part.claimed) return { error: 'ALREADY_CLAIMED' };
 
-    await this.prisma.$transaction([
-      this.prisma.challengeParticipant.update({
-        where: { userId_challengeId: { userId: user.id, challengeId } },
+    // Resgate ATÔMICO (ver missions.claim): a guarda claimed=false vai para o
+    // WHERE do updateMany; só o vencedor (count === 1) recebe a recompensa.
+    const credited = await this.prisma.$transaction(async (tx) => {
+      const flip = await tx.challengeParticipant.updateMany({
+        where: { userId: user.id, challengeId, completed: true, claimed: false },
         data: { claimed: true, claimedAt: new Date() },
-      }),
-      this.prisma.user.update({
+      });
+      if (flip.count === 0) return false;
+      await tx.user.update({
         where: { id: user.id },
         data: {
           xp: { increment: part.challenge.xpReward },
           runCoins: { increment: part.challenge.coinReward },
         },
-      }),
-    ]);
+      });
+      return true;
+    });
+    if (!credited) return { error: 'ALREADY_CLAIMED' };
     return { ok: true, xp: part.challenge.xpReward, coins: part.challenge.coinReward };
   }
 

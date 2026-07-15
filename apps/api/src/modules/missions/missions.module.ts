@@ -145,16 +145,23 @@ export class MissionsController {
     if (!prog.completed) return { error: 'NOT_COMPLETED' };
     if (prog.claimed) return { error: 'ALREADY_CLAIMED' };
 
-    await this.prisma.$transaction([
-      this.prisma.missionProgress.update({
-        where: { userId_missionId: { userId: user.id, missionId } },
+    // Resgate ATÔMICO: a guarda vai para o WHERE do updateMany, então o banco
+    // garante que apenas UM request concorrente vira claimed=false→true. O
+    // crédito de XP/moedas só acontece para o vencedor (count === 1). Sem isso,
+    // dois cliques simultâneos passavam pela checagem acima e creditavam 2×.
+    const credited = await this.prisma.$transaction(async (tx) => {
+      const flip = await tx.missionProgress.updateMany({
+        where: { userId: user.id, missionId, completed: true, claimed: false },
         data: { claimed: true, claimedAt: new Date() },
-      }),
-      this.prisma.user.update({
+      });
+      if (flip.count === 0) return false; // outro request já resgatou
+      await tx.user.update({
         where: { id: user.id },
         data: { xp: { increment: prog.mission.xpReward }, runCoins: { increment: prog.mission.coinReward } },
-      }),
-    ]);
+      });
+      return true;
+    });
+    if (!credited) return { error: 'ALREADY_CLAIMED' };
     return { ok: true, xp: prog.mission.xpReward, coins: prog.mission.coinReward };
   }
 }

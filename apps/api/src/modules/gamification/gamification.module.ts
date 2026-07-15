@@ -245,10 +245,17 @@ export class DailyController {
       return { error: 'ALREADY_CLAIMED' };
     }
     const coins = 50 + Math.min((u?.streakDays ?? 0) * 5, 250); // bonus por streak até +250
-    await this.prisma.user.update({
-      where: { id: user.id },
+    // Resgate diário ATÔMICO: a guarda "ainda não resgatou hoje" vai para o
+    // WHERE do updateMany (lastDailyClaimAt null ou anterior a hoje). Dois
+    // requests no mesmo dia → só o primeiro tem count===1 e credita.
+    const flip = await this.prisma.user.updateMany({
+      where: {
+        id: user.id,
+        OR: [{ lastDailyClaimAt: null }, { lastDailyClaimAt: { lt: today } }],
+      },
       data: { lastDailyClaimAt: new Date(), runCoins: { increment: coins } },
     });
+    if (flip.count === 0) return { error: 'ALREADY_CLAIMED' };
     return { ok: true, coins };
   }
 }
