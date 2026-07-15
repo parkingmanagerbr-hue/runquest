@@ -8,6 +8,7 @@ import { tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace, computeSplits } from '@/lib/geo';
 import { Share2, ImageDown } from 'lucide-react';
 import { buildRunCardSvg } from '@/lib/runCard';
+import { estimateCalories } from '@/lib/calories';
 
 const RunMap = dynamic(() => import('@/components/RunMap').then(m => m.RunMap), { ssr: false });
 
@@ -245,7 +246,7 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
           <div className="glass p-4">
             <Flame className="w-4 h-4 text-rq-orange mb-1" />
             <div className="font-display text-xl font-black">
-              {Math.round(run.distanceMeters / 1000 * weightKg * 1.036)}
+              {estimateCalories(run.distanceMeters, weightKg)}
             </div>
             <div className="text-xs text-white/50">kcal est.</div>
           </div>

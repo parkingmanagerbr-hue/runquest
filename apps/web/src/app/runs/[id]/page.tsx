@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { LogoMark } from '@/components/LogoMark';
 import { formatDistance, formatDuration, formatPace, computeSplits } from '@/lib/geo';
+import { estimateCalories } from '@/lib/calories';
 import { Activity, Clock, TrendingUp, Flame, Share2, ExternalLink, Download, MapPin } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -316,7 +317,7 @@ export default function PublicRunSharePage({ params }: { params: { id: string } 
     year: 'numeric',
   });
 
-  const kcal = run.kcal ?? Math.round((run.distanceMeters / 1000) * 70 * 1.036);
+  const kcal = run.kcal ?? estimateCalories(run.distanceMeters);
   const coords = run.pointsGeoJson?.coordinates ?? [];
 
   // CTA: if logged in, go straight to the authenticated run detail; else prompt login

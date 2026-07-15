@@ -14,6 +14,7 @@ import { ghostProgress, leadChangeCallout, finishCallout } from '@/lib/ghostRace
 import { saveActiveRun, loadActiveRun, clearActiveRun, type ActiveRun } from '@/lib/runPersistence';
 import { watchPosition as geoWatch, isNativePlatform, type GeoWatchHandle } from '@/lib/geolocation';
 import { isAcceptableFix, acceptStep, elevationStep, splitPace } from '@/lib/gpsTrack';
+import { estimateCalories } from '@/lib/calories';
 
 interface RunResult {
   id: string;
@@ -475,7 +476,7 @@ export default function RunTrackingPage() {
   const weightKg = useMemo(() => {
     try { return JSON.parse(localStorage.getItem('rq.settings') ?? '{}').weightKg || 70; } catch { return 70; }
   }, []);
-  const calories = Math.round(distance / 1000 * weightKg * 1.036);
+  const calories = estimateCalories(distance, weightKg);
   const signal = gpsSignal(gpsAccuracy);
 
   return (

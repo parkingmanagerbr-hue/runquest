@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, TrendingUp, Activity, Flame, Gauge, Calendar, Zap } from 'lucide-react';
 import { tokens } from '@/lib/api';
 import { estimateVo2max } from '@/lib/vo2max';
+import { estimateCalories } from '@/lib/calories';
 
 interface Run {
   id: string;
@@ -117,7 +118,7 @@ export default function StatsPage() {
   }), [runs]);
 
   const totalKm = runs.reduce((a, r) => a + r.distanceMeters / 1000, 0);
-  const totalCal = Math.round(totalKm * 70 * 1.036);
+  const totalCal = estimateCalories(totalKm * 1000);
 
   // Activity heatmap: last 52 weeks × 7 days
   const heatmap = useMemo(() => {
