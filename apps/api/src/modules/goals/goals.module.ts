@@ -6,6 +6,7 @@ import { IsIn, IsNumber, Min } from 'class-validator';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { periodWindow, Period } from '../../shared/kernel/date-window';
 
 class CreateGoalDto {
   @IsIn(['distance_km', 'runs_count', 'duration_min']) kind!: string;
@@ -17,25 +18,9 @@ class CreateGoalDto {
 export class GoalProgressService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Janela atual do período. */
+  /** Janela atual do período (data-math pura, compartilhada e testada). */
   windowOf(period: string): { start: Date; end: Date } {
-    const now = new Date();
-    const s = new Date(now); s.setHours(0, 0, 0, 0);
-    const e = new Date(s);
-    if (period === 'WEEKLY') {
-      const day = now.getDay();
-      const diff = day === 0 ? -6 : 1 - day;
-      s.setDate(s.getDate() + diff);
-      e.setDate(s.getDate() + 7);
-    } else if (period === 'MONTHLY') {
-      s.setDate(1);
-      e.setMonth(s.getMonth() + 1);
-    } else {
-      // YEARLY
-      s.setMonth(0, 1);
-      e.setFullYear(s.getFullYear() + 1, 0, 1);
-    }
-    return { start: s, end: e };
+    return periodWindow(period as Period, new Date());
   }
 
   /** Aplica progresso pós-run. */

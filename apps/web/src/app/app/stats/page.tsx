@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, TrendingUp, Activity, Flame, Gauge, Calendar, Zap } from 'lucide-react';
 import { tokens } from '@/lib/api';
+import { estimateVo2max } from '@/lib/vo2max';
 
 interface Run {
   id: string;
@@ -94,22 +95,9 @@ export default function StatsPage() {
     return slots;
   }, [runs]);
 
-  // VO2 max estimate using Cooper formula from best sustainable pace
-  // Estimate: pace → 12min distance → Cooper formula
-  const vo2max = useMemo(() => {
-    const validRuns = runs.filter(r => r.distanceMeters >= 2000 && r.avgPaceSecPerKm > 0);
-    if (validRuns.length === 0) return null;
-    // Use 10th percentile pace (best race pace)
-    const sorted = [...validRuns].sort((a, b) => a.avgPaceSecPerKm - b.avgPaceSecPerKm);
-    const idx = Math.max(0, Math.floor(sorted.length * 0.1));
-    const bestPace = sorted[idx].avgPaceSecPerKm; // sec/km
-    const speedMperMin = 60000 / bestPace; // m/min
-    const dist12min = speedMperMin * 12; // distance in 12 min at this pace
-    // Cooper: VO2max = (dist12min - 504.9) / 44.73
-    const vo2 = (dist12min - 504.9) / 44.73;
-    if (vo2 < 20) return null; // sanity check
-    return Math.round(vo2 * 10) / 10;
-  }, [runs]);
+  // VO2 max (método Cooper) — lógica pura, testada e com rejeição de glitch de GPS
+  // (antes: floor(n*0.1)===0 p/ <10 corridas escolhia o pace único mais rápido = outlier).
+  const vo2max = useMemo(() => estimateVo2max(runs), [runs]);
 
   const vo2Category = (v: number) => {
     if (v >= 60) return { label: 'Elite', color: 'text-rq-lime' };

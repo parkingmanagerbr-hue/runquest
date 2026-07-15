@@ -5,6 +5,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { periodWindow } from '../../shared/kernel/date-window';
 
 /**
  * Aplica progresso de missões após uma corrida.
@@ -16,20 +17,9 @@ export class MissionProgressService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Janela atual baseada no scope. */
+  /** Janela atual baseada no scope (data-math pura, compartilhada e testada). */
   private windowOf(scope: 'DAILY' | 'WEEKLY'): { start: Date; end: Date } {
-    const now = new Date();
-    if (scope === 'DAILY') {
-      const start = new Date(now); start.setHours(0, 0, 0, 0);
-      const end = new Date(start); end.setDate(end.getDate() + 1);
-      return { start, end };
-    }
-    // WEEKLY: segunda 00:00 BRT
-    const day = now.getDay(); // 0=Dom .. 1=Seg
-    const diff = day === 0 ? -6 : 1 - day;
-    const start = new Date(now); start.setDate(start.getDate() + diff); start.setHours(0, 0, 0, 0);
-    const end = new Date(start); end.setDate(end.getDate() + 7);
-    return { start, end };
+    return periodWindow(scope, new Date());
   }
 
   /** Reset progresso quando assignedAt fora da janela. */

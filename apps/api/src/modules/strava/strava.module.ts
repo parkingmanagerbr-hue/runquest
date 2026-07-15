@@ -14,11 +14,13 @@ import { PrismaStravaTokenRepository } from './infrastructure/prisma-strava-toke
 import { CryptoService } from '../../shared/kernel/crypto.service';
 import { AuthModule } from '../auth/auth.module';
 import { MissionsModule } from '../missions/missions.module';
+import { ChallengesModule } from '../challenges/challenges.module';
+import { GoalsModule } from '../goals/goals.module';
 import { TerritoriesModule } from '../territories/territories.module';
 import { GamificationModule } from '../gamification/gamification.module';
 
 @Module({
-  imports: [ConfigModule, AuthModule, MissionsModule, TerritoriesModule, GamificationModule],
+  imports: [ConfigModule, AuthModule, MissionsModule, ChallengesModule, GoalsModule, TerritoriesModule, GamificationModule],
   controllers: [StravaController],
   providers: [
     CryptoService,

@@ -3,8 +3,12 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { EnsureValidStravaTokenService } from './ensure-valid-token.service';
 import { STRAVA_GATEWAY, StravaGateway } from '../domain/strava-gateway';
 import { MissionProgressService } from '../../missions/missions.module';
+import { ChallengeProgressService } from '../../challenges/challenges.module';
+import { GoalProgressService } from '../../goals/goals.module';
 import { TerritoryService } from '../../territories/territories.module';
 import { BadgeUnlockService } from '../../gamification/gamification.module';
+import { computeStreak, computeRunRewards, levelForXp } from '../../runs/run-rewards';
+import { decodePolyline } from '../domain/polyline';
 
 /**
  * Handler para webhooks do Strava.
@@ -20,6 +24,8 @@ export class StravaWebhookHandler {
     private readonly tokens: EnsureValidStravaTokenService,
     @Inject(STRAVA_GATEWAY) private readonly gw: StravaGateway,
     private readonly missions: MissionProgressService,
+    private readonly challenges: ChallengeProgressService,
+    private readonly goals: GoalProgressService,
     private readonly territories: TerritoryService,
     private readonly badges: BadgeUnlockService,
   ) {}
@@ -137,25 +143,15 @@ export class StravaWebhookHandler {
   }
 
   private async applyPostRun(userId: string, run: any, activity: any) {
-    const distKm = run.distanceMeters / 1000;
     const u = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { lastRunAt: true, streakDays: true, longestStreak: true } as any,
     }) as any;
-    let newStreak = 1;
-    if (u?.lastRunAt) {
-      const last = new Date(u.lastRunAt); last.setHours(0, 0, 0, 0);
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      const diffDays = Math.round((today.getTime() - last.getTime()) / 86400000);
-      if (diffDays === 0) newStreak = u.streakDays;
-      else if (diffDays === 1) newStreak = (u.streakDays ?? 0) + 1;
-      else newStreak = 1;
-    }
+
+    // Mesma mecânica pura do RunsService (streak sem NaN, XP/moedas idênticos).
+    const newStreak = computeStreak(u?.lastRunAt ? new Date(u.lastRunAt) : null, new Date(), u?.streakDays ?? 0);
     const longestStreak = Math.max(u?.longestStreak ?? 0, newStreak);
-    const streakMult = 1 + Math.min(newStreak, 7) * 0.05;
-    const baseXp = distKm * 10 + run.durationSec / 60 + (distKm > 5 ? 20 : 0);
-    const xpGain = Math.round(baseXp * streakMult);
-    const coinGain = Math.round(distKm * 10);
+    const { xpGain, coinGain } = computeRunRewards(run.distanceMeters, run.durationSec, newStreak);
 
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
@@ -169,19 +165,22 @@ export class StravaWebhookHandler {
         totalDistanceM: { increment: run.distanceMeters },
       } as any,
     });
-    let newLevel = updatedUser.level;
-    while (updatedUser.xp >= Math.round(100 * Math.pow(newLevel, 1.5))) newLevel++;
+    const newLevel = levelForXp(updatedUser.xp, updatedUser.level);
     if (newLevel !== updatedUser.level) {
       await this.prisma.user.update({ where: { id: userId }, data: { level: newLevel } });
     }
 
-    await this.missions.applyRun(userId, { distanceMeters: run.distanceMeters, durationSec: run.durationSec });
+    // Missões + Desafios + Goals — mesma tríade do fluxo de corrida manual.
+    const progressArg = { distanceMeters: run.distanceMeters, durationSec: run.durationSec };
+    await this.missions.applyRun(userId, progressArg);
+    await this.challenges.applyRun(userId, progressArg);
+    await this.goals.applyRun(userId, progressArg);
 
     // Territórios: decode polyline → coords
     let territoryStats = { visited: 0, newCaptures: 0 };
     if (activity.map?.summary_polyline) {
       try {
-        const coords = this.decodePolyline(activity.map.summary_polyline);
+        const coords = decodePolyline(activity.map.summary_polyline);
         if (coords.length > 0) {
           territoryStats = await this.territories.applyRun(userId, coords);
         }
@@ -203,21 +202,5 @@ export class StravaWebhookHandler {
       singleRunDistanceM: run.distanceMeters,
       singleRunPaceSecPerKm: run.avgPaceSecPerKm,
     });
-  }
-
-  /** Decode Google encoded polyline → [lng, lat][] (GeoJSON) */
-  private decodePolyline(str: string): number[][] {
-    const coords: number[][] = [];
-    let index = 0, lat = 0, lng = 0;
-    while (index < str.length) {
-      let b, shift = 0, result = 0;
-      do { b = str.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-      lat += (result & 1) ? ~(result >> 1) : (result >> 1);
-      shift = 0; result = 0;
-      do { b = str.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
-      lng += (result & 1) ? ~(result >> 1) : (result >> 1);
-      coords.push([lng / 1e5, lat / 1e5]);
-    }
-    return coords;
   }
 }
