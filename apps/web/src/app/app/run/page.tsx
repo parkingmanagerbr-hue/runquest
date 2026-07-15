@@ -13,6 +13,7 @@ import { useWorkoutEngine, speak, type RawSegment } from '@/lib/useWorkoutEngine
 import { ghostProgress, leadChangeCallout, finishCallout } from '@/lib/ghostRace';
 import { saveActiveRun, loadActiveRun, clearActiveRun, type ActiveRun } from '@/lib/runPersistence';
 import { watchPosition as geoWatch, isNativePlatform, type GeoWatchHandle } from '@/lib/geolocation';
+import { isAcceptableFix, acceptStep, elevationStep, splitPace } from '@/lib/gpsTrack';
 
 interface RunResult {
   id: string;
@@ -308,35 +309,31 @@ export default function RunTrackingPage() {
           }
         }
 
-        // Elevation
+        // Elevation (filtros puros: gate de precisão vertical + banda de delta)
         const alt = fix.altitude;
         const altAcc = fix.altitudeAccuracy;
-        if (alt != null && (altAcc == null || altAcc < 25)) {
-          if (lastAltRef.current !== null) {
-            const delta = alt - lastAltRef.current;
-            if (Math.abs(delta) > 0.3 && Math.abs(delta) < 30) {
-              if (delta > 0) { elevGainRef.current += delta; setElevGain(Math.round(elevGainRef.current)); }
-              else { elevLossRef.current += Math.abs(delta); setElevLoss(Math.round(elevLossRef.current)); }
-            }
-          }
-          lastAltRef.current = alt;
+        if (alt != null) {
+          const { gain, loss } = elevationStep(lastAltRef.current, alt, altAcc ?? null);
+          if (gain > 0) { elevGainRef.current += gain; setElevGain(Math.round(elevGainRef.current)); }
+          if (loss > 0) { elevLossRef.current += loss; setElevLoss(Math.round(elevLossRef.current)); }
+          if (altAcc == null || altAcc < 25) lastAltRef.current = alt;
         }
 
-        if (acc > 35) return;
+        if (!isAcceptableFix(acc)) return;
 
         const p: Point = [fix.latitude, fix.longitude];
         const prev = pointsRef.current[pointsRef.current.length - 1];
         if (prev) {
-          const d = haversine(prev, p);
-          if (d < 1.5 || d > 60) return;
-          distRef.current += d;
+          const step = acceptStep(haversine(prev, p));
+          if (step === null) return; // jitter parado ou salto de GPS
+          distRef.current += step;
           setDistance(distRef.current);
 
           const prevKm = Math.floor(lastKmDistRef.current / 1000);
           const currKm = Math.floor(distRef.current / 1000);
           if (currKm > prevKm && currKm > 0) {
             const dur = durationRef.current;
-            const sp = Math.round((dur - lastKmTimeRef.current) * 1000 / (distRef.current - lastKmDistRef.current));
+            const sp = splitPace(dur, lastKmTimeRef.current, distRef.current, lastKmDistRef.current);
             lastKmDistRef.current = distRef.current;
             lastKmTimeRef.current = dur;
             setLiveSplits(s => [...s.slice(-4), { km: currKm, paceSecPerKm: sp }]);
