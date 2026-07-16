@@ -76,6 +76,24 @@ export function assessLoad(runs: RunLite[], now: number): LoadSummary {
   };
 }
 
+/**
+ * Faixa de risco de lesão pela razão agudo:crônico (ACWR). Os limiares seguem a
+ * literatura de carga de treino: a "sweet spot" 0,8–1,3 minimiza lesão; acima de
+ * 1,5 é sobrecarga (pico de risco). Função PURA para a classificação ser testável
+ * — é decisão sensível (avisa o corredor sobre lesão).
+ */
+export type AcwrBand = 'insufficient' | 'very_low' | 'below' | 'balanced' | 'high' | 'overload';
+
+export function acwrBand(load: LoadSummary): AcwrBand {
+  if (load.status === 'none') return 'insufficient';
+  const a = load.acwr;
+  if (a < 0.6) return 'very_low';
+  if (a <= 0.8) return 'below';
+  if (a <= 1.3) return 'balanced';
+  if (a <= 1.5) return 'high';
+  return 'overload';
+}
+
 /** Volume-base semanal recomendado: usa o crônico real, com pisos por objetivo. */
 export function baseWeeklyKm(load: LoadSummary, goal: Goal): number {
   const floor: Record<Goal, number> = { fitness: 10, '5k': 15, '10k': 20, half: 30, marathon: 40 };

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { estimatePaces, pacesFromReference, type RunLite } from '../trainingPaces';
 import {
   assessLoad, baseWeeklyKm, buildWeek, buildSchedule, sessionToWorkoutBody,
+  acwrBand, type AcwrBand, type LoadSummary,
 } from '../adaptivePlan';
 
 const now = Date.parse('2026-07-04T12:00:00Z');
@@ -104,5 +105,32 @@ describe('buildSchedule', () => {
     const l0 = assessLoad([], now);
     const sm = buildSchedule(pm, l0, { goal: 'marathon', daysPerWeek: 6, base: baseWeeklyKm(l0, 'marathon'), weeks: 8, startDate: start });
     expect(sm.every((e) => Number.isFinite(e.distanceM))).toBe(true);
+  });
+});
+
+describe('acwrBand — faixa de risco de lesão', () => {
+  const mk = (acwr: number, status: LoadSummary['status'] = 'ok'): LoadSummary => ({
+    acute7Km: 0, chronicWeeklyKm: 10, acwr, status, runsLast7: 3,
+  });
+
+  it('histórico insuficiente (status none) → insufficient', () => {
+    expect(acwrBand(mk(0, 'none'))).toBe('insufficient');
+  });
+
+  it('classifica cada faixa pelos limiares da literatura', () => {
+    const cases: [number, AcwrBand][] = [
+      [0.5, 'very_low'],
+      [0.6, 'below'], [0.8, 'below'],
+      [0.81, 'balanced'], [1.0, 'balanced'], [1.3, 'balanced'],
+      [1.31, 'high'], [1.5, 'high'],
+      [1.51, 'overload'], [2.0, 'overload'],
+    ];
+    for (const [acwr, band] of cases) {
+      expect(acwrBand(mk(acwr))).toBe(band);
+    }
+  });
+
+  it('a sweet spot 0,8–1,3 é "balanced" (menor risco)', () => {
+    expect(acwrBand(mk(1.0))).toBe('balanced');
   });
 });

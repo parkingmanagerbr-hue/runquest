@@ -22,7 +22,7 @@ export default defineConfig({
         'src/lib/runCard.ts', 'src/lib/fitnessTrend.ts', 'src/lib/routePlanner.ts',
         'src/lib/workoutTemplates.ts', 'src/lib/geo.ts', 'src/lib/pricing.ts',
         'src/lib/runPersistence.ts', 'src/lib/bluetooth.ts', 'src/lib/vo2max.ts',
-        'src/lib/gpsTrack.ts', 'src/lib/calories.ts',
+        'src/lib/gpsTrack.ts', 'src/lib/calories.ts', 'src/lib/dateKey.ts',
       ],
       // Piso de cobertura — o build FALHA se cair abaixo (atual ~99% stmts).
       // Ninguém adiciona lógica pura sem testar. Margem p/ pequenas flutuações.

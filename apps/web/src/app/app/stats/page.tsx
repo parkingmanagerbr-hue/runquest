@@ -6,6 +6,8 @@ import { ArrowLeft, TrendingUp, Activity, Flame, Gauge, Calendar, Zap } from 'lu
 import { tokens } from '@/lib/api';
 import { estimateVo2max } from '@/lib/vo2max';
 import { estimateCalories } from '@/lib/calories';
+import { localDateKey } from '@/lib/dateKey';
+import { assessLoad, acwrBand, type AcwrBand } from '@/lib/adaptivePlan';
 
 interface Run {
   id: string;
@@ -17,6 +19,16 @@ interface Run {
 
 const MONTH_LABELS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const WEEKDAY = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+// Rótulo/cor de cada faixa de ACWR (a classificação numérica vem de acwrBand puro).
+const ACWR_BAND_META: Record<AcwrBand, { status: string; color: string }> = {
+  insufficient: { status: 'Histórico insuficiente', color: 'text-white/40' },
+  very_low: { status: 'Muito pouco treino 🟡', color: 'text-yellow-400' },
+  below: { status: 'Abaixo do ideal', color: 'text-yellow-300' },
+  balanced: { status: 'Carga equilibrada ✅', color: 'text-rq-lime' },
+  high: { status: 'Carga elevada ⚠️', color: 'text-rq-orange' },
+  overload: { status: 'Sobrecarga — risco de lesão 🔴', color: 'text-red-400' },
+};
 
 function fmtPace(s: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
@@ -124,7 +136,7 @@ export default function StatsPage() {
   const heatmap = useMemo(() => {
     const runMap = new Map<string, number>(); // date -> km
     for (const r of runs) {
-      const key = new Date(r.startedAt).toISOString().slice(0, 10);
+      const key = localDateKey(new Date(r.startedAt)); // fuso local, consistente com weekday
       runMap.set(key, (runMap.get(key) ?? 0) + r.distanceMeters / 1000);
     }
     const today = new Date();
@@ -137,7 +149,7 @@ export default function StatsPage() {
     while (current <= today) {
       const week: { date: string; km: number }[] = [];
       for (let d = 0; d < 7; d++) {
-        const key = current.toISOString().slice(0, 10);
+        const key = localDateKey(current);
         week.push({ date: key, km: runMap.get(key) ?? 0 });
         current.setDate(current.getDate() + 1);
       }
@@ -148,26 +160,20 @@ export default function StatsPage() {
 
   const maxHeatKm = Math.max(...heatmap.flatMap(w => w.map(d => d.km)), 1);
 
-  // Training load: ACWR (Acute:Chronic Workload Ratio)
+  // Training load: ACWR — reusa o assessLoad testado (mesma definição da tela de
+  // plano adaptativo; antes o stats tinha uma fórmula própria divergente) e a
+  // classificação pura de faixa de risco (acwrBand).
   const trainingLoad = useMemo(() => {
-    const now = Date.now();
-    const day = 86400000;
-    const acuteKm = runs.filter(r => now - new Date(r.startedAt).getTime() < 7 * day)
-      .reduce((a, r) => a + r.distanceMeters / 1000, 0);
-    const chronicKm = runs.filter(r => {
-      const age = now - new Date(r.startedAt).getTime();
-      return age >= 7 * day && age < 28 * day;
-    }).reduce((a, r) => a + r.distanceMeters / 1000, 0) / 3; // avg per week over 3 weeks
-    const acwr = chronicKm > 0.5 ? acuteKm / chronicKm : null;
-    let status = '';
-    let color = '';
-    if (acwr === null) { status = 'Histórico insuficiente'; color = 'text-white/40'; }
-    else if (acwr < 0.6) { status = 'Muito pouco treino 🟡'; color = 'text-yellow-400'; }
-    else if (acwr <= 0.8) { status = 'Abaixo do ideal'; color = 'text-yellow-300'; }
-    else if (acwr <= 1.3) { status = 'Carga equilibrada ✅'; color = 'text-rq-lime'; }
-    else if (acwr <= 1.5) { status = 'Carga elevada ⚠️'; color = 'text-rq-orange'; }
-    else { status = 'Sobrecarga — risco de lesão 🔴'; color = 'text-red-400'; }
-    return { acuteKm: Math.round(acuteKm * 10) / 10, chronicKm: Math.round(chronicKm * 10) / 10, acwr, status, color };
+    const load = assessLoad(runs, Date.now());
+    const band = acwrBand(load);
+    const meta = ACWR_BAND_META[band];
+    return {
+      acuteKm: load.acute7Km,
+      chronicKm: load.chronicWeeklyKm,
+      acwr: band === 'insufficient' ? null : load.acwr,
+      status: meta.status,
+      color: meta.color,
+    };
   }, [runs]);
 
   const maxMonthKm = Math.max(...monthlyData.map(m => m.km), 1);
@@ -281,7 +287,7 @@ export default function StatsPage() {
                       {week.map((day, di) => {
                         const intensity = day.km > 0 ? Math.min(1, day.km / (maxHeatKm * 0.7)) : 0;
                         const alpha = intensity > 0 ? 0.2 + intensity * 0.8 : 0;
-                        const isToday = day.date === new Date().toISOString().slice(0, 10);
+                        const isToday = day.date === localDateKey(new Date());
                         return (
                           <div
                             key={di}
