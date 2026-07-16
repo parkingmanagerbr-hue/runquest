@@ -63,6 +63,16 @@ async function request<T>(path: string, init: RequestInit & { auth?: boolean } =
 }
 
 export const api = {
+  // Wrappers genéricos — TODA tela deve chamar a API por aqui. Chamadas com
+  // `fetch` cru + token do localStorage não passam pelo auto-refresh de 401
+  // abaixo, então deslogavam o usuário assim que o access token expirava.
+  get: <T>(path: string) => request<T>(path),
+  post: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'POST', ...(body === undefined ? {} : { body: JSON.stringify(body) }) }),
+  patch: <T>(path: string, body?: unknown) =>
+    request<T>(path, { method: 'PATCH', ...(body === undefined ? {} : { body: JSON.stringify(body) }) }),
+  del: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+
   register: (data: { email: string; password: string; displayName: string }) =>
     request<{ accessToken: string; refreshToken: string; user: unknown }>(
       '/auth/register', { method: 'POST', body: JSON.stringify(data), auth: false },

@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Swords, Trophy, Coins, Users, CheckCircle2, Flag, Crown } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 
 interface Challenge {
   id: string;
@@ -43,9 +43,6 @@ const KIND_UNIT: Record<string, string> = {
 };
 const STATUS_LABEL: Record<string, string> = { upcoming: 'Em breve', active: 'Ativo', ended: 'Encerrado' };
 
-const API = () => process.env.NEXT_PUBLIC_API_URL ?? '/api';
-const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('rq.at')}` });
-
 function daysLeft(endsAt: string): string {
   const ms = new Date(endsAt).getTime() - Date.now();
   if (ms <= 0) return 'encerrado';
@@ -61,8 +58,7 @@ export default function ChallengesPage() {
   const [board, setBoard] = useState<{ id: string; rows: LeaderRow[] } | null>(null);
 
   const load = useCallback(async () => {
-    const r = await fetch(`${API()}/challenges`, { headers: auth() });
-    setChallenges(await r.json());
+    setChallenges(await api.get<Challenge[]>('/challenges'));
   }, []);
 
   useEffect(() => {
@@ -73,7 +69,7 @@ export default function ChallengesPage() {
   const join = async (c: Challenge) => {
     setBusy(c.id);
     try {
-      await fetch(`${API()}/challenges/${c.id}/join`, { method: 'POST', headers: auth() });
+      await api.post(`/challenges/${c.id}/join`);
       await load();
     } finally { setBusy(null); }
   };
@@ -81,7 +77,7 @@ export default function ChallengesPage() {
   const claim = async (c: Challenge) => {
     setBusy(c.id);
     try {
-      const r = await fetch(`${API()}/challenges/${c.id}/claim`, { method: 'POST', headers: auth() }).then(r => r.json());
+      const r = await api.post<{ ok: boolean; xp?: number; coins?: number; error?: string }>(`/challenges/${c.id}/claim`);
       if (r.ok) alert(`🎉 +${r.xp} XP · +${r.coins} 🪙 RunCoins`);
       else alert(r.error);
       await load();
@@ -89,7 +85,7 @@ export default function ChallengesPage() {
   };
 
   const openBoard = async (c: Challenge) => {
-    const rows: LeaderRow[] = await fetch(`${API()}/challenges/${c.id}/leaderboard`, { headers: auth() }).then(r => r.json());
+    const rows = await api.get<LeaderRow[]>(`/challenges/${c.id}/leaderboard`);
     setBoard({ id: c.id, rows });
   };
 

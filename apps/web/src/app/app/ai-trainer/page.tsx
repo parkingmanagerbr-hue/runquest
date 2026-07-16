@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Sparkles, Zap, Target, Calendar, ChevronRight, Lock } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 
 const GOALS = [
   { id: '5K', label: '5 km', emoji: '🏃', desc: 'Completar ou melhorar seu 5K' },
@@ -36,9 +36,7 @@ export default function AITrainerPage() {
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/users/me`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    }).then(r => r.json()).then(u => setIsPremium(u.isPremium || u.isOwner));
+    api.get<{ isPremium?: boolean; isOwner?: boolean }>('/users/me').then(u => setIsPremium(!!(u.isPremium || u.isOwner)));
   }, [router]);
 
   const generate = async () => {

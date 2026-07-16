@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Heart, MessageCircle, Activity } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace } from '@/lib/geo';
 
 interface FeedRun {
@@ -25,10 +25,7 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/feed`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
-    setRuns(await r.json());
+    setRuns(await api.get<FeedRun[]>('/feed'));
   };
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
@@ -36,10 +33,7 @@ export default function FeedPage() {
   }, [router]);
 
   const kudo = async (id: string, youKudoed: boolean) => {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/${id}/kudos`, {
-      method: youKudoed ? 'DELETE' : 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
+    await (youKudoed ? api.del(`/runs/${id}/kudos`) : api.post(`/runs/${id}/kudos`));
     await load();
   };
 

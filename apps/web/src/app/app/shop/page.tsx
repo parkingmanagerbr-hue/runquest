@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Coins, CheckCircle2, Lock, Crown } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 
 interface Item {
   id: string; code: string; name: string; description: string | null;
@@ -27,10 +27,7 @@ export default function ShopPage() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = async () => {
-    const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/shop`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
-    setData(await r.json());
+    setData(await api.get<ShopData>('/shop'));
   };
 
   useEffect(() => {
@@ -40,20 +37,14 @@ export default function ShopPage() {
 
   const buy = async (id: string) => {
     setBusy(id);
-    const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/shop/${id}/buy`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    }).then(r => r.json());
+    const r = await api.post<{ error?: string }>(`/shop/${id}/buy`);
     if (r.error) alert(r.error);
     await load();
     setBusy(null);
   };
   const equip = async (id: string) => {
     setBusy(id);
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/shop/${id}/equip`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
+    await api.post(`/shop/${id}/equip`);
     await load();
     setBusy(null);
   };

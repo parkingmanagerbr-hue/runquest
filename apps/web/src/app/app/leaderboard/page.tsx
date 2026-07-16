@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Trophy, TrendingUp, MapPinned, Sparkles, type LucideIcon } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 
 type Kind = 'xp' | 'distance' | 'territories';
 interface Row { rank: number; userId: string; displayName: string; avatar?: string; level: number; value: number; isMe: boolean; }
@@ -22,10 +22,7 @@ export default function LeaderboardPage() {
 
   const load = async (k: Kind) => {
     setLoading(true);
-    const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/leaderboard?kind=${k}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
-    setRows(await r.json());
+    setRows(await api.get<Row[]>(`/leaderboard?kind=${k}`));
     setLoading(false);
   };
 

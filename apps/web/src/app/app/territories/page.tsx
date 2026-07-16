@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, MapPinned, Trophy, Clock } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 
 const TerritoryMap = dynamic(() => import('@/components/TerritoryMap').then(m => m.TerritoryMap), {
   ssr: false,
@@ -29,12 +29,8 @@ export default function TerritoriesPage() {
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
     Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/territories/me`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-      }).then(r => r.json()),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/territories/stats`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-      }).then(r => r.json()),
+      api.get<Territory[]>('/territories/me'),
+      api.get<{ total: number; captured: number; contested: number }>('/territories/stats'),
     ]).then(([list, s]) => {
       setTerritories(list);
       setStats(s);

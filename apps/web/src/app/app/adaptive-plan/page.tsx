@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, TrendingUp, Activity, ShieldCheck, ShieldAlert, MapPin, Play, ChevronLeft, ChevronRight, CalendarPlus, CheckCircle2 } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 import { formatPace, formatDuration } from '@/lib/geo';
 import { estimatePaces, pacesFromReference, ZONE_LABEL, type RunLite, type PaceZone } from '@/lib/trainingPaces';
 import {
@@ -79,12 +79,7 @@ export default function AdaptivePlanPage() {
   async function launch(s: PlanSession, mode: 'gps' | 'player') {
     setLaunching(s.title + s.day);
     try {
-      const r = await fetch(`${API}/workouts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-        body: JSON.stringify(sessionToWorkoutBody(s)),
-      });
-      const w = await r.json();
+      const w = await api.post<{ id?: string }>('/workouts', sessionToWorkoutBody(s));
       if (!w?.id) throw new Error('sem id');
       router.push(mode === 'gps' ? `/app/run?workout=${w.id}` : `/app/workouts/${w.id}/play`);
     } catch {

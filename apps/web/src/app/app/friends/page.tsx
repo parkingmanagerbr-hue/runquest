@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Search, UserPlus, UserCheck, Users } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 
 interface User { id: string; displayName: string; level: number; xp: number; selectedAvatar?: string; }
 
@@ -17,10 +17,9 @@ export default function FriendsPage() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const h = { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } };
     const [a, b] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/social/following`, h).then(r => r.json()),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/social/followers`, h).then(r => r.json()),
+      api.get<User[]>('/social/following'),
+      api.get<User[]>('/social/followers'),
     ]);
     setFollowing(a); setFollowers(b);
   };
@@ -33,26 +32,17 @@ export default function FriendsPage() {
   useEffect(() => {
     if (tab !== 'search' || q.length < 2) { setResults([]); return; }
     const t = setTimeout(async () => {
-      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/social/search?q=${encodeURIComponent(q)}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-      });
-      setResults(await r.json());
+      setResults(await api.get<User[]>(`/social/search?q=${encodeURIComponent(q)}`));
     }, 250);
     return () => clearTimeout(t);
   }, [q, tab]);
 
   const follow = async (id: string) => {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/social/follow/${id}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
+    await api.post(`/social/follow/${id}`);
     await load();
   };
   const unfollow = async (id: string) => {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/social/unfollow/${id}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
+    await api.post(`/social/unfollow/${id}`);
     await load();
   };
 

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Dumbbell, MapPin, Play } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 import { formatPace, formatDuration, formatDistance } from '@/lib/geo';
 import { estimatePaces, ZONE_LABEL, type RunLite } from '@/lib/trainingPaces';
 import { buildTemplates, templateToWorkoutBody, type WorkoutTemplate } from '@/lib/workoutTemplates';
@@ -44,12 +44,7 @@ export default function WorkoutTemplatesPage() {
   async function launch(t: WorkoutTemplate, mode: 'gps' | 'player') {
     setLaunching(t.id + mode);
     try {
-      const r = await fetch(`${API}/workouts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-        body: JSON.stringify(templateToWorkoutBody(t)),
-      });
-      const w = await r.json();
+      const w = await api.post<{ id: string }>('/workouts', templateToWorkoutBody(t));
       if (!w?.id) throw new Error('sem id');
       router.push(mode === 'gps' ? `/app/run?workout=${w.id}` : `/app/workouts/${w.id}/play`);
     } catch {

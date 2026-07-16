@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Play, Pause, SkipForward, SkipBack, X } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 import { formatDuration } from '@/lib/geo';
 import { useWorkoutEngine, type RawSegment } from '@/lib/useWorkoutEngine';
 
@@ -35,11 +35,8 @@ export default function WorkoutPlayerPage({ params }: { params: { id: string } }
       router.replace('/auth/login');
       return;
     }
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/workouts/${id}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    })
-      .then((r) => r.json())
-      .then((w: Workout) => setWorkout(w));
+    api.get<Workout>(`/workouts/${id}`)
+      .then((w) => setWorkout(w));
   }, [id, router]);
 
   const eng = useWorkoutEngine(workout?.segments ?? null);

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Coins, Award, Activity, Flame, Zap, Timer } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 import { formatDuration, formatPace } from '@/lib/geo';
 
 interface PR { label: string; best: { runId: string; paceSecPerKm: number; durationSec: number; distanceMeters: number; date: string } | null }
@@ -73,10 +73,7 @@ export default function ProfilePage() {
   }, [router]);
 
   const claimDaily = async () => {
-    const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/daily/claim`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    }).then(r => r.json());
+    const r = await api.post<{ ok: boolean; coins?: number; error?: string }>('/daily/claim');
     if (r.ok) alert(`+${r.coins} 🪙 RunCoins!`);
     else alert(r.error);
     await load();

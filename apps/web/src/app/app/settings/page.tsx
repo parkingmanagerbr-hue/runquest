@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 
 interface Settings {
   displayName: string;
@@ -21,10 +21,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/settings`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
-    const data = await r.json();
+    const data = await api.get<Settings>('/settings');
     setS(data);
     try { localStorage.setItem('rq.settings', JSON.stringify(data)); } catch {}
   };
@@ -37,11 +34,7 @@ export default function SettingsPage() {
   const save = async () => {
     if (!s) return;
     setSaving(true);
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/settings`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-      body: JSON.stringify(s),
-    });
+    await api.patch('/settings', s);
     try { localStorage.setItem('rq.settings', JSON.stringify(s)); } catch {}
     setSaving(false);
     alert('Salvo ✓');

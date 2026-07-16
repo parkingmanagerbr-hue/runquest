@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Target, Trophy, Coins, Sparkles, CheckCircle2 } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 
 interface Mission {
   id: string;
@@ -41,10 +41,7 @@ export default function MissionsPage() {
   const [claiming, setClaiming] = useState<string | null>(null);
 
   const load = async () => {
-    const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/missions`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
-    setMissions(await r.json());
+    setMissions(await api.get<Mission[]>('/missions'));
   };
 
   useEffect(() => {

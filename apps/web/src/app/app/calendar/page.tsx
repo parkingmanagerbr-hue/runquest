@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Calendar as CalIcon, CheckCircle2, Sparkles } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 
 interface ScheduledWorkout {
   date: string;
@@ -31,12 +31,8 @@ export default function CalendarPage() {
 
   const load = async () => {
     const [active, tpls] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/plans/active`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-      }).then(r => r.json()),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/plans/templates`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-      }).then(r => r.json()),
+      api.get<Plan | null>('/plans/active'),
+      api.get<Template[]>('/plans/templates'),
     ]);
     setPlan(active && active.id ? active : null);
     setTemplates(tpls);
@@ -50,11 +46,7 @@ export default function CalendarPage() {
   const startTemplate = async (id: string) => {
     setStartingTpl(id);
     const today = new Date().toISOString().slice(0, 10);
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/plans/templates/${id}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-      body: JSON.stringify({ startDate: today }),
-    });
+    await api.post(`/plans/templates/${id}`, { startDate: today });
     await load();
     setStartingTpl(null);
   };

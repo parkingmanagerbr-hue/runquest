@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Play, Trash2, Clock, Repeat, Zap, MapPin, Dumbbell } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 import { formatDuration } from '@/lib/geo';
 
 interface Segment {
@@ -53,19 +53,14 @@ export default function WorkoutsPage() {
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/workouts`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    })
-      .then(r => r.json()).then(setItems)
+    api.get<Workout[]>('/workouts')
+      .then(setItems)
       .finally(() => setLoading(false));
   }, [router]);
 
   const remove = async (id: string) => {
     if (!confirm('Excluir esse treino?')) return;
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/workouts/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
+    await api.del(`/workouts/${id}`);
     setItems(items.filter(i => i.id !== id));
   };
 

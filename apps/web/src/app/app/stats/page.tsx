@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, TrendingUp, Activity, Flame, Gauge, Calendar, Zap } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 import { estimateVo2max } from '@/lib/vo2max';
 import { estimateCalories } from '@/lib/calories';
 import { localDateKey } from '@/lib/dateKey';
@@ -41,9 +41,8 @@ export default function StatsPage() {
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs?limit=100`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    }).then(r => r.json()).then(d => setRuns(Array.isArray(d) ? d : []))
+    api.get<Run[]>('/runs?limit=100').then(d => setRuns(Array.isArray(d) ? d : []))
+      .catch(() => setRuns([])) // erro de API degrada p/ lista vazia (o fetch cru não lançava)
       .finally(() => setLoading(false));
   }, [router]);
 

@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Timer, TrendingUp, ChevronRight } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 
 interface PR {
   label: string;
@@ -45,9 +45,7 @@ export default function RacePredictorPage() {
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
-    const h = { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } };
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/stats/prs`, h)
-      .then(r => r.json())
+    api.get<PR[]>('/runs/stats/prs')
       .then((data: PR[]) => {
         setPrs(Array.isArray(data) ? data : []);
         const first = data?.find(p => p.best);

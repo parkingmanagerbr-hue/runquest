@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Target, Plus, Trash2, CheckCircle2 } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 
 interface Goal {
   id: string; kind: string; period: string;
@@ -30,10 +30,7 @@ export default function GoalsPage() {
   const [form, setForm] = useState({ kind: 'distance_km', period: 'WEEKLY', target: 20 });
 
   const load = async () => {
-    const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/goals`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
-    setGoals(await r.json());
+    setGoals(await api.get<Goal[]>('/goals'));
   };
 
   useEffect(() => {
@@ -42,21 +39,14 @@ export default function GoalsPage() {
   }, [router]);
 
   const create = async () => {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/goals`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-      body: JSON.stringify(form),
-    });
+    await api.post('/goals', form);
     setCreating(false);
     await load();
   };
 
   const remove = async (id: string) => {
     if (!confirm('Excluir meta?')) return;
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/goals/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
+    await api.del(`/goals/${id}`);
     await load();
   };
 

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Bell, BellOff, Heart, MessageSquare, Trophy, Flag } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 import { usePushNotifications } from '@/lib/usePushNotifications';
 
 interface Notif {
@@ -29,17 +29,11 @@ export default function NotificationsPage() {
   const push = usePushNotifications();
 
   const load = async () => {
-    const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/notifications?limit=50`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
-    setItems(await r.json());
+    setItems(await api.get<Notif[]>('/notifications?limit=50'));
   };
 
   const markRead = async () => {
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/notifications/mark-read`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-    });
+    await api.post('/notifications/mark-read');
     load();
   };
 
