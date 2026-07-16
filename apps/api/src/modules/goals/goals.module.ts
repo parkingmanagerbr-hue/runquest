@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { periodWindow, Period } from '../../shared/kernel/date-window';
+import { applyGoalProgress } from './goal-progress';
 
 class CreateGoalDto {
   @IsIn(['distance_km', 'runs_count', 'duration_min']) kind!: string;
@@ -29,17 +30,10 @@ export class GoalProgressService {
       where: { userId, completed: false, windowEnd: { gt: new Date() } },
     });
     for (const g of goals) {
-      let inc = 0;
-      switch (g.kind) {
-        case 'distance_km': inc = run.distanceMeters / 1000; break;
-        case 'runs_count': inc = 1; break;
-        case 'duration_min': inc = run.durationSec / 60; break;
-      }
-      const newProg = (g.progress ?? 0) + inc;
-      const completed = newProg >= g.target;
+      const { progress, completed } = applyGoalProgress(g.kind, g.progress ?? 0, g.target, run);
       await (this.prisma as any).goal.update({
         where: { id: g.id },
-        data: { progress: newProg, completed, completedAt: completed ? new Date() : null },
+        data: { progress, completed, completedAt: completed ? new Date() : null },
       });
     }
   }

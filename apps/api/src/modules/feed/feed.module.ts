@@ -8,6 +8,7 @@ import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.d
 import { PrismaService } from '../../prisma/prisma.service';
 import { PushModule } from '../push/push.module';
 import { PushService } from '../push/push.service';
+import { shapeFeedRun } from './feed-view';
 
 class CommentDto {
   @IsString() @MaxLength(500) text!: string;
@@ -37,15 +38,11 @@ export class FeedController {
         user: { select: { id: true, displayName: true, selectedAvatar: true, level: true } },
         kudos: { select: { userId: true } },
         comments: { take: 3, orderBy: { createdAt: 'desc' }, include: { user: { select: { displayName: true, selectedAvatar: true } } } },
+        _count: { select: { comments: true } }, // total real p/ o BUG-4 (comments é só preview)
       } as any,
     });
 
-    return runs.map((r: any) => ({
-      ...r,
-      kudosCount: r.kudos.length,
-      youKudoed: r.kudos.some((k: any) => k.userId === user.id),
-      commentsCount: r.comments.length,
-    }));
+    return runs.map((r: any) => shapeFeedRun(r, user.id));
   }
 }
 
