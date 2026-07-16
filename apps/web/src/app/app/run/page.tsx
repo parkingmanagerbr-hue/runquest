@@ -15,6 +15,7 @@ import { saveActiveRun, loadActiveRun, clearActiveRun, type ActiveRun } from '@/
 import { watchPosition as geoWatch, isNativePlatform, type GeoWatchHandle } from '@/lib/geolocation';
 import { isAcceptableFix, acceptStep, elevationStep, splitPace } from '@/lib/gpsTrack';
 import { estimateCalories } from '@/lib/calories';
+import { parseTargetPace } from '@/lib/parsePace';
 
 interface RunResult {
   id: string;
@@ -453,11 +454,6 @@ export default function RunTrackingPage() {
     clearActiveRun();
     setRecovered(null);
   }, []);
-
-  const parseTargetPace = (s: string) => {
-    const m = s.match(/^(\d+):(\d{2})$/);
-    return m ? parseInt(m[1]) * 60 + parseInt(m[2]) : 0;
-  };
 
   // Pace: prefer GPS Doppler speed, fall back to accumulated distance/time
   const currentPace = currentSpeedMs !== null && currentSpeedMs > 0.3 ? Math.round(1000 / currentSpeedMs) : 0;
