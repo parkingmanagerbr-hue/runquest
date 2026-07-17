@@ -31,6 +31,13 @@ jobs:
         run: pnpm -r lint
       - name: Testes unitários (web vitest + api jest)
         run: pnpm -r test
+      # A suíte e2e não rodava em lugar nenhum (nem aqui, nem localmente sem
+      # webServer) — e por isso tinha apodrecido com asserções quebradas.
+      # Agora o Playwright sobe o app sozinho e o gate cobre a landing de verdade.
+      - name: Navegador do Playwright
+        run: pnpm --filter @runquest/web exec playwright install --with-deps chromium
+      - name: Testes e2e (playwright)
+        run: pnpm --filter @runquest/web test:e2e
 
   build-api:
     needs: verify
