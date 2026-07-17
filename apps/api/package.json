@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "prebuild": "rimraf dist && jest --runInBand",
+    "postinstall": "prisma generate",
+    "prebuild": "rimraf dist && prisma generate && jest --runInBand",
     "build": "nest build",
     "start": "node dist/main",
     "start:dev": "nest start --watch",

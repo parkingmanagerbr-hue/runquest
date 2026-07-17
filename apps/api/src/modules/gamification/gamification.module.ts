@@ -14,8 +14,8 @@ export class BadgeUnlockService {
   constructor(private readonly prisma: PrismaService) {}
 
   async checkAndUnlock(userId: string, ctx: BadgeContext): Promise<{ id: string; code: string; title: string; icon: string; xp: number; coins: number }[]> {
-    const badges = await (this.prisma as any).badge.findMany();
-    const already = await (this.prisma as any).userBadge.findMany({
+    const badges = await this.prisma.badge.findMany();
+    const already = await this.prisma.userBadge.findMany({
       where: { userId },
       select: { badgeId: true },
     });
@@ -24,7 +24,7 @@ export class BadgeUnlockService {
     for (const b of badges) {
       if (ownedIds.has(b.id)) continue;
       if (!badgeQualifies(b.requirementKind, b.requirementValue, ctx)) continue;
-      await (this.prisma as any).userBadge.create({ data: { id: crypto.randomUUID(), userId, badgeId: b.id } });
+      await this.prisma.userBadge.create({ data: { id: crypto.randomUUID(), userId, badgeId: b.id } });
       if (b.xpReward > 0 || b.coinReward > 0) {
         await this.prisma.user.update({
           where: { id: userId },
@@ -47,8 +47,8 @@ export class BadgesController {
   @Get()
   async all(@CurrentUser() user: RequestUser) {
     const [badges, unlocked] = await Promise.all([
-      (this.prisma as any).badge.findMany({ orderBy: { order: 'asc' } }),
-      (this.prisma as any).userBadge.findMany({
+      this.prisma.badge.findMany({ orderBy: { order: 'asc' } }),
+      this.prisma.userBadge.findMany({
         where: { userId: user.id },
         select: { badgeId: true, unlockedAt: true },
       }),
@@ -103,7 +103,7 @@ export class LeaderboardController {
     }
 
     if (kind === 'distance') {
-      const rows: any[] = await (this.prisma as any).run.groupBy({
+      const rows = await this.prisma.run.groupBy({
         by: ['userId'],
         where: { startedAt: { gte: start } },
         _sum: { distanceMeters: true },
@@ -131,20 +131,21 @@ export class LeaderboardController {
     }
 
     // territories
-    const captured: any[] = await (this.prisma as any).territory.groupBy({
+    const grouped = await this.prisma.territory.groupBy({
       by: ['userId'],
       where: { capturedAt: { gte: start } },
       _count: { _all: true },
     });
-    captured.forEach((c: any) => { c._count.id = c._count._all; });
-    captured.sort((a: any, b: any) => b._count.id - a._count.id);
-    captured.splice(100);
+    const captured = grouped
+      .map((c) => ({ userId: c.userId, count: c._count._all }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 100);
     const users = await this.prisma.user.findMany({
-      where: { id: { in: captured.map((r: any) => r.userId) } },
+      where: { id: { in: captured.map((r) => r.userId) } },
       select: { id: true, displayName: true, avatarUrl: true, level: true, selectedAvatar: true },
     });
     const um = new Map(users.map(u => [u.id, u]));
-    return captured.map((r: any, i: number) => {
+    return captured.map((r, i) => {
       const u = um.get(r.userId);
       return {
         rank: i + 1,
@@ -153,7 +154,7 @@ export class LeaderboardController {
         avatarUrl: u?.avatarUrl,
         avatar: u?.selectedAvatar,
         level: u?.level ?? 1,
-        value: r._count.id,
+        value: r.count,
         isMe: r.userId === user.id,
       };
     });
@@ -170,8 +171,8 @@ export class ShopController {
   @Get()
   async list(@CurrentUser() user: RequestUser) {
     const [items, owned, u] = await Promise.all([
-      (this.prisma as any).cosmeticItem.findMany({ orderBy: [{ kind: 'asc' }, { price: 'asc' }] }),
-      (this.prisma as any).userItem.findMany({ where: { userId: user.id }, select: { itemId: true } }),
+      this.prisma.cosmeticItem.findMany({ orderBy: [{ kind: 'asc' }, { price: 'asc' }] }),
+      this.prisma.userItem.findMany({ where: { userId: user.id }, select: { itemId: true } }),
       this.prisma.user.findUnique({ where: { id: user.id }, select: { runCoins: true, selectedAvatar: true, selectedTerritoryColor: true } }),
     ]);
     const ownedIds = new Set(owned.map((o: any) => o.itemId));
@@ -185,8 +186,8 @@ export class ShopController {
   @Post(':id/buy')
   async buy(@CurrentUser() user: RequestUser, @Param('id') itemId: string) {
     const [item, alreadyOwned, u] = await Promise.all([
-      (this.prisma as any).cosmeticItem.findUnique({ where: { id: itemId } }),
-      (this.prisma as any).userItem.findUnique({ where: { userId_itemId: { userId: user.id, itemId } } }),
+      this.prisma.cosmeticItem.findUnique({ where: { id: itemId } }),
+      this.prisma.userItem.findUnique({ where: { userId_itemId: { userId: user.id, itemId } } }),
       this.prisma.user.findUnique({ where: { id: user.id }, select: { runCoins: true, isPremium: true } }),
     ]);
     if (!item) return { error: 'NOT_FOUND' };
@@ -196,16 +197,16 @@ export class ShopController {
 
     await this.prisma.$transaction([
       this.prisma.user.update({ where: { id: user.id }, data: { runCoins: { decrement: item.price } } }),
-      (this.prisma as any).userItem.create({ data: { id: crypto.randomUUID(), userId: user.id, itemId } }),
+      this.prisma.userItem.create({ data: { id: crypto.randomUUID(), userId: user.id, itemId } }),
     ]);
     return { ok: true, item };
   }
 
   @Post(':id/equip')
   async equip(@CurrentUser() user: RequestUser, @Param('id') itemId: string) {
-    const item = await (this.prisma as any).cosmeticItem.findUnique({ where: { id: itemId } });
+    const item = await this.prisma.cosmeticItem.findUnique({ where: { id: itemId } });
     if (!item) return { error: 'NOT_FOUND' };
-    const owned = await (this.prisma as any).userItem.findUnique({ where: { userId_itemId: { userId: user.id, itemId } } });
+    const owned = await this.prisma.userItem.findUnique({ where: { userId_itemId: { userId: user.id, itemId } } });
     if (!owned && item.price > 0) return { error: 'NOT_OWNED' };
 
     const data: any = {};
@@ -287,7 +288,7 @@ export class SocialController {
 
   @Get('following')
   async following(@CurrentUser() user: RequestUser) {
-    const rows = await (this.prisma as any).follow.findMany({
+    const rows = await this.prisma.follow.findMany({
       where: { followerId: user.id },
       include: { following: { select: { id: true, displayName: true, level: true, xp: true, selectedAvatar: true } } },
     });
@@ -296,7 +297,7 @@ export class SocialController {
 
   @Get('followers')
   async followers(@CurrentUser() user: RequestUser) {
-    const rows = await (this.prisma as any).follow.findMany({
+    const rows = await this.prisma.follow.findMany({
       where: { followingId: user.id },
       include: { follower: { select: { id: true, displayName: true, level: true, xp: true, selectedAvatar: true } } },
     });
@@ -307,7 +308,7 @@ export class SocialController {
   async follow(@CurrentUser() user: RequestUser, @Param('userId') targetId: string) {
     if (targetId === user.id) return { error: 'SELF' };
     try {
-      await (this.prisma as any).follow.create({
+      await this.prisma.follow.create({
         data: { id: crypto.randomUUID(), followerId: user.id, followingId: targetId },
       });
       return { ok: true };
@@ -316,7 +317,7 @@ export class SocialController {
 
   @Post('unfollow/:userId')
   async unfollow(@CurrentUser() user: RequestUser, @Param('userId') targetId: string) {
-    await (this.prisma as any).follow.deleteMany({
+    await this.prisma.follow.deleteMany({
       where: { followerId: user.id, followingId: targetId },
     });
     return { ok: true };

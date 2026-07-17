@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as webpush from 'web-push';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -27,7 +28,7 @@ export class PushService {
   /** Send a push notification to a specific user. Silently skips if no subscription. */
   async sendToUser(userId: string, payload: { title: string; body: string; icon?: string; url?: string }) {
     if (!this.ready) return;
-    const user = await (this.prisma as any).user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { pushSubscription: true },
     });
@@ -48,9 +49,11 @@ export class PushService {
     } catch (err: any) {
       if (err.statusCode === 410 || err.statusCode === 404) {
         // Subscription expired — clear it
-        await (this.prisma as any).user.update({
+        await this.prisma.user.update({
           where: { id: userId },
-          data: { pushSubscription: null },
+          // Campo Json nulável: o Prisma exige DbNull p/ gravar NULL no banco
+          // (um `null` cru é ambíguo entre JSON null e SQL NULL).
+          data: { pushSubscription: Prisma.DbNull },
         });
       } else {
         this.logger.error(`Push failed for ${userId}: ${err.message}`);

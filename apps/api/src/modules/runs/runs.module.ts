@@ -107,7 +107,7 @@ export class RunsController {
     if (coords && coords.length > 0) {
       territoryStats = await this.territories.applyRun(user.id, coords);
     }
-    const totalTerritories = await (this.prisma as any).territory.count({
+    const totalTerritories = await this.prisma.territory.count({
       where: { userId: user.id, capturedAt: { not: null } },
     });
 

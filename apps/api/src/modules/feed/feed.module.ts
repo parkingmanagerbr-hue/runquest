@@ -24,7 +24,7 @@ export class FeedController {
   /** Atividades dos usuários que você segue + suas próprias. */
   @Get()
   async list(@CurrentUser() user: RequestUser, @Query('limit') limit?: number) {
-    const follows = await (this.prisma as any).follow.findMany({
+    const follows = await this.prisma.follow.findMany({
       where: { followerId: user.id },
       select: { followingId: true },
     });
@@ -56,7 +56,7 @@ export class KudosController {
   @Post()
   async kudo(@CurrentUser() user: RequestUser, @Param('runId') runId: string) {
     try {
-      await (this.prisma as any).kudo.create({
+      await this.prisma.kudo.create({
         data: { id: crypto.randomUUID(), runId, userId: user.id },
       });
     } catch { /* ignora dup */ }
@@ -66,7 +66,7 @@ export class KudosController {
     if (run && run.userId !== user.id) {
       const me = await this.prisma.user.findUnique({ where: { id: user.id }, select: { displayName: true } });
       const title = `${me?.displayName ?? 'Alguém'} curtiu sua corrida`;
-      await (this.prisma as any).notification.create({
+      await this.prisma.notification.create({
         data: {
           id: crypto.randomUUID(),
           userId: run.userId,
@@ -82,7 +82,7 @@ export class KudosController {
 
   @Delete()
   async unkudo(@CurrentUser() user: RequestUser, @Param('runId') runId: string) {
-    await (this.prisma as any).kudo.deleteMany({ where: { runId, userId: user.id } });
+    await this.prisma.kudo.deleteMany({ where: { runId, userId: user.id } });
     return { ok: true };
   }
 }
@@ -96,7 +96,7 @@ export class CommentsController {
 
   @Get()
   async list(@Param('runId') runId: string) {
-    return (this.prisma as any).runComment.findMany({
+    return this.prisma.runComment.findMany({
       where: { runId },
       orderBy: { createdAt: 'asc' },
       include: { user: { select: { displayName: true, selectedAvatar: true, level: true } } },
@@ -109,7 +109,7 @@ export class CommentsController {
     @Param('runId') runId: string,
     @Body() dto: CommentDto,
   ) {
-    const c = await (this.prisma as any).runComment.create({
+    const c = await this.prisma.runComment.create({
       data: { id: crypto.randomUUID(), runId, userId: user.id, text: dto.text },
       include: { user: { select: { displayName: true, selectedAvatar: true, level: true } } },
     });
@@ -117,7 +117,7 @@ export class CommentsController {
     if (run && run.userId !== user.id) {
       const me = await this.prisma.user.findUnique({ where: { id: user.id }, select: { displayName: true } });
       const title = `${me?.displayName ?? 'Alguém'} comentou: ${dto.text.slice(0, 80)}`;
-      await (this.prisma as any).notification.create({
+      await this.prisma.notification.create({
         data: {
           id: crypto.randomUUID(),
           userId: run.userId,
@@ -141,7 +141,7 @@ export class NotificationsController {
 
   @Get()
   async list(@CurrentUser() user: RequestUser, @Query('limit') limit?: number) {
-    return (this.prisma as any).notification.findMany({
+    return this.prisma.notification.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
       take: Math.min(Number(limit) || 30, 100),
@@ -150,7 +150,7 @@ export class NotificationsController {
 
   @Get('unread-count')
   async unread(@CurrentUser() user: RequestUser) {
-    const count = await (this.prisma as any).notification.count({
+    const count = await this.prisma.notification.count({
       where: { userId: user.id, readAt: null },
     });
     return { count };
@@ -158,7 +158,7 @@ export class NotificationsController {
 
   @Post('mark-read')
   async markRead(@CurrentUser() user: RequestUser) {
-    await (this.prisma as any).notification.updateMany({
+    await this.prisma.notification.updateMany({
       where: { userId: user.id, readAt: null },
       data: { readAt: new Date() },
     });

@@ -13,6 +13,16 @@ import { PrismaService } from '../../prisma/prisma.service';
  * scheduledWorkouts JSON shape:
  * [{ date: "2026-05-25", workoutId: "uuid", completed: false }, ...]
  */
+interface ScheduledEntry {
+  date: string;
+  workoutId?: string;
+  completed?: boolean;
+  label?: string;
+  type?: string;
+  distanceM?: number;
+  durationSec?: number;
+  intensityZone?: number;
+}
 
 class CreatePlanDto {
   @IsString() name!: string;
@@ -129,11 +139,11 @@ Rules:
     }
 
     // Save to DB
-    await (this.prisma as any).trainingPlan.updateMany({
+    await this.prisma.trainingPlan.updateMany({
       where: { userId: user.id, active: true },
       data: { active: false },
     });
-    return (this.prisma as any).trainingPlan.create({
+    return this.prisma.trainingPlan.create({
       data: {
         userId: user.id,
         name: plan.name,
@@ -182,7 +192,7 @@ Rules:
       .filter((r: any) => new Date(r.startedAt) > new Date(Date.now() - 30 * 86400000))
       .reduce((a: number, r: any) => a + r.distanceMeters / 1000, 0)
       .toFixed(1);
-    const activePlan = await (this.prisma as any).trainingPlan.findFirst({
+    const activePlan = await this.prisma.trainingPlan.findFirst({
       where: { userId: user.id, active: true },
       select: { name: true, goal: true },
     });
@@ -221,7 +231,7 @@ Rules:
 
   @Get()
   async list(@CurrentUser() user: RequestUser) {
-    return (this.prisma as any).trainingPlan.findMany({
+    return this.prisma.trainingPlan.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
     });
@@ -229,7 +239,7 @@ Rules:
 
   @Get('active')
   async active(@CurrentUser() user: RequestUser) {
-    return (this.prisma as any).trainingPlan.findFirst({
+    return this.prisma.trainingPlan.findFirst({
       where: { userId: user.id, active: true },
     });
   }
@@ -237,14 +247,18 @@ Rules:
   /** GET /plans/today — Today's workout from active plan, null if none */
   @Get('today')
   async today(@CurrentUser() user: RequestUser) {
-    const plan = await (this.prisma as any).trainingPlan.findFirst({
+    const plan = await this.prisma.trainingPlan.findFirst({
       where: { userId: user.id, active: true },
     });
     if (!plan) return null;
 
     const todayStr = new Date().toISOString().slice(0, 10);
-    const scheduled: any[] = plan.scheduledWorkouts ?? [];
-    const todayEntry = scheduled.find((s: any) => s.date === todayStr && !s.completed);
+    // scheduledWorkouts é uma coluna Json: pode não ser um array (dado legado /
+    // corrompido). O `as any[]` de antes presumia que sempre era.
+    const scheduled = Array.isArray(plan.scheduledWorkouts)
+      ? (plan.scheduledWorkouts as unknown as ScheduledEntry[])
+      : [];
+    const todayEntry = scheduled.find((s) => s.date === todayStr && !s.completed);
     if (!todayEntry) return null;
 
     let workout = null;
@@ -269,11 +283,11 @@ Rules:
   @Post()
   async create(@CurrentUser() user: RequestUser, @Body() dto: CreatePlanDto) {
     // Desativar outros planos
-    await (this.prisma as any).trainingPlan.updateMany({
+    await this.prisma.trainingPlan.updateMany({
       where: { userId: user.id, active: true },
       data: { active: false },
     });
-    return (this.prisma as any).trainingPlan.create({
+    return this.prisma.trainingPlan.create({
       data: {
         userId: user.id,
         name: dto.name,
@@ -311,11 +325,11 @@ Rules:
       }),
     );
 
-    await (this.prisma as any).trainingPlan.updateMany({
+    await this.prisma.trainingPlan.updateMany({
       where: { userId: user.id, active: true },
       data: { active: false },
     });
-    return (this.prisma as any).trainingPlan.create({
+    return this.prisma.trainingPlan.create({
       data: {
         userId: user.id,
         name: tpl.name,
@@ -334,14 +348,14 @@ Rules:
     @Param('id') id: string,
     @Body() body: { date: string },
   ) {
-    const plan = await (this.prisma as any).trainingPlan.findFirst({
+    const plan = await this.prisma.trainingPlan.findFirst({
       where: { id, userId: user.id },
     });
     if (!plan) return { error: 'NOT_FOUND' };
     const sw = (plan.scheduledWorkouts as any[]).map((w) =>
       w.date === body.date ? { ...w, completed: true } : w,
     );
-    return (this.prisma as any).trainingPlan.update({
+    return this.prisma.trainingPlan.update({
       where: { id },
       data: { scheduledWorkouts: sw },
     });

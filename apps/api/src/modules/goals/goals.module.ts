@@ -26,12 +26,12 @@ export class GoalProgressService {
 
   /** Aplica progresso pós-run. */
   async applyRun(userId: string, run: { distanceMeters: number; durationSec: number }) {
-    const goals = await (this.prisma as any).goal.findMany({
+    const goals = await this.prisma.goal.findMany({
       where: { userId, completed: false, windowEnd: { gt: new Date() } },
     });
     for (const g of goals) {
       const { progress, completed } = applyGoalProgress(g.kind, g.progress ?? 0, g.target, run);
-      await (this.prisma as any).goal.update({
+      await this.prisma.goal.update({
         where: { id: g.id },
         data: { progress, completed, completedAt: completed ? new Date() : null },
       });
@@ -51,7 +51,7 @@ export class GoalsController {
 
   @Get()
   async list(@CurrentUser() user: RequestUser) {
-    return (this.prisma as any).goal.findMany({
+    return this.prisma.goal.findMany({
       where: { userId: user.id, windowEnd: { gt: new Date() } },
       orderBy: { createdAt: 'desc' },
     });
@@ -75,7 +75,7 @@ export class GoalsController {
         where: { userId: user.id, startedAt: { gte: w.start, lt: w.end } },
       });
     }
-    return (this.prisma as any).goal.create({
+    return this.prisma.goal.create({
       data: {
         id: crypto.randomUUID(),
         userId: user.id,
@@ -92,7 +92,7 @@ export class GoalsController {
 
   @Delete(':id')
   async remove(@CurrentUser() user: RequestUser, @Param('id') id: string) {
-    await (this.prisma as any).goal.deleteMany({ where: { id, userId: user.id } });
+    await this.prisma.goal.deleteMany({ where: { id, userId: user.id } });
     return { ok: true };
   }
 }

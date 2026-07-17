@@ -61,7 +61,7 @@ export class StravaWebhookHandler {
     }
 
     // Achar o user pelo athleteId
-    const token = await (this.prisma as any).stravaToken.findFirst({
+    const token = await this.prisma.stravaToken.findFirst({
       where: { athleteId: BigInt(payload.owner_id) },
     });
     if (!token) {
@@ -189,7 +189,7 @@ export class StravaWebhookHandler {
     if (territoryStats.newCaptures > 0) {
       this.logger.log(`Strava run: ${territoryStats.newCaptures} novos territórios (${territoryStats.visited} visitados) p/ user ${userId}`);
     }
-    const totalTerritories = await (this.prisma as any).territory.count({
+    const totalTerritories = await this.prisma.territory.count({
       where: { userId, capturedAt: { not: null } },
     });
 
