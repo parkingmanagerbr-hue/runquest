@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Play, Pause, Square, MapPin, Activity, ArrowLeft, Heart, Zap, Trophy, Flame, Star, TrendingUp, Mountain, Navigation, Footprints } from 'lucide-react';
 import Link from 'next/link';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 import { haversine, formatPace, formatDuration, formatDistance } from '@/lib/geo';
 import { useHeartRate } from '@/lib/useHeartRate';
 import { useCadence } from '@/lib/useCadence';
@@ -50,6 +50,9 @@ function StravaUpload({ runId }: { runId: string }) {
   const upload = async () => {
     setStatus('uploading');
     try {
+      // NÃO migrar para o cliente `api`: aqui 401 significa "Strava não conectado"
+      // (skip silencioso), não "sessão expirada". O api.request trataria o 401 como
+      // token expirado e redirecionaria o usuário para o login.
       const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/strava/export/${runId}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
@@ -114,10 +117,8 @@ export default function RunTrackingPage() {
   // Sem voz duelando: com treino ativo, o coach de km cala (o engine já narra).
   useAudioCoach(distance, duration, state === 'tracking' && !workoutActive);
 
-  const apiHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('rq.at')}` });
   const loadWorkout = useCallback((id: string) => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/workouts/${id}`, { headers: apiHeaders() })
-      .then((r) => (r.ok ? r.json() : null))
+    api.get<{ id: string; name: string; segments: RawSegment[] } | null>(`/workouts/${id}`)
       .then((w) => { if (w?.segments) setWorkout(w); })
       .catch(() => {});
   }, []);
@@ -131,8 +132,8 @@ export default function RunTrackingPage() {
   // Lista de treinos p/ o seletor no idle
   useEffect(() => {
     if (state !== 'idle') return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/workouts`, { headers: apiHeaders() })
-      .then((r) => (r.ok ? r.json() : []))
+    type WorkoutListItem = { id: string; name: string };
+    api.get<WorkoutListItem[] | { items?: WorkoutListItem[] }>('/workouts')
       .then((d) => setWorkoutList(Array.isArray(d) ? d : (d?.items ?? [])))
       .catch(() => {});
   }, [state]);
@@ -140,10 +141,9 @@ export default function RunTrackingPage() {
   // PRs p/ escolher um fantasma (seu recorde) no idle
   useEffect(() => {
     if (state !== 'idle') return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/stats/prs`, { headers: apiHeaders() })
-      .then((r) => (r.ok ? r.json() : []))
+    api.get<unknown>('/runs/stats/prs')
       .then((d) => setPrs(Array.isArray(d) ? d : []))
-      .catch(() => {});
+      .catch(() => setPrs([]));
   }, [state]);
 
   // Fantasma só corre quando não há treino ativo (evita duelo de vozes)
@@ -389,25 +389,21 @@ export default function RunTrackingPage() {
     const avgSpeedKmh = finalDist > 0 ? Math.round((finalDist / finalDur) * 3.6 * 10) / 10 : 0;
 
     try {
-      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-        body: JSON.stringify({
-          startedAt: startedAt!.toISOString(),
-          endedAt: new Date(startedAt!.getTime() + finalDur * 1000).toISOString(),
-          distanceMeters: finalDist,
-          durationSec: finalDur,
-          avgPaceSecPerKm: pace,
-          elevationGainM: elevGainRef.current > 1 ? Math.round(elevGainRef.current) : undefined,
-          elevationLossM: elevLossRef.current > 1 ? Math.round(elevLossRef.current) : undefined,
-          avgSpeedKmh,
-          pointsGeoJson: { type: 'LineString', coordinates: pointsRef.current.map(([la, ln]) => [ln, la]) },
-          source: 'GPS',
-          opId: `run-${Date.now()}`,
-        }),
+      // Via api.post: se o token expirou, renova e REPETE — antes o fetch cru
+      // falhava e o usuário perdia a corrida recém-terminada.
+      const run = await api.post<RunResult>('/runs', {
+        startedAt: startedAt!.toISOString(),
+        endedAt: new Date(startedAt!.getTime() + finalDur * 1000).toISOString(),
+        distanceMeters: finalDist,
+        durationSec: finalDur,
+        avgPaceSecPerKm: pace,
+        elevationGainM: elevGainRef.current > 1 ? Math.round(elevGainRef.current) : undefined,
+        elevationLossM: elevLossRef.current > 1 ? Math.round(elevLossRef.current) : undefined,
+        avgSpeedKmh,
+        pointsGeoJson: { type: 'LineString', coordinates: pointsRef.current.map(([la, ln]) => [ln, la]) },
+        source: 'GPS',
+        opId: `run-${Date.now()}`,
       });
-      if (!r.ok) throw new Error(`API ${r.status}`);
-      const run = await r.json();
       if (!run?.id) throw new Error('Resposta inválida');
       clearActiveRun();
       setRunResult(run);

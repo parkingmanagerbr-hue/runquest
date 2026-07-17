@@ -98,6 +98,30 @@ interface WeekStats {
   trend: number | null;
 }
 
+interface TodayWorkout {
+  label: string;
+  distanceM?: number;
+  durationSec?: number;
+  workoutId?: string;
+  planName: string;
+}
+interface RecentRun {
+  id: string;
+  startedAt: string;
+  distanceMeters: number;
+  durationSec: number;
+  avgPaceSecPerKm: number;
+}
+interface HomeMission {
+  id: string; title: string; description: string; type: string;
+  progress: number; target: number; claimed: boolean; completed: boolean;
+  xpReward: number; coinReward: number;
+}
+interface HomeGoal {
+  id: string; kind: string; period: string;
+  target: number; progress: number; completed: boolean;
+}
+
 const DAY_LABELS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 
 export default function AppDashboard() {
@@ -107,10 +131,10 @@ export default function AppDashboard() {
   const [strava, setStrava] = useState<{ connected: boolean; athleteId?: string | null } | null>(null);
   const [importing, setImporting] = useState(false);
   const [week, setWeek] = useState<WeekStats | null>(null);
-  const [todayWorkout, setTodayWorkout] = useState<{ label: string; distanceM?: number; durationSec?: number; workoutId?: string; planName: string } | null>(null);
-  const [recentRuns, setRecentRuns] = useState<{ id: string; startedAt: string; distanceMeters: number; durationSec: number; avgPaceSecPerKm: number }[]>([]);
-  const [missions, setMissions] = useState<{ id: string; title: string; description: string; type: string; progress: number; target: number; claimed: boolean; completed: boolean; xpReward: number; coinReward: number }[]>([]);
-  const [goals, setGoals] = useState<{ id: string; kind: string; period: string; target: number; progress: number; completed: boolean }[]>([]);
+  const [todayWorkout, setTodayWorkout] = useState<TodayWorkout | null>(null);
+  const [recentRuns, setRecentRuns] = useState<RecentRun[]>([]);
+  const [missions, setMissions] = useState<HomeMission[]>([]);
+  const [goals, setGoals] = useState<HomeGoal[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   const dismissOnboarding = useCallback(() => {
@@ -122,17 +146,16 @@ export default function AppDashboard() {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
     api.me().then(setMe).catch(() => router.replace('/auth/login')).finally(() => setLoading(false));
     api.stravaStatus().then(setStrava).catch(() => {});
-    const h = { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } };
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/stats/week`, h)
-      .then(r => r.ok ? r.json() : null).then(d => d && setWeek(d)).catch(() => {});
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/plans/today`, h)
-      .then(r => r.ok ? r.json() : null).then(d => d && setTodayWorkout(d)).catch(() => {});
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs?limit=3`, h)
-      .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setRecentRuns(d)).catch(() => {});
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/missions`, h)
-      .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setMissions(d.filter((m: { claimed: boolean }) => !m.claimed).slice(0, 3))).catch(() => {});
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/goals`, h)
-      .then(r => r.ok ? r.json() : []).then(d => Array.isArray(d) && setGoals(d.slice(0, 3))).catch(() => {});
+    // Via cliente api: ganha o auto-refresh de 401. O erro cai no mesmo .catch()
+    // que antes tratava o `!r.ok` — comportamento preservado (não seta estado).
+    api.get<WeekStats | null>('/runs/stats/week').then(d => d && setWeek(d)).catch(() => {});
+    api.get<TodayWorkout | null>('/plans/today').then(d => d && setTodayWorkout(d)).catch(() => {});
+    api.get<RecentRun[]>('/runs?limit=3')
+      .then(d => Array.isArray(d) && setRecentRuns(d)).catch(() => {});
+    api.get<HomeMission[]>('/missions')
+      .then(d => Array.isArray(d) && setMissions(d.filter(m => !m.claimed).slice(0, 3))).catch(() => {});
+    api.get<HomeGoal[]>('/goals')
+      .then(d => Array.isArray(d) && setGoals(d.slice(0, 3))).catch(() => {});
     // Onboarding: show for new users that haven't seen it
     if (!localStorage.getItem(ONBOARDING_KEY)) setShowOnboarding(true);
     // Lê ?strava=connected da URL pós-callback
