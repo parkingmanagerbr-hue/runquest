@@ -48,3 +48,13 @@ export function elevationStep(
 export function splitPace(durSec: number, prevDurSec: number, distM: number, prevDistM: number): number {
   return Math.round(((durSec - prevDurSec) * 1000) / (distM - prevDistM));
 }
+
+/** Barras de sinal (0–4) a partir da precisão do fix — 0 quando não há GPS. */
+export function gpsSignal(accuracy: number | null): 0 | 1 | 2 | 3 | 4 {
+  if (!accuracy) return 0;
+  if (accuracy <= 5) return 4;
+  if (accuracy <= 10) return 3;
+  if (accuracy <= 20) return 2;
+  if (accuracy <= 40) return 1;
+  return 0;
+}

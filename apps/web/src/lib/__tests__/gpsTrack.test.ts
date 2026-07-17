@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isAcceptableFix, acceptStep, elevationStep, splitPace } from '../gpsTrack';
+import { isAcceptableFix, acceptStep, elevationStep, splitPace, gpsSignal } from '../gpsTrack';
 
 describe('isAcceptableFix — gate de precisão horizontal', () => {
   it('aceita no limiar (35 m) e melhor', () => {
@@ -58,5 +58,23 @@ describe('splitPace — pace de um km completado', () => {
   });
   it('arredonda ao segundo', () => {
     expect(splitPace(650, 300, 2000, 1000)).toBe(350);
+  });
+});
+
+describe('gpsSignal — barras de sinal pela precisão', () => {
+  it('sem GPS (null/0) → 0 barras', () => {
+    expect(gpsSignal(null)).toBe(0);
+    expect(gpsSignal(0)).toBe(0);
+  });
+  it('escala por faixa de precisão (menor = melhor)', () => {
+    expect(gpsSignal(3)).toBe(4);   // <= 5 m
+    expect(gpsSignal(5)).toBe(4);
+    expect(gpsSignal(10)).toBe(3);  // <= 10 m
+    expect(gpsSignal(20)).toBe(2);  // <= 20 m
+    expect(gpsSignal(40)).toBe(1);  // <= 40 m
+  });
+  it('precisão pior que 40 m → 0 barras', () => {
+    expect(gpsSignal(41)).toBe(0);
+    expect(gpsSignal(500)).toBe(0);
   });
 });

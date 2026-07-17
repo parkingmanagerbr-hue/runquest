@@ -2,7 +2,7 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Play, Pause, Square, MapPin, Activity, ArrowLeft, Heart, Zap, Trophy, Flame, Star, TrendingUp, Mountain, Navigation, Footprints } from 'lucide-react';
+import { Play, Pause, Square, MapPin, Activity, ArrowLeft, Heart, Zap, Trophy, Flame, Star, Mountain, Navigation, Footprints } from 'lucide-react';
 import Link from 'next/link';
 import { api, tokens } from '@/lib/api';
 import { haversine, formatPace, formatDuration, formatDistance } from '@/lib/geo';
@@ -13,7 +13,8 @@ import { useWorkoutEngine, speak, type RawSegment } from '@/lib/useWorkoutEngine
 import { ghostProgress, leadChangeCallout, finishCallout } from '@/lib/ghostRace';
 import { saveActiveRun, loadActiveRun, clearActiveRun, type ActiveRun } from '@/lib/runPersistence';
 import { watchPosition as geoWatch, isNativePlatform, type GeoWatchHandle } from '@/lib/geolocation';
-import { isAcceptableFix, acceptStep, elevationStep, splitPace } from '@/lib/gpsTrack';
+import { isAcceptableFix, acceptStep, elevationStep, splitPace, gpsSignal } from '@/lib/gpsTrack';
+import { StravaUpload } from '@/components/StravaUpload';
 import { estimateCalories } from '@/lib/calories';
 import { parseTargetPace } from '@/lib/parsePace';
 
@@ -34,51 +35,6 @@ const RunMap = dynamic(() => import('@/components/RunMap').then(m => m.RunMap), 
 });
 
 type Point = [number, number];
-
-function gpsSignal(accuracy: number | null): 0 | 1 | 2 | 3 | 4 {
-  if (!accuracy) return 0;
-  if (accuracy <= 5) return 4;
-  if (accuracy <= 10) return 3;
-  if (accuracy <= 20) return 2;
-  if (accuracy <= 40) return 1;
-  return 0;
-}
-
-function StravaUpload({ runId }: { runId: string }) {
-  const [status, setStatus] = useState<'idle' | 'uploading' | 'done' | 'error'>('idle');
-
-  const upload = async () => {
-    setStatus('uploading');
-    try {
-      // NÃO migrar para o cliente `api`: aqui 401 significa "Strava não conectado"
-      // (skip silencioso), não "sessão expirada". O api.request trataria o 401 como
-      // token expirado e redirecionaria o usuário para o login.
-      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/strava/export/${runId}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-      });
-      const d = await r.json().catch(() => ({}));
-      if (d.uploadId || d.activityId) { setStatus('done'); return; }
-      if (r.status === 401 || r.status === 404) { return; } // not connected, silently skip
-      setStatus('error');
-    } catch { setStatus('error'); }
-  };
-
-  if (status === 'done') return (
-    <div className="flex items-center gap-2 text-sm text-rq-lime bg-rq-lime/10 border border-rq-lime/20 rounded-xl px-4 py-2.5">
-      ✓ Enviado pro Strava!
-    </div>
-  );
-
-  return (
-    <button onClick={upload} disabled={status === 'uploading'}
-      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[#FC4C02]/40 bg-[#FC4C02]/10 text-[#FC4C02] text-sm font-bold hover:bg-[#FC4C02]/20 transition disabled:opacity-50">
-      {status === 'uploading' ? <><span className="animate-spin inline-block">↻</span> Enviando…</> :
-       status === 'error' ? <>⚠ Falhou — Tentar novamente</> :
-       <><TrendingUp className="w-4 h-4" /> Enviar pro Strava</>}
-    </button>
-  );
-}
 
 export default function RunTrackingPage() {
   const router = useRouter();
