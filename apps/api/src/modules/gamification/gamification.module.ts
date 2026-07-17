@@ -5,6 +5,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { badgeQualifies, type BadgeContext } from './badge-rules';
 
 /** Avalia se user desbloqueia novos badges. Chamado pós-run. */
@@ -19,12 +20,21 @@ export class BadgeUnlockService {
       where: { userId },
       select: { badgeId: true },
     });
-    const ownedIds = new Set(already.map((u: any) => u.badgeId));
-    const unlocked: any[] = [];
+    const ownedIds = new Set(already.map((u) => u.badgeId));
+    const unlocked: { id: string; code: string; title: string; icon: string; xp: number; coins: number }[] = [];
     for (const b of badges) {
       if (ownedIds.has(b.id)) continue;
       if (!badgeQualifies(b.requirementKind, b.requirementValue, ctx)) continue;
-      await this.prisma.userBadge.create({ data: { id: crypto.randomUUID(), userId, badgeId: b.id } });
+      try {
+        // @@unique([userId, badgeId]) torna isto idempotente: se o POST /runs e o
+        // webhook do Strava processam a mesma corrida quase juntos, os dois leem
+        // ownedIds sem o badge e ambos tentam criar. O perdedor pega P2002 e PULA
+        // — sem creditar XP de novo e sem derrubar o request com 500.
+        await this.prisma.userBadge.create({ data: { id: crypto.randomUUID(), userId, badgeId: b.id } });
+      } catch (e) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') continue;
+        throw e;
+      }
       if (b.xpReward > 0 || b.coinReward > 0) {
         await this.prisma.user.update({
           where: { id: userId },

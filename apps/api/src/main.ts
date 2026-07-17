@@ -21,9 +21,14 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Raw body para validar assinatura dos webhooks (HMAC MP / signature Stripe)
+  // Raw body para validar assinatura dos webhooks. TODOS os provedores cujos
+  // handlers leem `req.body as Buffer` precisam estar aqui — senão caem no
+  // json() global, `rawBody.toString()` vira "[object Object]" e o pagamento
+  // nunca credita o Premium. (hotmart/cakto estavam faltando.)
   app.use('/api/webhooks/mercadopago', raw({ type: 'application/json' }));
   app.use('/api/webhooks/stripe', raw({ type: 'application/json' }));
+  app.use('/api/webhooks/hotmart', raw({ type: '*/*' }));
+  app.use('/api/webhooks/cakto', raw({ type: '*/*' }));
   app.use(json({ limit: '2mb' }));
 
   app.setGlobalPrefix('api');

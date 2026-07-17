@@ -50,7 +50,11 @@ export class RunsController {
   @Post()
   async create(@CurrentUser() user: RequestUser, @Body() dto: CreateRunDto) {
     if (dto.opId) {
-      const existing = await this.prisma.run.findUnique({ where: { opId: dto.opId } });
+      // Idempotência escopada ao usuário (ver @@unique([userId, opId])): nunca
+      // devolve — nem colide com — a corrida de outra pessoa.
+      const existing = await this.prisma.run.findUnique({
+        where: { userId_opId: { userId: user.id, opId: dto.opId } },
+      });
       if (existing) return { ...existing, xpGained: 0, coinsGained: 0, newTerritories: 0, newBadges: [] };
     }
     const run = await this.prisma.run.create({
@@ -206,12 +210,6 @@ export class RunsController {
   /** GET /runs/stats/prs — Personal Records: best pace per distance bracket */
   @Get('stats/prs')
   async personalRecords(@CurrentUser() user: RequestUser) {
-    const allRuns = await this.prisma.run.findMany({
-      where: { userId: user.id },
-      select: { id: true, distanceMeters: true, durationSec: true, avgPaceSecPerKm: true, startedAt: true },
-      orderBy: { startedAt: 'desc' },
-    });
-
     const brackets = [
       { label: '5K', minM: 4500, maxM: 5600 },
       { label: '10K', minM: 9000, maxM: 11000 },
@@ -219,12 +217,22 @@ export class RunsController {
       { label: '42K', minM: 40000, maxM: 44000 },
     ];
 
-    return brackets.map(b => {
-      const candidates = allRuns.filter(r => r.distanceMeters >= b.minM && r.distanceMeters <= b.maxM);
-      if (candidates.length === 0) return { label: b.label, best: null };
-      const best = candidates.reduce((prev, cur) =>
-        cur.avgPaceSecPerKm < prev.avgPaceSecPerKm ? cur : prev
-      );
+    // Recorde = menor pace na faixa. Empurrado pro banco (orderBy + take 1 por
+    // faixa) em vez de carregar TODAS as corridas do usuário e reduzir em memória
+    // — que era ilimitado (histórico de anos importado do Strava) e ainda assim
+    // continua correto (o PR pode estar numa corrida antiga; um `take` cego a
+    // perderia).
+    const bests = await Promise.all(brackets.map(b =>
+      this.prisma.run.findFirst({
+        where: { userId: user.id, distanceMeters: { gte: b.minM, lte: b.maxM } },
+        orderBy: { avgPaceSecPerKm: 'asc' },
+        select: { id: true, distanceMeters: true, durationSec: true, avgPaceSecPerKm: true, startedAt: true },
+      }),
+    ));
+
+    return brackets.map((b, i) => {
+      const best = bests[i];
+      if (!best) return { label: b.label, best: null };
       return {
         label: b.label,
         best: {

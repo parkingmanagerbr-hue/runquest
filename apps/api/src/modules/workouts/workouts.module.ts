@@ -108,6 +108,24 @@ export class WorkoutsController {
 
   @Post('session/start')
   async startSession(@CurrentUser() user: RequestUser, @Body() dto: StartSessionDto) {
+    // Verifica POSSE de workoutId e runId — sem isto, um usuário podia iniciar
+    // uma sessão referenciando o treino privado ou a corrida de outro; como
+    // WorkoutSession.runId é @unique, ele ainda ocupava o slot da corrida alheia
+    // e derrubava (P2002) a sessão legítima do dono.
+    const workout = await this.prisma.workout.findFirst({
+      where: { id: dto.workoutId, userId: user.id },
+      select: { id: true },
+    });
+    if (!workout) return { error: 'WORKOUT_NOT_FOUND' };
+
+    if (dto.runId) {
+      const run = await this.prisma.run.findFirst({
+        where: { id: dto.runId, userId: user.id },
+        select: { id: true },
+      });
+      if (!run) return { error: 'RUN_NOT_FOUND' };
+    }
+
     return this.prisma.workoutSession.create({
       data: {
         userId: user.id,

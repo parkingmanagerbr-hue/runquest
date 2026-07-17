@@ -182,7 +182,7 @@ model Run {
   pointsGeoJson   Json
   notes           String?
   source          String   @default("GPS")
-  opId            String?  @unique
+  opId            String?
   stravaActivityId BigInt? @unique
   stravaUploadId  BigInt?
   createdAt       DateTime @default(now())
@@ -191,6 +191,11 @@ model Run {
   comments        RunComment[]
 
   @@index([userId, startedAt(sort: Desc)])
+  // Idempotência de POST /runs é POR USUÁRIO. Antes opId era @unique GLOBAL: o
+  // front gera `run-${Date.now()}`, então dois usuários finalizando no mesmo ms
+  // colidiam — o 2º recebia a corrida do 1º (vazando o trajeto GPS dele) e a
+  // própria não era gravada.
+  @@unique([userId, opId])
 }
 
 model StravaToken {

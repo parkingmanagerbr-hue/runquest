@@ -8,6 +8,7 @@ import { AiCompletionService, AiCompletionModule } from '../../shared/kernel/ai-
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 /**
  * scheduledWorkouts JSON shape:
@@ -352,12 +353,15 @@ Rules:
       where: { id, userId: user.id },
     });
     if (!plan) return { error: 'NOT_FOUND' };
-    const sw = (plan.scheduledWorkouts as any[]).map((w) =>
-      w.date === body.date ? { ...w, completed: true } : w,
-    );
+    // Guarda igual à do `today`: scheduledWorkouts é Json e pode não ser array
+    // (dado legado/IA). Antes `(... as any[]).map` dava 500 permanente no plano.
+    const list = Array.isArray(plan.scheduledWorkouts)
+      ? (plan.scheduledWorkouts as unknown as ScheduledEntry[])
+      : [];
+    const sw = list.map((w) => (w.date === body.date ? { ...w, completed: true } : w));
     return this.prisma.trainingPlan.update({
       where: { id },
-      data: { scheduledWorkouts: sw },
+      data: { scheduledWorkouts: sw as unknown as Prisma.InputJsonValue },
     });
   }
 
