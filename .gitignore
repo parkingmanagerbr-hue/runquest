@@ -17,3 +17,7 @@ coverage
 prisma/dev.db*
 
 apps/web/public/workbox-*.js
+
+# Artefatos do Playwright (e2e)
+test-results
+playwright-report
