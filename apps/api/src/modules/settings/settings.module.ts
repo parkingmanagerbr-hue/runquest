@@ -2,7 +2,8 @@ import {
   Body, Controller, Get, Module, Patch, Post, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { IsBoolean, IsIn, IsInt, IsISO8601, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsISO8601, IsNumber, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
@@ -18,9 +19,19 @@ class UpdateSettingsDto {
   @IsOptional() @IsInt() @Min(1) @Max(5) audioCoachIntervalKm?: number;
 }
 
-class PushSubDto {
+class PushKeysDto {
+  @IsString() p256dh!: string;
+  @IsString() auth!: string;
+}
+
+export class PushSubDto {
   @IsString() endpoint!: string;
-  keys!: { p256dh: string; auth: string };
+  // Sem @ValidateNested/@Type, `keys` não tinha decorator nenhum — e como o
+  // ValidationPipe global usa forbidNonWhitelisted, TODO push-subscribe
+  // respondia 400 e o push nunca era salvo.
+  @ValidateNested() @Type(() => PushKeysDto) keys!: PushKeysDto;
+  // O navegador manda isto no toJSON(); sem declarar, a whitelist rejeitava.
+  @IsOptional() expirationTime?: number | null;
 }
 
 @ApiTags('settings')

@@ -12,6 +12,7 @@
 
 import type { RawSegment } from './useWorkoutEngine';
 import type { RunLite, TrainingPaces, PaceZone } from './trainingPaces';
+import { localDateKey } from './dateKey';
 
 export type Goal = '5k' | '10k' | 'half' | 'marathon' | 'fitness';
 
@@ -46,6 +47,8 @@ export interface AdaptivePlanWeek {
 }
 
 const DAY_MS = 86400000;
+/** Volume crônico mínimo (km/semana) p/ o ACWR significar alguma coisa. */
+const MIN_CHRONIC_WEEKLY_KM = 0.5;
 
 /** ACWR: carga aguda (7d) vs crônica (média semanal de 28d). */
 export function assessLoad(runs: RunLite[], now: number): LoadSummary {
@@ -61,9 +64,15 @@ export function assessLoad(runs: RunLite[], now: number): LoadSummary {
     if (ageDays <= 28) last28 += r.distanceMeters / 1000;
   }
   const chronicWeekly = last28 / 4;
-  const acwr = chronicWeekly > 0.5 ? acute / chronicWeekly : 0;
+  // UM predicado só para "tem histórico suficiente". Antes o guard da divisão
+  // usava `> 0.5` e o status usava `< 0.5`: em chronicWeekly === 0.5 exatamente,
+  // o acwr ficava com o sentinela 0 e mesmo assim era classificado como dado
+  // válido ('low' → o acwrBand mostrava "muito pouco treino" para um ACWR que
+  // nunca foi calculado).
+  const hasHistory = chronicWeekly >= MIN_CHRONIC_WEEKLY_KM;
+  const acwr = hasHistory ? acute / chronicWeekly : 0;
   let status: LoadSummary['status'] = 'none';
-  if (chronicWeekly < 0.5) status = 'none';
+  if (!hasHistory) status = 'none';
   else if (acwr < 0.8) status = 'low';
   else if (acwr <= 1.3) status = 'ok';
   else status = 'high';
@@ -88,7 +97,10 @@ export function acwrBand(load: LoadSummary): AcwrBand {
   if (load.status === 'none') return 'insufficient';
   const a = load.acwr;
   if (a < 0.6) return 'very_low';
-  if (a <= 0.8) return 'below';
+  // `< 0.8`, não `<= 0.8`: 0,8 é o PISO da sweet spot (e o assessLoad já trata
+  // 0,8 como 'ok'). Com `<=`, a mesma carga saía 'ok' numa tela e "abaixo do
+  // ideal" na outra.
+  if (a < 0.8) return 'below';
   if (a <= 1.3) return 'balanced';
   if (a <= 1.5) return 'high';
   return 'overload';
@@ -263,7 +275,10 @@ export function buildSchedule(
       const d = new Date(opts.startDate);
       d.setDate(d.getDate() + wi * 7 + dayOffset);
       out.push({
-        date: d.toISOString().slice(0, 10),
+        // localDateKey (não toISOString): `d` é meia-noite LOCAL. Em UTC+X,
+        // toISOString devolvia o dia ANTERIOR e o plano inteiro deslizava,
+        // desalinhando do /calendar, que compara por data local.
+        date: localDateKey(d),
         label: `${SESSION_ICON[s.kind]} ${s.title}`,
         distanceM: s.estDistanceM,
         durationSec: s.estDurationSec,

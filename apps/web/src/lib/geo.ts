@@ -37,9 +37,34 @@ export function speedToPace(speedMs: number): number {
   return Math.round(1000 / speedMs);
 }
 
-/** Pace por km a partir de coordenadas [lng,lat] + duração total. */
-export function computeSplits(coordinates: number[][], totalDurationSec: number) {
-  if (!coordinates || coordinates.length < 2) return [] as { km: number; paceSecPerKm: number }[];
+export interface Split {
+  km: number;
+  paceSecPerKm: number;
+}
+
+/**
+ * Pace real de cada km a partir das coordenadas [lng,lat] E do timestamp (ms)
+ * de cada ponto. Sem timestamps NÃO existe split real — a distância sozinha não
+ * diz quando cada km foi percorrido — então a função devolve `[]` e quem chama
+ * cai no fallback honesto (pace médio uniforme).
+ *
+ * NÃO invente variação aqui. A versão anterior fazia
+ *   pace = paceMédio × (0.85 + densidadeDePontos × 0.3)
+ * ou seja, fabricava splits a partir da densidade de pontos do GPS: com
+ * espaçamento uniforme (o caso normal) o fator dava 1.15 e TODO split saía ~15%
+ * mais lento que o pace médio exibido na mesma tela. O usuário via "km 3 mais
+ * rápido que o km 5" sem que isso tivesse qualquer relação com a corrida.
+ */
+export function computeSplits(
+  coordinates: number[][],
+  totalDurationSec: number,
+  pointTimesMs?: number[],
+): Split[] {
+  if (!coordinates || coordinates.length < 2) return [];
+  // Sem um timestamp por ponto, split real é matematicamente impossível.
+  if (!pointTimesMs || pointTimesMs.length !== coordinates.length) return [];
+  void totalDurationSec;
+
   const cumDist: number[] = [0];
   for (let i = 1; i < coordinates.length; i++) {
     cumDist.push(cumDist[i - 1] + haversine(
@@ -49,16 +74,26 @@ export function computeSplits(coordinates: number[][], totalDurationSec: number)
   }
   const total = cumDist[cumDist.length - 1];
   if (total < 1000) return [];
+
+  const splits: Split[] = [];
   const totalKm = Math.floor(total / 1000);
-  const splits: { km: number; paceSecPerKm: number }[] = [];
   for (let k = 1; k <= totalKm; k++) {
-    const idx = cumDist.findIndex(d => d >= k * 1000);
-    const prevIdx = cumDist.findIndex(d => d >= (k - 1) * 1000);
-    const segPoints = Math.max(1, idx - prevIdx);
-    const avgSegPoints = Math.max(1, coordinates.length / totalKm);
-    const variation = 0.85 + (segPoints / avgSegPoints) * 0.3; // 0.85x..1.15x
-    const pace = (totalDurationSec / (total / 1000)) * variation;
-    splits.push({ km: k, paceSecPerKm: Math.round(pace) });
+    // Instante em que cada marca de km foi cruzada, interpolado entre os
+    // dois pontos que a cercam.
+    const tEnd = crossingTimeMs(cumDist, pointTimesMs, k * 1000);
+    const tStart = crossingTimeMs(cumDist, pointTimesMs, (k - 1) * 1000);
+    if (tEnd === null || tStart === null || tEnd <= tStart) return [];
+    splits.push({ km: k, paceSecPerKm: Math.round((tEnd - tStart) / 1000) });
   }
   return splits;
+}
+
+/** Instante (ms) em que a distância acumulada cruza `target`, interpolado. */
+function crossingTimeMs(cumDist: number[], times: number[], target: number): number | null {
+  if (target <= 0) return times[0];
+  const i = cumDist.findIndex((d) => d >= target);
+  if (i <= 0) return null;
+  const segDist = cumDist[i] - cumDist[i - 1];
+  const frac = segDist > 0 ? (target - cumDist[i - 1]) / segDist : 0;
+  return times[i - 1] + (times[i] - times[i - 1]) * frac;
 }

@@ -120,8 +120,9 @@ describe('acwrBand — faixa de risco de lesão', () => {
   it('classifica cada faixa pelos limiares da literatura', () => {
     const cases: [number, AcwrBand][] = [
       [0.5, 'very_low'],
-      [0.6, 'below'], [0.8, 'below'],
-      [0.81, 'balanced'], [1.0, 'balanced'], [1.3, 'balanced'],
+      [0.6, 'below'], [0.79, 'below'],
+      // 0,8 é o PISO da sweet spot — o assessLoad também trata 0,8 como 'ok'.
+      [0.8, 'balanced'], [1.0, 'balanced'], [1.3, 'balanced'],
       [1.31, 'high'], [1.5, 'high'],
       [1.51, 'overload'], [2.0, 'overload'],
     ];
@@ -132,5 +133,38 @@ describe('acwrBand — faixa de risco de lesão', () => {
 
   it('a sweet spot 0,8–1,3 é "balanced" (menor risco)', () => {
     expect(acwrBand(mk(1.0))).toBe('balanced');
+  });
+});
+
+describe('assessLoad — limite exato do histórico mínimo (regressão)', () => {
+  it('chronicWeekly === 0.5 não classifica um ACWR que nunca foi calculado', () => {
+    // 1 corrida de 2000 m há 10 dias ⇒ last28 = 2 km ⇒ chronicWeekly = 0.5.
+    // Antes: o guard `> 0.5` deixava acwr no sentinela 0, mas o status `< 0.5`
+    // era falso ⇒ 'low' ⇒ acwrBand mostrava "muito pouco treino" (very_low).
+    const l = assessLoad([{ distanceMeters: 2000, durationSec: 700, startedAt: iso(10) }], now);
+    expect(l.chronicWeeklyKm).toBe(0.5);
+    // O ACWR agora é REAL (0 = nada nos últimos 7 dias), e o status é coerente.
+    expect(l.status).not.toBe('none'); // tem histórico (0.5 >= 0.5)
+    expect(l.acwr).toBe(0); // acute 0 / crônico 0.5 — calculado, não sentinela
+  });
+
+  it('abaixo do mínimo → status none (e acwrBand insufficient)', () => {
+    // 1999 m ⇒ chronicWeekly = 0.49975 < 0.5
+    const l = assessLoad([{ distanceMeters: 1999, durationSec: 700, startedAt: iso(10) }], now);
+    expect(l.status).toBe('none');
+    expect(acwrBand(l)).toBe('insufficient');
+  });
+});
+
+describe('buildSchedule — datas em fuso LOCAL (regressão)', () => {
+  it('a primeira sessão cai na data local de início, não no dia anterior (UTC)', () => {
+    // Meia-noite LOCAL de 06/07/2026 (segunda). Em qualquer fuso a leste de
+    // Greenwich, toISOString() devolveria 05/07 e o plano inteiro deslizaria.
+    const start = new Date(2026, 6, 6, 0, 0, 0);
+    const sched = buildSchedule(paces, load, { goal: '10k', daysPerWeek: 4, base, weeks: 2, startDate: start });
+    const first = sched.map((e) => e.date).sort()[0];
+    expect(first >= '2026-07-06').toBe(true);
+    // Toda data emitida é a chave LOCAL de um Date — nunca desloca de fuso.
+    for (const e of sched) expect(/^\d{4}-\d{2}-\d{2}$/.test(e.date)).toBe(true);
   });
 });

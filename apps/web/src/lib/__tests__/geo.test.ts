@@ -44,15 +44,33 @@ describe('geo helpers', () => {
     expect(computeSplits([[-46.63, -23.55], [-46.63, -23.5505]], 60)).toEqual([]);
   });
 
-  it('computeSplits: rota de ~2 km → 2 splits com pace finito e positivo', () => {
-    // 23 pontos a 0,001° de latitude (~111 m cada) ≈ 2,4 km. Coords em [lng,lat].
-    const coords = Array.from({ length: 23 }, (_, i) => [-46.63, -23.55 + i * 0.001]);
-    const splits = computeSplits(coords, 720); // 12 min
-    expect(splits.length).toBe(2);
+  // 23 pontos a 0,001° de latitude (~111 m cada) ≈ 2,4 km. Coords em [lng,lat].
+  const coords = Array.from({ length: 23 }, (_, i) => [-46.63, -23.55 + i * 0.001]);
+
+  it('computeSplits: SEM timestamps → vazio (split real é impossível, não se inventa)', () => {
+    // A versão antiga devolvia 2 splits fabricados a partir da densidade de
+    // pontos: com espaçamento uniforme todos saíam ~15% mais lentos que o pace
+    // médio real. Agora, sem tempo por ponto, quem chama usa o fallback honesto.
+    expect(computeSplits(coords, 720)).toEqual([]);
+    expect(computeSplits(coords, 720, [1, 2, 3])).toEqual([]); // tamanho não bate
+  });
+
+  it('computeSplits: COM timestamps → pace real de cada km', () => {
+    // Ritmo constante: 2,44 km em 732 s ≈ 300 s/km. Um ponto a cada 33,3 s.
+    const t0 = 1_700_000_000_000;
+    const times = coords.map((_, i) => t0 + i * 33_300);
+    const splits = computeSplits(coords, 732, times);
     expect(splits.map((s) => s.km)).toEqual([1, 2]);
-    for (const s of splits) {
-      expect(Number.isFinite(s.paceSecPerKm)).toBe(true);
-      expect(s.paceSecPerKm).toBeGreaterThan(0);
-    }
+    // Ritmo constante ⇒ os dois splits batem ~300 s/km (tolerância do haversine).
+    for (const s of splits) expect(Math.abs(s.paceSecPerKm - 300)).toBeLessThan(6);
+  });
+
+  it('computeSplits: detecta um km mais rápido que o outro (o que o usuário quer ver)', () => {
+    // 1º km devagar (60 s a cada ponto), 2º km rápido (20 s a cada ponto).
+    const t0 = 1_700_000_000_000;
+    const times = coords.map((_, i) => t0 + (i <= 9 ? i * 60_000 : 9 * 60_000 + (i - 9) * 20_000));
+    const splits = computeSplits(coords, 900, times);
+    expect(splits).toHaveLength(2);
+    expect(splits[0].paceSecPerKm).toBeGreaterThan(splits[1].paceSecPerKm);
   });
 });

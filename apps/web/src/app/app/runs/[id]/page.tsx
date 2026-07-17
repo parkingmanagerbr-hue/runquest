@@ -124,10 +124,13 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
     catch { return 70; }
   })();
 
-  // Splits per km (calculados das coordenadas reais)
+  // Splits reais por km — só possíveis se a corrida tiver um timestamp por
+  // ponto. As corridas atuais gravam só [lng,lat], então isto cai no fallback
+  // honesto abaixo (pace médio). Antes, a função FABRICAVA a variação a partir
+  // da densidade de pontos do GPS e o usuário via splits que nunca existiram.
   const rawSplits = computeSplits(run.pointsGeoJson?.coordinates ?? [], run.durationSec);
   const splits = rawSplits.length > 0 ? rawSplits : (() => {
-    // Fallback: pace médio uniforme
+    // Fallback: pace médio uniforme (o único número defensável sem timestamps)
     const totalKm = Math.floor(run.distanceMeters / 1000);
     return Array.from({ length: totalKm }, (_, i) => ({ km: i + 1, paceSecPerKm: run.avgPaceSecPerKm }));
   })();
