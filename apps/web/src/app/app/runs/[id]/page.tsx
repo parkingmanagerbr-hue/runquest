@@ -84,9 +84,13 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
     try {
       // A API responde 200 com { analysis: null, premium: false } p/ não-premium,
       // então o api.post não lança nesse caso — comportamento idêntico.
-      const r = await api.post<{ analysis?: string | null; premium?: boolean }>(`/runs/${id}/analyze`);
+      const r = await api.post<{ analysis?: string | null; premium?: boolean; error?: string }>(
+        `/runs/${id}/analyze`,
+      );
       if (r.analysis) setAnalysis(r.analysis);
       else if (!r.premium) setAnalysis('💎 Análise IA disponível para assinantes Premium');
+      // Premium, mas a IA falhou: mostra erro real em vez do upsell de Premium.
+      else setAnalysis('Não consegui gerar a análise agora. Tente de novo em instantes.');
     } catch (e) { setAnalysis('Erro: ' + (e instanceof Error ? e.message : String(e))); }
     setAnalyzing(false);
   };

@@ -4,7 +4,7 @@ import {
 import type { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsInt, IsISO8601, IsNumber, IsOptional, IsString, Min } from 'class-validator';
-import { ConfigService } from '@nestjs/config';
+import { AiCompletionService, AiCompletionModule } from '../../shared/kernel/ai-completion.service';
 // AI provider: Gemini (multi-key rotation) replaces Anthropic
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
@@ -42,7 +42,7 @@ export class RunsController {
     private readonly territories: TerritoryService,
     private readonly badges: BadgeUnlockService,
     private readonly goals: GoalProgressService,
-    private readonly cfg: ConfigService,
+    private readonly ai: AiCompletionService,
   ) {}
 
   @Post()
@@ -298,20 +298,6 @@ ${trkpts}
       return { analysis: null, premium: false };
     }
 
-    // Collect Gemini keys (multi-key rotation)
-    const geminiKeys: string[] = [
-      this.cfg.get<string>('GEMINI_API_KEY') ?? '',
-      this.cfg.get<string>('GEMINI_API_KEY_2') ?? '',
-      this.cfg.get<string>('GEMINI_API_KEY_3') ?? '',
-      this.cfg.get<string>('GEMINI_API_KEY_4') ?? '',
-      this.cfg.get<string>('GEMINI_API_KEY_5') ?? '',
-      this.cfg.get<string>('GEMINI_API_KEY_6') ?? '',
-    ].filter(k => k.length > 0);
-
-    if (geminiKeys.length === 0) {
-      return { analysis: null, premium: false };
-    }
-
     const run = await this.prisma.run.findFirst({ where: { id: runId, userId: user.id } });
     if (!run) return { error: 'NOT_FOUND' };
 
@@ -335,65 +321,16 @@ Nível do corredor: ${u.level}, sequência: ${u.streakDays} dias
 
 Dê feedback encorajador e específico comparando esta corrida com as recentes. Inclua 1 dica de melhoria. Máximo 60 palavras. Use emoji.`;
 
-    // 1) Try each Gemini key in rotation
-    for (const apiKey of geminiKeys) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-        const body = {
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { maxOutputTokens: 256, temperature: 0.7 },
-        };
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        if (!res.ok) continue;
-        const data: any = await res.json();
-        const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-        if (text) return { analysis: text, premium: true };
-      } catch (_) {
-        continue;
-      }
+    // Cadeia Gemini→SambaNova via serviço compartilhado (antes duplicada aqui).
+    try {
+      const analysis = await this.ai.complete(prompt, { maxTokens: 256 });
+      return { analysis, premium: true };
+    } catch {
+      // BUG corrigido: antes retornava `premium: false` quando a IA falhava, e a
+      // UI mostrava "assine o Premium" para quem JÁ É premium. O usuário é
+      // premium (checado acima) — o que faltou foi a IA.
+      return { analysis: null, premium: true, error: 'AI_UNAVAILABLE' };
     }
-
-    // 2) Fallback: SambaNova (OpenAI-compatible, 8 keys, 3200 RPM)
-    const sambanovaKeys: string[] = [
-      this.cfg.get<string>('SAMBANOVA_API_KEY') ?? '',
-      this.cfg.get<string>('SAMBANOVA_API_KEY_2') ?? '',
-      this.cfg.get<string>('SAMBANOVA_API_KEY_3') ?? '',
-      this.cfg.get<string>('SAMBANOVA_API_KEY_4') ?? '',
-      this.cfg.get<string>('SAMBANOVA_API_KEY_5') ?? '',
-      this.cfg.get<string>('SAMBANOVA_API_KEY_6') ?? '',
-      this.cfg.get<string>('SAMBANOVA_API_KEY_7') ?? '',
-      this.cfg.get<string>('SAMBANOVA_API_KEY_8') ?? '',
-    ].filter(k => k.length > 0);
-
-    for (const apiKey of sambanovaKeys) {
-      try {
-        const res = await fetch('https://api.sambanova.ai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: 'Meta-Llama-3.3-70B-Instruct',
-            messages: [{ role: 'user', content: prompt }],
-            max_tokens: 256,
-            temperature: 0.7,
-          }),
-        });
-        if (!res.ok) continue;
-        const data: any = await res.json();
-        const text: string = data?.choices?.[0]?.message?.content ?? '';
-        if (text) return { analysis: text, premium: true };
-      } catch (_) {
-        continue;
-      }
-    }
-
-    return { analysis: null, premium: false };
   }
 }
 
@@ -436,7 +373,7 @@ export class RunsPublicController {
 }
 
 @Module({
-  imports: [MissionsModule, ChallengesModule, TerritoriesModule, GamificationModule, GoalsModule],
+  imports: [MissionsModule, ChallengesModule, TerritoriesModule, GamificationModule, GoalsModule, AiCompletionModule],
   controllers: [RunsController, RunsPublicController],
 })
 export class RunsModule {}

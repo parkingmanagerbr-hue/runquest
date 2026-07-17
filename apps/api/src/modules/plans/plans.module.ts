@@ -3,8 +3,8 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsString, IsInt, IsISO8601, IsOptional, IsArray, IsNumber, IsEnum, Min, Max } from 'class-validator';
-import { ConfigService } from '@nestjs/config';
-// AI provider: Gemini + SambaNova multi-key fallback (no Anthropic SDK needed)
+// AI provider: Gemini + SambaNova multi-key fallback (serviço compartilhado)
+import { AiCompletionService, AiCompletionModule } from '../../shared/kernel/ai-completion.service';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -44,50 +44,11 @@ class CoachChatDto {
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class PlansController {
-  constructor(private readonly prisma: PrismaService, private readonly cfg: ConfigService) {}
+  constructor(private readonly prisma: PrismaService, private readonly ai: AiCompletionService) {}
 
-  /** Multi-provider AI helper: Gemini (6 keys) → SambaNova (8 keys) */
-  private async callAi(prompt: string, opts?: { systemPrompt?: string; maxTokens?: number }): Promise<string> {
-    const maxTok = opts?.maxTokens ?? 1024;
-
-    // 1) Gemini
-    const geminiKeys = [1, 2, 3, 4, 5, 6].map(n => this.cfg.get<string>(`GEMINI_API_KEY${n === 1 ? '' : `_${n}`}`) ?? '').filter(Boolean);
-    for (const apiKey of geminiKeys) {
-      try {
-        const contents: any[] = opts?.systemPrompt
-          ? [{ role: 'user', parts: [{ text: opts.systemPrompt + '\n\n' + prompt }] }]
-          : [{ role: 'user', parts: [{ text: prompt }] }];
-        const body = { contents, generationConfig: { maxOutputTokens: maxTok, temperature: 0.7 } };
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-        });
-        if (!res.ok) continue;
-        const data: any = await res.json();
-        const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-        if (text) return text;
-      } catch { continue; }
-    }
-
-    // 2) SambaNova (OpenAI-compatible)
-    const sambaKeys = [1, 2, 3, 4, 5, 6, 7, 8].map(n => this.cfg.get<string>(`SAMBANOVA_API_KEY${n === 1 ? '' : `_${n}`}`) ?? '').filter(Boolean);
-    for (const apiKey of sambaKeys) {
-      try {
-        const messages: any[] = [];
-        if (opts?.systemPrompt) messages.push({ role: 'system', content: opts.systemPrompt });
-        messages.push({ role: 'user', content: prompt });
-        const res = await fetch('https://api.sambanova.ai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: 'Meta-Llama-3.3-70B-Instruct', messages, max_tokens: maxTok, temperature: 0.7 }),
-        });
-        if (!res.ok) continue;
-        const data: any = await res.json();
-        const text: string = data?.choices?.[0]?.message?.content ?? '';
-        if (text) return text;
-      } catch { continue; }
-    }
-
-    throw new Error('AI service unavailable — all providers exhausted');
+  /** Delega ao serviço compartilhado (Gemini → SambaNova, com rotação de chaves). */
+  private callAi(prompt: string, opts?: { systemPrompt?: string; maxTokens?: number }): Promise<string> {
+    return this.ai.complete(prompt, opts);
   }
 
   /** POST /plans/ai-generate — Premium only — Generates adaptive plan via Claude */
@@ -395,7 +356,7 @@ Rules:
   }
 }
 
-@Module({ controllers: [PlansController] })
+@Module({ imports: [AiCompletionModule], controllers: [PlansController] })
 export class PlansModule {}
 // ConfigModule is global so ConfigService is auto-available
 
