@@ -195,10 +195,21 @@ export class ShopController {
     if (item.premiumOnly && !u?.isPremium) return { error: 'PREMIUM_REQUIRED' };
     if ((u?.runCoins ?? 0) < item.price) return { error: 'NOT_ENOUGH_COINS' };
 
-    await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: user.id }, data: { runCoins: { decrement: item.price } } }),
-      this.prisma.userItem.create({ data: { id: crypto.randomUUID(), userId: user.id, itemId } }),
-    ]);
+    // Débito ATÔMICO: a checagem de saldo acima é só p/ resposta rápida — ela
+    // não protege nada, porque duas compras concorrentes leem o mesmo saldo e
+    // ambas passam. A guarda que vale é `runCoins: { gte: preço }` no WHERE:
+    // o banco garante que só UMA desconta. (Antes: com 100 moedas dava p/ levar
+    // dois itens de 100 e o saldo ia a -100.)
+    const bought = await this.prisma.$transaction(async (tx) => {
+      const paid = await tx.user.updateMany({
+        where: { id: user.id, runCoins: { gte: item.price } },
+        data: { runCoins: { decrement: item.price } },
+      });
+      if (paid.count === 0) return false; // outra compra levou o saldo antes
+      await tx.userItem.create({ data: { id: crypto.randomUUID(), userId: user.id, itemId } });
+      return true;
+    });
+    if (!bought) return { error: 'NOT_ENOUGH_COINS' };
     return { ok: true, item };
   }
 
