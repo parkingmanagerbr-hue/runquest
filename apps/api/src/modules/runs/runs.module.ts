@@ -15,6 +15,8 @@ import { TerritoriesModule, TerritoryService } from '../territories/territories.
 import { GamificationModule, BadgeUnlockService } from '../gamification/gamification.module';
 import { GoalsModule, GoalProgressService } from '../goals/goals.module';
 import { computeStreak, computeRunRewards, levelForXp } from './run-rewards';
+import { geoJsonCoords } from '../../shared/kernel/geojson';
+import { Prisma } from '@prisma/client';
 
 class CreateRunDto {
   @IsISO8601() startedAt!: string;
@@ -59,7 +61,7 @@ export class RunsController {
         distanceMeters: dto.distanceMeters,
         durationSec: dto.durationSec,
         avgPaceSecPerKm: dto.avgPaceSecPerKm,
-        pointsGeoJson: (dto.pointsGeoJson ?? {}) as any,
+        pointsGeoJson: (dto.pointsGeoJson ?? {}) as Prisma.InputJsonValue,
         source: dto.source ?? 'GPS',
         opId: dto.opId,
         elevationGainM: dto.elevationGainM,
@@ -71,8 +73,8 @@ export class RunsController {
     // Streak
     const u = await this.prisma.user.findUnique({
       where: { id: user.id },
-      select: { lastRunAt: true, streakDays: true, longestStreak: true } as any,
-    }) as any;
+      select: { lastRunAt: true, streakDays: true, longestStreak: true },
+    });
     const newStreak = computeStreak(u?.lastRunAt ? new Date(u.lastRunAt) : null, new Date(), u?.streakDays ?? 0);
     const longestStreak = Math.max(u?.longestStreak ?? 0, newStreak);
 
@@ -89,7 +91,7 @@ export class RunsController {
         longestStreak,
         totalRuns: { increment: 1 },
         totalDistanceM: { increment: dto.distanceMeters },
-      } as any,
+      },
     });
     const newLevel = levelForXp(updatedUser.xp, updatedUser.level);
     if (newLevel !== updatedUser.level) {
@@ -102,9 +104,9 @@ export class RunsController {
     await this.goals.applyRun(user.id, { distanceMeters: dto.distanceMeters, durationSec: dto.durationSec });
 
     // Territórios
-    const coords = (dto.pointsGeoJson as any)?.coordinates as number[][] | undefined;
+    const coords = geoJsonCoords(dto.pointsGeoJson);
     let territoryStats = { visited: 0, newCaptures: 0 };
-    if (coords && coords.length > 0) {
+    if (coords.length > 0) {
       territoryStats = await this.territories.applyRun(user.id, coords);
     }
     const totalTerritories = await this.prisma.territory.count({
@@ -113,8 +115,8 @@ export class RunsController {
 
     // Badges
     const newBadges = await this.badges.checkAndUnlock(user.id, {
-      totalRuns: (updatedUser as any).totalRuns,
-      totalDistanceM: (updatedUser as any).totalDistanceM,
+      totalRuns: updatedUser.totalRuns,
+      totalDistanceM: updatedUser.totalDistanceM,
       streak: newStreak,
       level: newLevel,
       territories: totalTerritories,
@@ -268,7 +270,7 @@ export class RunsController {
   async gpx(@CurrentUser() user: RequestUser, @Param('id') runId: string, @Res() res: Response) {
     const run = await this.prisma.run.findFirst({ where: { id: runId, userId: user.id } });
     if (!run) { res.status(404).send('Not found'); return; }
-    const coords = (run.pointsGeoJson as any)?.coordinates as number[][] ?? [];
+    const coords = geoJsonCoords(run.pointsGeoJson);
     const trkpts = coords.map(([lng, lat]) =>
       `    <trkpt lat="${lat.toFixed(6)}" lon="${lng.toFixed(6)}"></trkpt>`
     ).join('\n');

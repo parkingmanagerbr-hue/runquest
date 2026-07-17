@@ -9,6 +9,7 @@ import { TerritoryService } from '../../territories/territories.module';
 import { BadgeUnlockService } from '../../gamification/gamification.module';
 import { computeStreak, computeRunRewards, levelForXp } from '../../runs/run-rewards';
 import { decodePolyline } from '../domain/polyline';
+import { Prisma } from '@prisma/client';
 
 /**
  * Handler para webhooks do Strava.
@@ -50,8 +51,8 @@ export class StravaWebhookHandler {
     }
     await this.prisma.webhookEvent.upsert({
       where: { provider_externalId: { provider: 'strava', externalId: eventId } },
-      create: { provider: 'strava', externalId: eventId, payload: payload as any },
-      update: { payload: payload as any },
+      create: { provider: 'strava', externalId: eventId, payload: payload as unknown as Prisma.InputJsonValue },
+      update: { payload: payload as unknown as Prisma.InputJsonValue },
     });
 
     // Só trata create de atividade — ignora athlete deauth e updates
@@ -120,8 +121,8 @@ export class StravaWebhookHandler {
         durationSec: activity.moving_time,
         avgPaceSecPerKm: pace,
         pointsGeoJson: activity.map?.summary_polyline
-          ? { polyline: activity.map.summary_polyline } as any
-          : {} as any,
+          ? { polyline: activity.map.summary_polyline }
+          : {},
         source: 'STRAVA_IMPORT',
         stravaActivityId: BigInt(payload.object_id),
       },
@@ -145,8 +146,8 @@ export class StravaWebhookHandler {
   private async applyPostRun(userId: string, run: any, activity: any) {
     const u = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { lastRunAt: true, streakDays: true, longestStreak: true } as any,
-    }) as any;
+      select: { lastRunAt: true, streakDays: true, longestStreak: true },
+    });
 
     // Mesma mecânica pura do RunsService (streak sem NaN, XP/moedas idênticos).
     const newStreak = computeStreak(u?.lastRunAt ? new Date(u.lastRunAt) : null, new Date(), u?.streakDays ?? 0);
@@ -163,7 +164,7 @@ export class StravaWebhookHandler {
         longestStreak,
         totalRuns: { increment: 1 },
         totalDistanceM: { increment: run.distanceMeters },
-      } as any,
+      },
     });
     const newLevel = levelForXp(updatedUser.xp, updatedUser.level);
     if (newLevel !== updatedUser.level) {
@@ -194,8 +195,8 @@ export class StravaWebhookHandler {
     });
 
     await this.badges.checkAndUnlock(userId, {
-      totalRuns: (updatedUser as any).totalRuns,
-      totalDistanceM: (updatedUser as any).totalDistanceM,
+      totalRuns: updatedUser.totalRuns,
+      totalDistanceM: updatedUser.totalDistanceM,
       streak: newStreak,
       level: newLevel,
       territories: totalTerritories,

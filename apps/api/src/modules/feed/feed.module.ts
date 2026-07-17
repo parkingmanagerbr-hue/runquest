@@ -28,7 +28,7 @@ export class FeedController {
       where: { followerId: user.id },
       select: { followingId: true },
     });
-    const ids = [user.id, ...follows.map((f: any) => f.followingId)];
+    const ids = [user.id, ...follows.map((f) => f.followingId)];
 
     const runs = await this.prisma.run.findMany({
       where: { userId: { in: ids } },
@@ -39,10 +39,10 @@ export class FeedController {
         kudos: { select: { userId: true } },
         comments: { take: 3, orderBy: { createdAt: 'desc' }, include: { user: { select: { displayName: true, selectedAvatar: true } } } },
         _count: { select: { comments: true } }, // total real p/ o BUG-4 (comments é só preview)
-      } as any,
+      },
     });
 
-    return runs.map((r: any) => shapeFeedRun(r, user.id));
+    return runs.map((r) => shapeFeedRun(r, user.id));
   }
 }
 
