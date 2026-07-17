@@ -52,13 +52,16 @@ export default function MissionsPage() {
   const claim = async (m: Mission) => {
     setClaiming(m.id);
     try {
-      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/missions/${m.id}/claim`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-      }).then(r => r.json());
+      // A API responde 200 com { error } nos casos de negócio (já resgatado etc.),
+      // então o api.post não lança neles — mesmo comportamento de antes.
+      const r = await api.post<{ ok?: boolean; xp?: number; coins?: number; error?: string }>(
+        `/missions/${m.id}/claim`,
+      );
       if (r.ok) alert(`🎉 +${r.xp} XP · +${r.coins} 🪙 RunCoins`);
       else alert(r.error);
       await load();
+    } catch {
+      alert('Erro ao resgatar. Tente de novo.');
     } finally { setClaiming(null); }
   };
 

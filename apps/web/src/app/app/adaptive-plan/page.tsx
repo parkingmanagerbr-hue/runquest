@@ -20,7 +20,6 @@ function nextMondayISO(): string {
   return d.toISOString().slice(0, 10);
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? '/api';
 const ZONES: PaceZone[] = ['recovery', 'easy', 'marathon', 'threshold', 'interval', 'repetition'];
 const GOALS: Goal[] = ['fitness', '5k', '10k', 'half', 'marathon'];
 
@@ -45,8 +44,7 @@ export default function AdaptivePlanPage() {
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
-    fetch(`${API}/runs?limit=100`, { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } })
-      .then((r) => (r.ok ? r.json() : []))
+    api.get<RunLite[] | { items?: RunLite[] }>('/runs?limit=100')
       .then((d) => {
         const arr: RunLite[] = Array.isArray(d) ? d : (d?.items ?? []);
         setRuns(arr.map((r) => ({ distanceMeters: r.distanceMeters, durationSec: r.durationSec, startedAt: r.startedAt })));
@@ -95,18 +93,14 @@ export default function AdaptivePlanPage() {
       const schedule = buildSchedule(paces, load, {
         goal, daysPerWeek, base, weeks: planWeeks, startDate: new Date(startDate + 'T00:00:00'),
       });
-      const r = await fetch(`${API}/plans`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-        body: JSON.stringify({
-          name: `Plano Adaptativo · ${GOAL_LABEL[goal]}`,
-          goal: `${GOAL_LABEL[goal]} · ${planWeeks} semanas · ${daysPerWeek}x/sem`,
-          weeks: planWeeks,
-          startDate,
-          scheduledWorkouts: schedule,
-        }),
+      // api.post lança ApiError em falha — cai no mesmo catch de antes.
+      await api.post('/plans', {
+        name: `Plano Adaptativo · ${GOAL_LABEL[goal]}`,
+        goal: `${GOAL_LABEL[goal]} · ${planWeeks} semanas · ${daysPerWeek}x/sem`,
+        weeks: planWeeks,
+        startDate,
+        scheduledWorkouts: schedule,
       });
-      if (!r.ok) throw new Error('falhou');
       setSaved(true);
     } catch {
       alert('Não consegui salvar o plano no calendário. Tente de novo.');

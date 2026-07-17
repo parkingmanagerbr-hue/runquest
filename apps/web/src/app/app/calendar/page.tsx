@@ -53,11 +53,7 @@ export default function CalendarPage() {
 
   const markDone = async (date: string) => {
     if (!plan) return;
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/plans/${plan.id}/mark-done`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-      body: JSON.stringify({ date }),
-    });
+    await api.put(`/plans/${plan.id}/mark-done`, { date });
     await load();
   };
 

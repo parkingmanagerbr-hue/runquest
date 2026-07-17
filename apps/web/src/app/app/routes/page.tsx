@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Route as RouteIcon, Undo2, Trash2, Repeat, CircleDot, Save, Play } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 import { formatPace, formatDuration, formatDistance } from '@/lib/geo';
 import {
   routeStats, outAndBack, closeLoop, loadRoutes, saveRoute, deleteRoute,
@@ -17,7 +17,6 @@ const RouteDrawMap = dynamic(() => import('@/components/RouteDrawMap').then((m) 
   loading: () => <div className="h-[52vh] bg-rq-night animate-pulse rounded-2xl" />,
 });
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? '/api';
 
 export default function RoutesPage() {
   const router = useRouter();
@@ -29,8 +28,7 @@ export default function RoutesPage() {
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
     setSaved(loadRoutes());
-    fetch(`${API}/runs?limit=100`, { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } })
-      .then((r) => (r.ok ? r.json() : []))
+    api.get<RunLite[] | { items?: RunLite[] }>('/runs?limit=100')
       .then((d) => {
         const arr: RunLite[] = Array.isArray(d) ? d : (d?.items ?? []);
         setRuns(arr.map((r) => ({ distanceMeters: r.distanceMeters, durationSec: r.durationSec, startedAt: r.startedAt })));

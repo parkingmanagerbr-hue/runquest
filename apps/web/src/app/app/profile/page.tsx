@@ -53,13 +53,13 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const h = { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } };
-    const safeJson = (r: Response) => r.ok ? r.json().catch(() => null) : null;
+    // `.catch(() => null)` equivale ao antigo safeJson (r.ok ? json : null) —
+    // e agora as 4 chamadas passam pelo auto-refresh de 401 do cliente.
     const [u, b, d, p] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/users/me`, h).then(safeJson),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/badges`, h).then(safeJson),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/daily/status`, h).then(safeJson),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/stats/prs`, h).then(safeJson).catch(() => []),
+      api.get<Me>('/users/me').catch(() => null),
+      api.get<Badge[]>('/badges').catch(() => null),
+      api.get<{ claimed: boolean; streak: number }>('/daily/status').catch(() => null),
+      api.get<PR[]>('/runs/stats/prs').catch(() => []),
     ]);
     if (u) setMe(u);
     setBadges(Array.isArray(b) ? b : []);

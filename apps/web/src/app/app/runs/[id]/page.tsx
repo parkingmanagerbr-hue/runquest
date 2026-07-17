@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles, Download, Flame, Gauge, Mountain, StickyNote, Check } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace, computeSplits } from '@/lib/geo';
 import { Share2, ImageDown } from 'lucide-react';
 import { buildRunCardSvg } from '@/lib/runCard';
@@ -63,28 +63,28 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
-    const h = { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } };
-    // Try direct endpoint first (faster), fall back to list search
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/${id}`, h)
-      .then(r => r.ok ? r.json() : null)
-      .then(async (run: Run | null) => {
+    // Try direct endpoint first (faster), fall back to list search.
+    // `.catch(() => null)` reproduz o antigo `r.ok ? r.json() : null`, mantendo o fallback.
+    api.get<Run | null>(`/runs/${id}`)
+      .catch(() => null)
+      .then(async (run) => {
         if (run?.id) { setRun(run); if (run.notes) setNotes(run.notes); return; }
         // Fallback: search in list
-        const runs: Run[] = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs?limit=100`, h).then(r => r.json());
+        const runs = await api.get<Run[]>('/runs?limit=100');
         const found = runs.find(r => r.id === id) ?? null;
         setRun(found);
         if (found?.notes) setNotes(found.notes);
       })
+      .catch(() => setRun(null)) // fallback também falhou — mostra "não encontrada"
       .finally(() => setLoading(false));
   }, [id, router]);
 
   const analyzeRun = async () => {
     setAnalyzing(true);
     try {
-      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/${id}/analyze`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-      }).then(r => r.json());
+      // A API responde 200 com { analysis: null, premium: false } p/ não-premium,
+      // então o api.post não lança nesse caso — comportamento idêntico.
+      const r = await api.post<{ analysis?: string | null; premium?: boolean }>(`/runs/${id}/analyze`);
       if (r.analysis) setAnalysis(r.analysis);
       else if (!r.premium) setAnalysis('💎 Análise IA disponível para assinantes Premium');
     } catch (e) { setAnalysis('Erro: ' + (e instanceof Error ? e.message : String(e))); }
@@ -93,6 +93,8 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
 
   const exportStrava = async () => {
     try {
+      // NÃO migrar para o cliente `api`: 401 aqui significa "Strava não conectado",
+      // não sessão expirada — o api.request mandaria o usuário pro login.
       const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/strava/export/${id}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
@@ -177,11 +179,7 @@ export default function RunDetailPage({ params }: { params: { id: string } }) {
   const saveNotes = async () => {
     setSavingNotes(true);
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/runs/${run.id}/notes`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-        body: JSON.stringify({ notes }),
-      });
+      await api.patch(`/runs/${run.id}/notes`, { notes });
       setNotesSaved(true);
       setTimeout(() => setNotesSaved(false), 2000);
     } catch {}

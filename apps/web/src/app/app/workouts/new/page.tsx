@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Trash2, Save, ChevronUp, ChevronDown, Zap } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 import { formatDuration, formatDistance } from '@/lib/geo';
 
 const KINDS = [
@@ -102,18 +102,14 @@ export default function NewWorkoutPage() {
   const save = async () => {
     setSaving(true);
     try {
-      const r = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/workouts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-        body: JSON.stringify({
-          name, type, description: description || undefined,
-          segments: segments.map((s, i) => ({
-            order: i, kind: s.kind, repeats: s.repeats,
-            ...(s.mode === 'time' ? { durationSec: s.durationSec } : { distanceM: s.distanceM }),
-          })),
-        }),
+      // api.post lança ApiError em falha — cai no mesmo catch de antes.
+      await api.post('/workouts', {
+        name, type, description: description || undefined,
+        segments: segments.map((s, i) => ({
+          order: i, kind: s.kind, repeats: s.repeats,
+          ...(s.mode === 'time' ? { durationSec: s.durationSec } : { distanceM: s.distanceM }),
+        })),
       });
-      if (!r.ok) throw new Error(`API ${r.status}`);
       router.replace('/app/workouts');
     } catch (e) {
       alert(e instanceof Error ? e.message : String(e));

@@ -3,11 +3,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, TrendingUp, TrendingDown, Minus, Trophy, Activity, type LucideIcon } from 'lucide-react';
-import { tokens } from '@/lib/api';
+import { api, tokens } from '@/lib/api';
 import { computeFitnessTrend, type FitnessTrend } from '@/lib/fitnessTrend';
 import type { RunLite } from '@/lib/trainingPaces';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? '/api';
 
 function fmt5k(sec: number | null): string {
   if (sec == null || !isFinite(sec) || sec <= 0) return '--:--';
@@ -29,8 +28,7 @@ export default function FitnessPage() {
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
-    fetch(`${API}/runs?limit=200`, { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } })
-      .then((r) => (r.ok ? r.json() : []))
+    api.get<RunLite[] | { items?: RunLite[] }>('/runs?limit=200')
       .then((d) => {
         const arr: RunLite[] = Array.isArray(d) ? d : (d?.items ?? []);
         setRuns(arr.map((r) => ({ distanceMeters: r.distanceMeters, durationSec: r.durationSec, startedAt: r.startedAt })));

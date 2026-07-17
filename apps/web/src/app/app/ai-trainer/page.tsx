@@ -42,13 +42,11 @@ export default function AITrainerPage() {
   const generate = async () => {
     setLoading(true); setError(''); setResult(null);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? '/api'}/plans/ai-generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
-        body: JSON.stringify({ goal, level, daysPerWeek, startDate, notes }),
+      // ApiError.message já vem de body.message — o catch abaixo exibe a mesma
+      // mensagem de erro da API que o código anterior montava à mão.
+      const data = await api.post<AiPlan>('/plans/ai-generate', {
+        goal, level, daysPerWeek, startDate, notes,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? 'Erro ao gerar plano');
       setResult(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

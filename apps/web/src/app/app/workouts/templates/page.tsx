@@ -8,7 +8,6 @@ import { formatPace, formatDuration, formatDistance } from '@/lib/geo';
 import { estimatePaces, ZONE_LABEL, type RunLite } from '@/lib/trainingPaces';
 import { buildTemplates, templateToWorkoutBody, type WorkoutTemplate } from '@/lib/workoutTemplates';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? '/api';
 
 export default function WorkoutTemplatesPage() {
   const router = useRouter();
@@ -18,8 +17,7 @@ export default function WorkoutTemplatesPage() {
 
   useEffect(() => {
     if (!tokens.hasSession()) { router.replace('/auth/login'); return; }
-    fetch(`${API}/runs?limit=100`, { headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` } })
-      .then((r) => (r.ok ? r.json() : []))
+    api.get<RunLite[] | { items?: RunLite[] }>('/runs?limit=100')
       .then((d) => {
         const arr: RunLite[] = Array.isArray(d) ? d : (d?.items ?? []);
         setRuns(arr.map((r) => ({ distanceMeters: r.distanceMeters, durationSec: r.durationSec, startedAt: r.startedAt })));
