@@ -5,6 +5,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { applyProgress, isKnownProgressKind } from '../../shared/kernel/progress';
 
 /**
  * Aplica progresso de DESAFIOS após uma corrida.
@@ -33,19 +34,16 @@ export class ChallengeProgressService {
     });
 
     for (const p of parts) {
-      let inc = 0;
-      switch (p.challenge.goalKind) {
-        case 'runs_count': inc = 1; break;
-        case 'distance_km': inc = run.distanceMeters / 1000; break;
-        case 'duration_min': inc = run.durationSec / 60; break;
-        default: continue;
-      }
-      const newProg = (p.progress ?? 0) + inc;
-      const completed = newProg >= p.challenge.goalValue;
+      // Mesma contribuição pura de metas (fonte única no shared kernel). Tipo de
+      // objetivo desconhecido é pulado — não escreve nada (como antes).
+      if (!isKnownProgressKind(p.challenge.goalKind)) continue;
+      const { progress, completed } = applyProgress(
+        p.challenge.goalKind, p.progress ?? 0, p.challenge.goalValue, run,
+      );
       await this.prisma.challengeParticipant.update({
         where: { userId_challengeId: { userId, challengeId: p.challengeId } },
         data: {
-          progress: newProg,
+          progress,
           completed,
           completedAt: completed && !p.completed ? new Date() : p.completedAt,
         },
