@@ -2,15 +2,12 @@ import {
   Controller, Get, Injectable, Logger, Module, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { latLngToCell, cellToBoundary } from 'h3-js';
+import { cellToBoundary } from 'h3-js';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MissionProgressService } from '../missions/missions.module';
-
-const H3_RES = 9; // ~150m por célula
-const VISITS_TO_CAPTURE = 3;
-const EXPIRY_DAYS = 21;
+import { pointsToCells, VISITS_TO_CAPTURE, EXPIRY_DAYS } from './territory-cells';
 
 @Injectable()
 export class TerritoryService {
@@ -23,48 +20,35 @@ export class TerritoryService {
 
   /** Após uma run, soma visitas e captura células. Retorna novas conquistadas. */
   async applyRun(userId: string, points: number[][]): Promise<{ visited: number; newCaptures: number }> {
-    if (!points || points.length === 0) return { visited: 0, newCaptures: 0 };
-    // Coordinates em GeoJSON: [lng, lat]. Para h3 precisa [lat, lng]
-    const cells = new Set<string>();
-    for (const c of points) {
-      try {
-        const cell = latLngToCell(c[1], c[0], H3_RES);
-        cells.add(cell);
-      } catch { /* ponto inválido */ }
-    }
+    const cells = pointsToCells(points); // dedup + validação de intervalo (puro, testado)
+    if (cells.size === 0) return { visited: 0, newCaptures: 0 };
+
     let newCaptures = 0;
     const now = new Date();
     const newExpiry = new Date(now.getTime() + EXPIRY_DAYS * 86400 * 1000);
 
     for (const h3 of cells) {
-      const existing = await this.prisma.territory.findUnique({
+      // Incremento ATÔMICO (upsert): antes era findUnique→create/update, e dois
+      // processos na mesma célula (POST /runs + webhook Strava) achavam ambos
+      // `null` e o 2º create lançava P2002, derrubando o request pós-crédito.
+      const t = await this.prisma.territory.upsert({
         where: { userId_h3Index: { userId, h3Index: h3 } },
+        create: {
+          id: crypto.randomUUID(), userId, h3Index: h3,
+          visits: 1, lastVisitAt: now, expiresAt: newExpiry, capturedAt: null,
+        },
+        update: { visits: { increment: 1 }, lastVisitAt: now, expiresAt: newExpiry },
+        select: { visits: true, capturedAt: true },
       });
-      if (existing) {
-        const newVisits = existing.visits + 1;
-        const justCaptured = !existing.capturedAt && newVisits >= VISITS_TO_CAPTURE;
-        await this.prisma.territory.update({
-          where: { userId_h3Index: { userId, h3Index: h3 } },
-          data: {
-            visits: newVisits,
-            lastVisitAt: now,
-            expiresAt: newExpiry,
-            capturedAt: justCaptured ? now : existing.capturedAt,
-          },
+
+      // Captura ATÔMICA: só o request que virar capturedAt de null→now (count===1)
+      // conta a conquista — evita duplo-conteo sob concorrência.
+      if (!t.capturedAt && t.visits >= VISITS_TO_CAPTURE) {
+        const flip = await this.prisma.territory.updateMany({
+          where: { userId, h3Index: h3, capturedAt: null, visits: { gte: VISITS_TO_CAPTURE } },
+          data: { capturedAt: now },
         });
-        if (justCaptured) newCaptures++;
-      } else {
-        await this.prisma.territory.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId,
-            h3Index: h3,
-            visits: 1,
-            lastVisitAt: now,
-            expiresAt: newExpiry,
-            capturedAt: null,
-          },
-        });
+        if (flip.count === 1) newCaptures++;
       }
     }
 

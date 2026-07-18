@@ -20,15 +20,28 @@ function makeFakePrisma() {
   return {
     rows,
     territory: {
-      findUnique: async ({ where }: any) => rows.get(key(where.userId_h3Index)) ?? null,
-      update: async ({ where, data }: any) => {
-        const r = rows.get(key(where.userId_h3Index))!;
-        Object.assign(r, data);
-        return r;
+      // Superfície nova do service: upsert (cria-ou-incrementa) + updateMany
+      // (captura guardada). Semântica em memória idêntica ao banco.
+      upsert: async ({ where, create, update }: any) => {
+        const k = key(where.userId_h3Index);
+        const cur = rows.get(k);
+        if (!cur) {
+          rows.set(k, { ...create });
+        } else {
+          cur.visits += update.visits.increment;
+          cur.lastVisitAt = update.lastVisitAt;
+          cur.expiresAt = update.expiresAt;
+        }
+        const r = rows.get(k)!;
+        return { visits: r.visits, capturedAt: r.capturedAt };
       },
-      create: async ({ data }: any) => {
-        rows.set(key(data), { ...data });
-        return data;
+      updateMany: async ({ where, data }: any) => {
+        const r = rows.get(key(where));
+        if (r && r.capturedAt === null && r.visits >= where.visits.gte) {
+          r.capturedAt = data.capturedAt;
+          return { count: 1 };
+        }
+        return { count: 0 };
       },
     },
   };
