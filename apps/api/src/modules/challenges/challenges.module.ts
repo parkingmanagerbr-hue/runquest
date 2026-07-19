@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { applyProgress, isKnownProgressKind } from '../../shared/kernel/progress';
+import { Prisma } from '@prisma/client';
 
 /**
  * Aplica progresso de DESAFIOS após uma corrida.
@@ -117,9 +118,18 @@ export class ChallengesController {
     });
     if (existing) return { ok: true, alreadyJoined: true };
 
-    await this.prisma.challengeParticipant.create({
-      data: { userId: user.id, challengeId, progress: 0, completed: false, claimed: false },
-    });
+    try {
+      await this.prisma.challengeParticipant.create({
+        data: { userId: user.id, challengeId, progress: 0, completed: false, claimed: false },
+      });
+    } catch (e) {
+      // @@unique([userId, challengeId]): duplo-clique em "Participar" faz os dois
+      // acharem `existing` null e ambos criarem. O 2º pega P2002 — já participa.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        return { ok: true, alreadyJoined: true };
+      }
+      throw e;
+    }
     return { ok: true };
   }
 

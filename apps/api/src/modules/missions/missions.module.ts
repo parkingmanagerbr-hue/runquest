@@ -5,6 +5,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { periodWindow } from '../../shared/kernel/date-window';
 
 /**
@@ -29,9 +30,17 @@ export class MissionProgressService {
       where: { userId_missionId: { userId, missionId: mission.id } },
     });
     if (!existing) {
-      await this.prisma.missionProgress.create({
-        data: { id: crypto.randomUUID(), userId, missionId: mission.id, progress: 0, completed: false, claimed: false },
-      });
+      try {
+        await this.prisma.missionProgress.create({
+          data: { id: crypto.randomUUID(), userId, missionId: mission.id, progress: 0, completed: false, claimed: false },
+        });
+      } catch (e) {
+        // @@unique([userId, missionId]): GET /missions (que chama isto p/ cada
+        // missão) e o POST /runs (applyRun→ensureProgress) tocam o mesmo registro
+        // em paralelo; ambos acham `existing` null e criam. O 2º pega P2002 —
+        // o registro já existe, ignora.
+        if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002')) throw e;
+      }
     } else if (existing.assignedAt < window.start) {
       // reset para nova janela
       await this.prisma.missionProgress.update({
