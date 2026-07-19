@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { EnsureValidStravaTokenService } from './ensure-valid-token.service';
-import { Inject } from '@nestjs/common';
 import { STRAVA_GATEWAY, StravaGateway } from '../domain/strava-gateway';
 import { PrismaService } from '../../../prisma/prisma.service';
 
@@ -24,20 +24,28 @@ export class ImportStravaActivitiesUseCase {
     for (const a of activities) {
       const existing = await this.prisma.run.findUnique({ where: { stravaActivityId: BigInt(a.id) } });
       if (existing) { skipped++; continue; }
-      await this.prisma.run.create({
-        data: {
-          userId,
-          startedAt: a.startDate,
-          endedAt: new Date(a.startDate.getTime() + a.elapsedTimeSec * 1000),
-          distanceMeters: a.distanceMeters,
-          durationSec: a.movingTimeSec,
-          avgPaceSecPerKm: a.averagePaceSecPerKm ?? 0,
-          pointsGeoJson: a.polyline ? { polyline: a.polyline } as any : {},
-          source: 'STRAVA_IMPORT',
-          stravaActivityId: BigInt(a.id),
-        },
-      });
-      imported++;
+      try {
+        await this.prisma.run.create({
+          data: {
+            userId,
+            startedAt: a.startDate,
+            endedAt: new Date(a.startDate.getTime() + a.elapsedTimeSec * 1000),
+            distanceMeters: a.distanceMeters,
+            durationSec: a.movingTimeSec,
+            avgPaceSecPerKm: a.averagePaceSecPerKm ?? 0,
+            pointsGeoJson: a.polyline ? { polyline: a.polyline } : {},
+            source: 'STRAVA_IMPORT',
+            stravaActivityId: BigInt(a.id),
+          },
+        });
+        imported++;
+      } catch (e) {
+        // stravaActivityId é @unique: se um webhook criou a MESMA atividade entre
+        // o findUnique e o create, o create dá P2002. Conta como skip (idempotente)
+        // em vez de estourar o import inteiro.
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') { skipped++; continue; }
+        throw e;
+      }
     }
     return { imported, skipped };
   }
