@@ -74,3 +74,39 @@ describe('pacesFromReference', () => {
     expect(p.ref5kSec).toBeGreaterThan(1600);
   });
 });
+
+describe('estimatePaces — penalização por idade (> 90 dias)', () => {
+  const fresh: RunLite = { distanceMeters: 5000, durationSec: 1500, startedAt: iso(10) };
+  const old: RunLite = { distanceMeters: 5000, durationSec: 1500, startedAt: iso(365) };
+
+  it('a MESMA corrida antiga estima um 5K mais lento que a recente', () => {
+    const pRecent = estimatePaces([fresh], now);
+    const pOld = estimatePaces([old], now);
+    expect(pRecent.source).toBe('runs');
+    expect(pOld.source).toBe('runs');
+    // Corrida de ~1 ano é penalizada → 5K equivalente maior (mais lento).
+    expect(pOld.ref5kSec).toBeGreaterThan(pRecent.ref5kSec);
+  });
+
+  it('penalidade ~1%/mês além de 90 dias (365 dias ≈ +9%)', () => {
+    const pOld = estimatePaces([old], now);
+    // 1500s base; ageDays 365 → penalty 1 + (365-90)/3000 ≈ 1.0917
+    expect(pOld.ref5kSec).toBeGreaterThan(1600);
+    expect(pOld.ref5kSec).toBeLessThan(1660);
+  });
+
+  it('corrida recente (< 90 dias) não é penalizada — 5K ≈ tempo real', () => {
+    // fresh = 10 dias atrás; sem penalidade, o 5K equivalente ≈ 1500s.
+    const p = estimatePaces([fresh], now);
+    expect(p.ref5kSec).toBeCloseTo(1500, -1);
+  });
+});
+
+describe('pacesFromReference — entrada inválida', () => {
+  it('referência inválida (tempo 0) → source none', () => {
+    expect(pacesFromReference(5000, 0).source).toBe('none');
+  });
+  it('referência válida → source manual', () => {
+    expect(pacesFromReference(5000, 1500).source).toBe('manual');
+  });
+});

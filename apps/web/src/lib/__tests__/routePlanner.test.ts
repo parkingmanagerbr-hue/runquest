@@ -54,3 +54,24 @@ describe('closeLoop', () => {
     expect(closeLoop([[1, 2], [3, 4]]).length).toBe(2);
   });
 });
+
+describe('outAndBack / closeLoop — casos de borda', () => {
+  it('outAndBack: < 2 pontos devolve como está (nada a espelhar)', () => {
+    expect(outAndBack([])).toEqual([]);
+    expect(outAndBack([[-23.55, -46.63]])).toEqual([[-23.55, -46.63]]);
+  });
+  it('outAndBack: espelha sem duplicar o ponto de virada', () => {
+    const r = outAndBack([[0, 0], [0, 1], [0, 2]]);
+    expect(r).toEqual([[0, 0], [0, 1], [0, 2], [0, 1], [0, 0]]);
+  });
+  it('closeLoop: < 3 pontos devolve como está', () => {
+    expect(closeLoop([[0, 0], [0, 1]])).toEqual([[0, 0], [0, 1]]);
+  });
+  it('closeLoop: já fechado não duplica o ponto inicial', () => {
+    const closed: LatLng[] = [[0, 0], [0, 1], [0, 2], [0, 0]];
+    expect(closeLoop(closed)).toBe(closed);
+  });
+  it('closeLoop: aberto → acrescenta o ponto inicial no fim', () => {
+    expect(closeLoop([[0, 0], [0, 1], [0, 2]])).toEqual([[0, 0], [0, 1], [0, 2], [0, 0]]);
+  });
+});
