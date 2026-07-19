@@ -6,6 +6,7 @@ import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
+import { isPremiumActive } from '../../shared/kernel/premium';
 import { badgeQualifies, type BadgeContext } from './badge-rules';
 
 /** Avalia se user desbloqueia novos badges. Chamado pós-run. */
@@ -198,11 +199,13 @@ export class ShopController {
     const [item, alreadyOwned, u] = await Promise.all([
       this.prisma.cosmeticItem.findUnique({ where: { id: itemId } }),
       this.prisma.userItem.findUnique({ where: { userId_itemId: { userId: user.id, itemId } } }),
-      this.prisma.user.findUnique({ where: { id: user.id }, select: { runCoins: true, isPremium: true } }),
+      this.prisma.user.findUnique({ where: { id: user.id }, select: { runCoins: true, isPremium: true, premiumUntil: true, isOwner: true } }),
     ]);
     if (!item) return { error: 'NOT_FOUND' };
     if (alreadyOwned) return { error: 'ALREADY_OWNED' };
-    if (item.premiumOnly && !u?.isPremium) return { error: 'PREMIUM_REQUIRED' };
+    // Mesma regra autoritativa dos gates de IA: item premium exige premium ATIVO
+    // (não só o booleano — um premium expirado não compra item premium).
+    if (item.premiumOnly && !isPremiumActive(u)) return { error: 'PREMIUM_REQUIRED' };
     if ((u?.runCoins ?? 0) < item.price) return { error: 'NOT_ENOUGH_COINS' };
 
     // Débito ATÔMICO: a checagem de saldo acima é só p/ resposta rápida — ela
