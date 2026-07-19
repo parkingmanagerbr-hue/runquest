@@ -8,6 +8,7 @@ import { AiCompletionService, AiCompletionModule } from '../../shared/kernel/ai-
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { isPremiumActive } from '../../shared/kernel/premium';
 import { Prisma } from '@prisma/client';
 
 /**
@@ -68,10 +69,10 @@ export class PlansController {
     // Premium check
     const u = await this.prisma.user.findUnique({
       where: { id: user.id },
-      select: { isPremium: true, isOwner: true, xp: true, level: true,
+      select: { isPremium: true, premiumUntil: true, isOwner: true, xp: true, level: true,
         displayName: true, weightKg: true, heightCm: true, birthDate: true },
     });
-    if (!u?.isPremium && !u?.isOwner) {
+    if (!u || !isPremiumActive(u)) {
       throw new ForbiddenException('AI Trainer is a Premium feature');
     }
 
@@ -163,10 +164,10 @@ Rules:
     // Premium gating (same rule as ai-generate)
     const u = await this.prisma.user.findUnique({
       where: { id: user.id },
-      select: { isPremium: true, isOwner: true, level: true, displayName: true,
+      select: { isPremium: true, premiumUntil: true, isOwner: true, level: true, displayName: true,
         weightKg: true, heightCm: true },
     });
-    if (!u?.isPremium && !u?.isOwner) {
+    if (!u || !isPremiumActive(u)) {
       throw new ForbiddenException('AI Coach is a Premium feature');
     }
 

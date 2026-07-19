@@ -9,6 +9,7 @@ import { AiCompletionService, AiCompletionModule } from '../../shared/kernel/ai-
 import { JwtAuthGuard } from '../auth/infrastructure/jwt-auth.guard';
 import { CurrentUser, RequestUser } from '../../shared/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
+import { isPremiumActive } from '../../shared/kernel/premium';
 import { MissionsModule, MissionProgressService } from '../missions/missions.module';
 import { ChallengesModule, ChallengeProgressService } from '../challenges/challenges.module';
 import { TerritoriesModule, TerritoryService } from '../territories/territories.module';
@@ -299,9 +300,9 @@ ${trkpts}
   async analyze(@CurrentUser() user: RequestUser, @Param('id') runId: string) {
     const u = await this.prisma.user.findUnique({
       where: { id: user.id },
-      select: { isPremium: true, isOwner: true, level: true, streakDays: true },
+      select: { isPremium: true, premiumUntil: true, isOwner: true, level: true, streakDays: true },
     });
-    if (!u?.isPremium && !u?.isOwner) {
+    if (!u || !isPremiumActive(u)) {
       return { analysis: null, premium: false };
     }
 
