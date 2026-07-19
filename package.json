@@ -15,5 +15,10 @@
   "devDependencies": {
     "prettier": "^3.3.3",
     "typescript": "^5.5.4"
+  },
+  "pnpm": {
+    "overrides": {
+      "multer@<2.1.0": ">=2.1.0"
+    }
   }
 }
