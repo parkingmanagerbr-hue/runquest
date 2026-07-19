@@ -5,6 +5,7 @@ import {
   PaymentGateway, CreateCheckoutInput, CheckoutResult, ProviderEvent, SubPlan,
 } from '../domain/payment-gateway';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { normalizeEmail } from '../../../shared/kernel/normalize-email';
 
 /**
  * Adapter Cakto — gateway BR de LINK HOSPEDADO (pay.cakto.com.br/{slug}).
@@ -122,7 +123,8 @@ export class CaktoGateway implements PaymentGateway {
 
     let userId = this.extractTrackingUserId(data);
     if (!userId) {
-      const email = data.customer?.email;
+      // Normaliza igual ao cadastro (trim + minúsculas) — ver normalizeEmail.
+      const email = normalizeEmail(data.customer?.email);
       if (email) {
         const user = await this.prisma.user.findFirst({ where: { email }, select: { id: true } });
         userId = user?.id;

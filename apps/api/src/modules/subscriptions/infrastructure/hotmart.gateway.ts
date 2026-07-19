@@ -5,6 +5,7 @@ import {
   PaymentGateway, CreateCheckoutInput, CheckoutResult, ProviderEvent, SubPlan,
 } from '../domain/payment-gateway';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { normalizeEmail } from '../../../shared/kernel/normalize-email';
 
 /**
  * Adapter Hotmart — gateway BR de LINK HOSPEDADO (não cria sessão dinâmica
@@ -132,7 +133,9 @@ export class HotmartGateway implements PaymentGateway {
     // Recupera o userId: primeiro pelo tracking ecoado, senão por lookup via email.
     let userId = this.extractTrackingUserId(data);
     if (!userId) {
-      const email = data.buyer?.email;
+      // Normaliza igual ao cadastro (trim + minúsculas): senão "Ana@X.com" do
+      // Hotmart não casa com o "ana@x.com" gravado e o pagante não vira Premium.
+      const email = normalizeEmail(data.buyer?.email);
       if (email) {
         const user = await this.prisma.user.findFirst({ where: { email }, select: { id: true } });
         userId = user?.id;
