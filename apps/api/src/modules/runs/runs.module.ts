@@ -16,6 +16,7 @@ import { GamificationModule, BadgeUnlockService } from '../gamification/gamifica
 import { GoalsModule, GoalProgressService } from '../goals/goals.module';
 import { computeStreak, computeRunRewards, levelForXp } from './run-rewards';
 import { geoJsonCoords } from '../../shared/kernel/geojson';
+import { localMondayStart, localDayIndexSinceMonday, parseTzOffsetMin } from '../../shared/kernel/local-week';
 import { Prisma } from '@prisma/client';
 
 class CreateRunDto {
@@ -151,14 +152,13 @@ export class RunsController {
     });
   }
 
-  /** GET /runs/stats/week — Stats for current week (Mon→Sun) */
+  /** GET /runs/stats/week — Stats for current week (Mon→Sun) no fuso do cliente */
   @Get('stats/week')
-  async weekStats(@CurrentUser() user: RequestUser) {
-    const now = new Date();
-    // Monday of current week
-    const monday = new Date(now);
-    monday.setHours(0, 0, 0, 0);
-    monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  async weekStats(@CurrentUser() user: RequestUser, @Query('tzOffsetMin') tz?: string) {
+    // Segunda-feira no fuso LOCAL do cliente (o servidor roda em UTC — sem isto,
+    // a corrida de domingo à noite de quem está a oeste caía na semana errada).
+    const tzOffsetMin = parseTzOffsetMin(tz);
+    const monday = localMondayStart(new Date(), tzOffsetMin);
 
     const runs = await this.prisma.run.findMany({
       where: { userId: user.id, startedAt: { gte: monday } },
@@ -171,19 +171,16 @@ export class RunsController {
       ? Math.round(runs.reduce((a, r) => a + r.avgPaceSecPerKm, 0) / runs.length)
       : 0;
 
-    // Day-by-day breakdown (0=Mon … 6=Sun)
-    const byDay = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday); d.setDate(monday.getDate() + i);
-      const dayRuns = runs.filter(r => {
-        const rd = new Date(r.startedAt); rd.setHours(0, 0, 0, 0);
-        return rd.getTime() === d.getTime();
-      });
-      return {
-        day: i,
-        km: Math.round(dayRuns.reduce((a, r) => a + r.distanceMeters / 1000, 0) * 10) / 10,
-        runs: dayRuns.length,
-      };
-    });
+    // Day-by-day breakdown (0=Mon … 6=Sun), no fuso local
+    const byDay = Array.from({ length: 7 }, (_, i) => ({ day: i, km: 0, runs: 0 }));
+    for (const r of runs) {
+      const idx = localDayIndexSinceMonday(new Date(r.startedAt), monday);
+      if (idx >= 0 && idx < 7) {
+        byDay[idx].km += r.distanceMeters / 1000;
+        byDay[idx].runs += 1;
+      }
+    }
+    for (const d of byDay) d.km = Math.round(d.km * 10) / 10;
 
     // Last 4 weeks for trend
     const fourWeeksAgo = new Date(monday); fourWeeksAgo.setDate(monday.getDate() - 28);

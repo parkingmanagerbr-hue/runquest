@@ -149,7 +149,9 @@ export default function AppDashboard() {
     api.stravaStatus().then(setStrava).catch(() => {});
     // Via cliente api: ganha o auto-refresh de 401. O erro cai no mesmo .catch()
     // que antes tratava o `!r.ok` — comportamento preservado (não seta estado).
-    api.get<WeekStats | null>('/runs/stats/week').then(d => d && setWeek(d)).catch(() => {});
+    // Manda o offset de fuso p/ a semana ser calculada no horário LOCAL do usuário.
+    api.get<WeekStats | null>(`/runs/stats/week?tzOffsetMin=${new Date().getTimezoneOffset()}`)
+      .then(d => d && setWeek(d)).catch(() => {});
     // Manda o dia LOCAL: o servidor (UTC) mostraria o treino de amanhã perto da
     // meia-noite p/ quem está a oeste de Greenwich.
     api.get<TodayWorkout | null>(`/plans/today?date=${localDateKey(new Date())}`)
