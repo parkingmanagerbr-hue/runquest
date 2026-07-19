@@ -6,6 +6,7 @@ import { LogoMark } from '@/components/LogoMark';
 import Link from 'next/link';
 import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain, TrendingUp, TrendingDown, BarChart2, Layers, Swords, X, ChevronRight, Smartphone, Timer } from 'lucide-react';
 import { formatPace } from '@/lib/geo';
+import { localDateKey } from '@/lib/dateKey';
 
 const ONBOARDING_KEY = 'rq.onboarded.v2';
 
@@ -149,7 +150,10 @@ export default function AppDashboard() {
     // Via cliente api: ganha o auto-refresh de 401. O erro cai no mesmo .catch()
     // que antes tratava o `!r.ok` — comportamento preservado (não seta estado).
     api.get<WeekStats | null>('/runs/stats/week').then(d => d && setWeek(d)).catch(() => {});
-    api.get<TodayWorkout | null>('/plans/today').then(d => d && setTodayWorkout(d)).catch(() => {});
+    // Manda o dia LOCAL: o servidor (UTC) mostraria o treino de amanhã perto da
+    // meia-noite p/ quem está a oeste de Greenwich.
+    api.get<TodayWorkout | null>(`/plans/today?date=${localDateKey(new Date())}`)
+      .then(d => d && setTodayWorkout(d)).catch(() => {});
     api.get<RecentRun[]>('/runs?limit=3')
       .then(d => Array.isArray(d) && setRecentRuns(d)).catch(() => {});
     api.get<HomeMission[]>('/missions')

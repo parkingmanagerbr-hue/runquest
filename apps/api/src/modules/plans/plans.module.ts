@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Get, Module, Param, Post, Put, UseGuards, ForbiddenException,
+  Body, Controller, Get, Module, Param, Post, Put, Query, UseGuards, ForbiddenException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { IsString, IsInt, IsISO8601, IsOptional, IsArray, IsNumber, IsEnum, Min, Max } from 'class-validator';
@@ -247,13 +247,20 @@ Rules:
 
   /** GET /plans/today — Today's workout from active plan, null if none */
   @Get('today')
-  async today(@CurrentUser() user: RequestUser) {
+  async today(@CurrentUser() user: RequestUser, @Query('date') date?: string) {
     const plan = await this.prisma.trainingPlan.findFirst({
       where: { userId: user.id, active: true },
     });
     if (!plan) return null;
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    // O "hoje" é o dia LOCAL do usuário, que só o cliente conhece — o servidor,
+    // em UTC, mostraria o treino de amanhã perto da meia-noite p/ quem está a
+    // oeste de Greenwich (os planos adaptativos gravam datas locais). O cliente
+    // manda ?date=YYYY-MM-DD; sem isso, cai no UTC do servidor (compatível com
+    // os planos de template, que são ancorados em UTC).
+    const todayStr = /^\d{4}-\d{2}-\d{2}$/.test(date ?? '')
+      ? (date as string)
+      : new Date().toISOString().slice(0, 10);
     // scheduledWorkouts é uma coluna Json: pode não ser um array (dado legado /
     // corrompido). O `as any[]` de antes presumia que sempre era.
     const scheduled = Array.isArray(plan.scheduledWorkouts)
