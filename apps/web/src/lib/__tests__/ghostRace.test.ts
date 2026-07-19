@@ -71,3 +71,14 @@ describe('finishCallout', () => {
     expect(finishCallout(g)).toContain('venceu');
   });
 });
+
+describe('finishCallout — os dois lados', () => {
+  it('você chegou primeiro → mensagem de vitória', () => {
+    const msg = finishCallout({ youMeters: 5000, ghostMeters: 4900, gapMeters: 100, gapSec: 20, ahead: true, finished: true, youFinished: true, ghostFinished: false, progress: 1 });
+    expect(msg).toMatch(/venceu/i);
+  });
+  it('fantasma chegou primeiro → mensagem de revanche', () => {
+    const msg = finishCallout({ youMeters: 4900, ghostMeters: 5000, gapMeters: -100, gapSec: -20, ahead: false, finished: true, youFinished: false, ghostFinished: true, progress: 0.98 });
+    expect(msg).toMatch(/fantasma chegou primeiro|revanche/i);
+  });
+});

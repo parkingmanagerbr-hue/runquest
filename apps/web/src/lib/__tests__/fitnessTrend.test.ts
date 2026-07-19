@@ -107,3 +107,35 @@ describe('computeFitnessTrend', () => {
     expect(t.best5kSec).toBeGreaterThan(1000); // não pegou o glitch de 480s
   });
 });
+
+describe('computeFitnessTrend — bordas estatísticas', () => {
+  it('melhora perfeitamente linear → significativa (t=±∞), trend improving', () => {
+    // Uma corrida por semana, cada semana exatamente 15 s mais rápida: ajuste
+    // perfeito (r²=1, sem erro residual) ⇒ seSlope 0 ⇒ |t|=Infinity ⇒ significativo.
+    const runs = [];
+    for (let w = 6; w >= 0; w--) {
+      runs.push({ distanceMeters: 5000, durationSec: 1500 + w * 15, startedAt: daysAgo(w * 7 + 1) });
+    }
+    const t = computeFitnessTrend(runs, now, 8);
+    expect(t.trend).toBe('improving');
+    expect(t.r2).toBe(1); // ajuste perfeito
+  });
+
+  it('descarta corridas com data inválida ou distância <= 0', () => {
+    const runs = [
+      { distanceMeters: 5000, durationSec: 1500, startedAt: 'lixo' },
+      { distanceMeters: 0, durationSec: 1500, startedAt: daysAgo(3) },
+      { distanceMeters: 5000, durationSec: 1500, startedAt: daysAgo(3) },
+    ];
+    const t = computeFitnessTrend(runs, now, 8);
+    // Só a 3ª corrida conta — não quebra, e produz um best5kSec finito.
+    expect(t.best5kSec).not.toBeNull();
+    expect(Number.isFinite(t.best5kSec as number)).toBe(true);
+  });
+
+  it('sem corridas → tendência insufficient e sem recordes', () => {
+    const t = computeFitnessTrend([], now, 8);
+    expect(t.trend).toBe('insufficient'); // não "flat" — não há dado para julgar
+    expect(t.best5kSec).toBeNull();
+  });
+});
