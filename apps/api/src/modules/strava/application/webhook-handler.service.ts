@@ -112,21 +112,33 @@ export class StravaWebhookHandler {
     const startedAt = new Date(activity.start_date);
     const endedAt = new Date(startedAt.getTime() + activity.elapsed_time * 1000);
 
-    const run = await this.prisma.run.create({
-      data: {
-        userId: token.userId,
-        startedAt,
-        endedAt,
-        distanceMeters: activity.distance,
-        durationSec: activity.moving_time,
-        avgPaceSecPerKm: pace,
-        pointsGeoJson: activity.map?.summary_polyline
-          ? { polyline: activity.map.summary_polyline }
-          : {},
-        source: 'STRAVA_IMPORT',
-        stravaActivityId: BigInt(payload.object_id),
-      },
-    });
+    let run;
+    try {
+      run = await this.prisma.run.create({
+        data: {
+          userId: token.userId,
+          startedAt,
+          endedAt,
+          distanceMeters: activity.distance,
+          durationSec: activity.moving_time,
+          avgPaceSecPerKm: pace,
+          pointsGeoJson: activity.map?.summary_polyline
+            ? { polyline: activity.map.summary_polyline }
+            : {},
+          source: 'STRAVA_IMPORT',
+          stravaActivityId: BigInt(payload.object_id),
+        },
+      });
+    } catch (e) {
+      // stravaActivityId é @unique: se o import em lote criou a MESMA atividade
+      // entre a checagem `existingRun` acima e este create, dá P2002. Trata como
+      // já importado (não estoura o webhook, que o Strava reentregaria).
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        await this.markProcessed(eventId);
+        return { ok: true, skipped: 'duplicate_run' };
+      }
+      throw e;
+    }
 
     // Reuso da lógica de post-run (XP + streak + missões + territórios + badges)
     await this.applyPostRun(token.userId, run, activity);
