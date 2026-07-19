@@ -77,7 +77,13 @@ export class MercadoPagoGateway implements PaymentGateway {
 
     const manifest = `id:${id};request-id:${requestId ?? ''};ts:${ts};`;
     const expected = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
-    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(v1));
+    const a = Buffer.from(expected);
+    const b = Buffer.from(v1);
+    // timingSafeEqual LANÇA RangeError se os tamanhos diferem — e o v1 vem do
+    // request. Sem esta guarda, um v1 malformado derrubava o webhook com 500 em
+    // vez de rejeitar (como Hotmart/Cakto já fazem).
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
   }
 
   async parseEvent(payload: unknown): Promise<ProviderEvent> {
