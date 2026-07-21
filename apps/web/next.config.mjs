@@ -1,4 +1,10 @@
 import withPWAInit from 'next-pwa';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+// Raiz do monorepo — no Next 15, sem isto o file-tracing do output standalone
+// infere a raiz errada (há lockfile na raiz E em apps/web) e avisa.
+const monorepoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const withPWA = withPWAInit({
   dest: 'public',
@@ -30,6 +36,7 @@ const withPWA = withPWAInit({
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  outputFileTracingRoot: monorepoRoot,
   poweredByHeader: false,
   async rewrites() {
     return [

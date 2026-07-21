@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Play, Pause, SkipForward, SkipBack, X } from 'lucide-react';
@@ -25,8 +25,8 @@ const KIND_BG: Record<string, string> = {
   CUSTOM: 'from-rq-lime/40 to-emerald-500/30',
 };
 
-export default function WorkoutPlayerPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function WorkoutPlayerPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const [workout, setWorkout] = useState<Workout | null>(null);
 

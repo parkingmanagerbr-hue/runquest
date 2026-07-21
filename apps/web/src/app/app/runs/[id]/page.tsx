@@ -1,6 +1,6 @@
 'use client';
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles, Download, Flame, Gauge, Mountain, StickyNote, Check } from 'lucide-react';
@@ -49,8 +49,8 @@ function svgToPng(svg: string, w: number, h: number): Promise<Blob> {
   });
 }
 
-export default function RunDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const [run, setRun] = useState<Run | null>(null);
   const [loading, setLoading] = useState(true);
