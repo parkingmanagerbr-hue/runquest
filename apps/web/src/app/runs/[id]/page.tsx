@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { LogoMark } from '@/components/LogoMark';
@@ -249,8 +249,8 @@ function NotFound() {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function PublicRunSharePage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function PublicRunSharePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [run, setRun] = useState<PublicRun | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
