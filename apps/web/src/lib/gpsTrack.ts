@@ -49,6 +49,16 @@ export function splitPace(durSec: number, prevDurSec: number, distM: number, pre
   return Math.round(((durSec - prevDurSec) * 1000) / (distM - prevDistM));
 }
 
+/**
+ * Duração decorrida (s) pelo RELÓGIO: base acumulada + (agora − início do
+ * segmento). Fonte única do cálculo que sobrevive ao throttle de setInterval em
+ * background — e que precisa ser "flushado" ao pausar/parar, senão perde-se a
+ * fração desde o último tick de 1 s.
+ */
+export function elapsedSec(baseSec: number, segStartMs: number, nowMs: number): number {
+  return baseSec + Math.round((nowMs - segStartMs) / 1000);
+}
+
 /** Barras de sinal (0–4) a partir da precisão do fix — 0 quando não há GPS. */
 export function gpsSignal(accuracy: number | null): 0 | 1 | 2 | 3 | 4 {
   if (!accuracy) return 0;

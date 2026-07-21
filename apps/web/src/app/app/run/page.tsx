@@ -13,7 +13,7 @@ import { useWorkoutEngine, speak, type RawSegment } from '@/lib/useWorkoutEngine
 import { ghostProgress, leadChangeCallout, finishCallout } from '@/lib/ghostRace';
 import { saveActiveRun, loadActiveRun, clearActiveRun, type ActiveRun } from '@/lib/runPersistence';
 import { watchPosition as geoWatch, isNativePlatform, type GeoWatchHandle } from '@/lib/geolocation';
-import { isAcceptableFix, acceptStep, elevationStep, splitPace, gpsSignal } from '@/lib/gpsTrack';
+import { isAcceptableFix, acceptStep, elevationStep, splitPace, gpsSignal, elapsedSec } from '@/lib/gpsTrack';
 import { StravaUpload } from '@/components/StravaUpload';
 import { estimateCalories } from '@/lib/calories';
 import { parseTargetPace } from '@/lib/parsePace';
@@ -307,7 +307,7 @@ export default function RunTrackingPage() {
     tickRef.current = setInterval(() => {
       if (stateRef.current === 'tracking') {
         // Recalcula do relógio: correto mesmo se o tick foi throttled em background.
-        const n = durationBaseRef.current + Math.round((Date.now() - segStartRef.current) / 1000);
+        const n = elapsedSec(durationBaseRef.current, segStartRef.current, Date.now());
         durationRef.current = n; setDuration(n);
         // Auto-save a cada 5s para recuperação a frio (throttle p/ não pesar)
         if ((saveCounterRef.current = (saveCounterRef.current + 1) % 5) === 0) persistProgress();
@@ -316,6 +316,12 @@ export default function RunTrackingPage() {
   }, [startedAt, persistProgress]);
 
   const pause = useCallback(() => {
+    // Flush do relógio ANTES de congelar: captura a fração desde o último tick de
+    // 1 s — senão cada pausa perdia até ~1 s (acumula com muitas paradas).
+    if (stateRef.current === 'tracking') {
+      const n = elapsedSec(durationBaseRef.current, segStartRef.current, Date.now());
+      durationRef.current = n; setDuration(n);
+    }
     setState('paused'); stateRef.current = 'paused';
     if (watchId.current != null) { watchId.current.clear(); watchId.current = null; }
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
@@ -328,6 +334,11 @@ export default function RunTrackingPage() {
   }, [start]);
 
   const stop = async () => {
+    // Flush do relógio se ainda estava correndo — captura o último trecho antes
+    // de ler a duração final (parar no meio de um tick perderia até ~1 s).
+    if (stateRef.current === 'tracking') {
+      durationRef.current = elapsedSec(durationBaseRef.current, segStartRef.current, Date.now());
+    }
     if (watchId.current != null) { watchId.current.clear(); watchId.current = null; }
     if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; }
     wakeLockRef.current?.release().catch(() => {});

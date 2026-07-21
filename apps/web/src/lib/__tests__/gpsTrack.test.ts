@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isAcceptableFix, acceptStep, elevationStep, splitPace, gpsSignal } from '../gpsTrack';
+import { isAcceptableFix, acceptStep, elevationStep, splitPace, gpsSignal, elapsedSec } from '../gpsTrack';
 
 describe('isAcceptableFix — gate de precisão horizontal', () => {
   it('aceita no limiar (35 m) e melhor', () => {
@@ -76,5 +76,19 @@ describe('gpsSignal — barras de sinal pela precisão', () => {
   it('precisão pior que 40 m → 0 barras', () => {
     expect(gpsSignal(41)).toBe(0);
     expect(gpsSignal(500)).toBe(0);
+  });
+});
+
+describe('elapsedSec — relógio (flush ao pausar/parar)', () => {
+  it('base + segundos decorridos desde o início do segmento', () => {
+    // base 10s, segmento começou em t0, agora t0+5s → 15s.
+    expect(elapsedSec(10, 1_000_000, 1_005_000)).toBe(15);
+  });
+  it('arredonda ao segundo (captura a fração sub-tick que o flush existe p/ salvar)', () => {
+    // 10,7s desde o início, base 0 → arredonda p/ 11 (o tick stale daria 10).
+    expect(elapsedSec(0, 1_000_000, 1_010_700)).toBe(11);
+  });
+  it('mesmo instante → só a base (segmento de duração zero)', () => {
+    expect(elapsedSec(42, 2_000_000, 2_000_000)).toBe(42);
   });
 });
