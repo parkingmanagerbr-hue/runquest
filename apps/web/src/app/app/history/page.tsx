@@ -6,6 +6,7 @@ import { ArrowLeft, Activity, Clock, TrendingUp, ChevronRight, MapPin, Download,
 import { api, tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace } from '@/lib/geo';
 import { runsToCsv } from '@/lib/exportCsv';
+import { SkeletonList } from '@/components/Skeleton';
 
 interface Run {
   id: string;
@@ -145,7 +146,7 @@ export default function HistoryPage() {
 
         {/* Runs grouped by month */}
         {loading ? (
-          <div className="text-white/60">Carregando…</div>
+          <SkeletonList rows={6} />
         ) : runs.length === 0 ? (
           <div className="glass p-12 text-center">
             <Activity className="w-12 h-12 mx-auto mb-4 text-rq-lime" />

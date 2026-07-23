@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Target, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { SkeletonList } from '@/components/Skeleton';
 
 interface Goal {
   id: string; kind: string; period: string;
@@ -93,7 +94,7 @@ export default function GoalsPage() {
           </div>
         )}
 
-        {loading ? <div className="text-white/60">Carregando…</div> :
+        {loading ? <SkeletonList rows={3} /> :
          goals.length === 0 && !creating ? (
           <div className="glass p-12 text-center">
             <Target className="w-12 h-12 mx-auto mb-4 text-rq-lime" />

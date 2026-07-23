@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Award } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { SkeletonCards } from '@/components/Skeleton';
 
 interface Badge { id: string; code: string; title: string; description: string; icon: string; tier: string; unlocked: boolean; unlockedAt?: string | null; xpReward: number; coinReward: number; }
 
@@ -37,7 +38,7 @@ export default function BadgesPage() {
       </header>
 
       <section className="max-w-5xl mx-auto px-6 py-8">
-        {loading ? <div className="text-white/60">Carregando…</div> : (
+        {loading ? <SkeletonCards count={8} /> : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {badges.map(b => (
               <div key={b.id} className={`glass p-4 border ${b.unlocked ? TIER_COLOR[b.tier] : 'opacity-30 grayscale'}`}>

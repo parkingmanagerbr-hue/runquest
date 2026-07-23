@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Plus, Play, Trash2, Clock, Repeat, Zap, MapPin, Dumbbell } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { SkeletonList } from '@/components/Skeleton';
 import { formatDuration } from '@/lib/geo';
 
 interface Segment {
@@ -83,7 +84,7 @@ export default function WorkoutsPage() {
 
       <section className="max-w-5xl mx-auto px-6 py-8">
         {loading ? (
-          <div className="text-white/60">Carregando…</div>
+          <SkeletonList rows={4} />
         ) : items.length === 0 ? (
           <div className="glass p-12 text-center">
             <Zap className="w-12 h-12 mx-auto mb-4 text-rq-lime" />

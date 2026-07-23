@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, MapPinned, Trophy, Clock } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { SkeletonList } from '@/components/Skeleton';
 
 const TerritoryMap = dynamic(() => import('@/components/TerritoryMap').then(m => m.TerritoryMap), {
   ssr: false,
@@ -69,7 +70,7 @@ export default function TerritoriesPage() {
         )}
 
         {loading ? (
-          <div className="text-white/60">Carregando…</div>
+          <SkeletonList rows={4} />
         ) : territories.length === 0 ? (
           <div className="glass p-12 text-center">
             <MapPinned className="w-12 h-12 mx-auto mb-4 text-rq-lime" />

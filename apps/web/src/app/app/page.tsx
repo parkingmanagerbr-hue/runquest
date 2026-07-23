@@ -8,6 +8,7 @@ import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, P
 import { formatPace } from '@/lib/geo';
 import { localDateKey } from '@/lib/dateKey';
 import { useToast } from '@/components/Toast';
+import { Skeleton, SkeletonCards } from '@/components/Skeleton';
 
 // Grid do dashboard, agora organizado por intenção em vez de um "muro" plano de
 // 21 cards de mesmo peso. As 5 áreas mais usadas (Início, Missões, Correr,
@@ -254,7 +255,20 @@ export default function AppDashboard() {
 
   const logout = () => { tokens.clear(); router.push('/'); };
 
-  if (loading) return <main className="min-h-screen flex items-center justify-center text-white/60">Carregando…</main>;
+  if (loading) return (
+    <main className="min-h-screen bg-rq-aurora">
+      <div className="max-w-5xl mx-auto p-6 space-y-4">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-4 w-56 !bg-white/[0.07]" />
+        <Skeleton className="h-20 w-full rounded-3xl" />
+        <div className="grid grid-cols-2 gap-3">
+          <Skeleton className="h-28 rounded-3xl" />
+          <Skeleton className="h-28 rounded-3xl" />
+        </div>
+        <SkeletonCards count={4} />
+      </div>
+    </main>
+  );
   if (!me) return null;
 
   return (

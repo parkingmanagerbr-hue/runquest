@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Target, Trophy, Coins, Sparkles, CheckCircle2 } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { SkeletonList } from '@/components/Skeleton';
 
 interface Mission {
   id: string;
@@ -81,7 +82,7 @@ export default function MissionsPage() {
       </header>
 
       <section className="max-w-5xl mx-auto px-6 py-8 space-y-8">
-        {loading && <div className="text-white/60">Carregando…</div>}
+        {loading && <SkeletonList rows={5} />}
 
         {!loading && (
           <>

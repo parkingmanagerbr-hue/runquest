@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Search, UserPlus, UserCheck, Users } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { SkeletonList } from '@/components/Skeleton';
 
 interface User { id: string; displayName: string; level: number; xp: number; selectedAvatar?: string; }
 
@@ -82,7 +83,7 @@ export default function FriendsPage() {
           </div>
         )}
 
-        {loading ? <div className="text-white/60">Carregando…</div> : display.length === 0 ? (
+        {loading ? <SkeletonList rows={5} /> : display.length === 0 ? (
           <div className="glass p-8 text-center text-white/50 text-sm">
             {tab === 'following' && 'Você ainda não segue ninguém. Vá em Buscar pra encontrar amigos.'}
             {tab === 'followers' && 'Ninguém te segue ainda.'}

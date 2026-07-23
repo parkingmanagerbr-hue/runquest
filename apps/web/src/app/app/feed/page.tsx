@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Heart, MessageCircle, Activity } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace } from '@/lib/geo';
+import { SkeletonList } from '@/components/Skeleton';
 
 interface FeedRun {
   id: string;
@@ -48,7 +49,7 @@ export default function FeedPage() {
       </header>
 
       <section className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {loading ? <div className="text-white/60">Carregando…</div> :
+        {loading ? <SkeletonList rows={4} /> :
          runs.length === 0 ? (
           <div className="glass p-12 text-center">
             <Activity className="w-12 h-12 mx-auto mb-4 text-rq-lime" />

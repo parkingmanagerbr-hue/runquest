@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Swords, Trophy, Coins, Users, CheckCircle2, Flag, Crown } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { SkeletonList } from '@/components/Skeleton';
 
 interface Challenge {
   id: string;
@@ -102,7 +103,7 @@ export default function ChallengesPage() {
       </header>
 
       <section className="max-w-5xl mx-auto px-6 py-8 space-y-4">
-        {loading && <div className="text-white/60">Carregando…</div>}
+        {loading && <SkeletonList rows={4} />}
 
         {!loading && challenges.length === 0 && (
           <div className="glass p-8 text-center text-white/60">

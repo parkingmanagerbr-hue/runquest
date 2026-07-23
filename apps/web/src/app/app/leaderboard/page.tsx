@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Trophy, TrendingUp, MapPinned, Sparkles, type LucideIcon } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { SkeletonList } from '@/components/Skeleton';
 
 type Kind = 'xp' | 'distance' | 'territories';
 interface Row { rank: number; userId: string; displayName: string; avatar?: string; level: number; value: number; isMe: boolean; }
@@ -54,7 +55,7 @@ export default function LeaderboardPage() {
           ))}
         </div>
 
-        {loading ? <div className="text-white/60">Carregando…</div> : rows.length === 0 ? (
+        {loading ? <SkeletonList rows={6} /> : rows.length === 0 ? (
           <div className="glass p-12 text-center">
             <Trophy className="w-12 h-12 mx-auto mb-4 text-rq-lime" />
             <h2 className="font-display text-xl font-bold">Sem ranking ainda</h2>
