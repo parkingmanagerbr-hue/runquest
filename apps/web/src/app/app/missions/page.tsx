@@ -6,6 +6,7 @@ import { ArrowLeft, Target, Trophy, Coins, Sparkles, CheckCircle2 } from 'lucide
 import { api, tokens } from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { SkeletonList } from '@/components/Skeleton';
+import { EmptyState } from '@/components/EmptyState';
 
 interface Mission {
   id: string;
@@ -84,27 +85,40 @@ export default function MissionsPage() {
       <section className="max-w-5xl mx-auto px-6 py-8 space-y-8">
         {loading && <SkeletonList rows={5} />}
 
-        {!loading && (
-          <>
-            <div>
-              <h2 className="font-display text-xl font-bold mb-3 flex items-center gap-2">
-                <span className="text-rq-lime">●</span> Diárias
-                <span className="text-xs text-white/40 font-normal">reset 00:00</span>
-              </h2>
-              <div className="grid sm:grid-cols-3 gap-3">
-                {daily.map(m => <MissionCard key={m.id} m={m} onClaim={() => claim(m)} loading={claiming === m.id} />)}
-              </div>
-            </div>
+        {!loading && missions.length === 0 && (
+          <EmptyState
+            icon={Target}
+            title="Nenhuma missão por enquanto"
+            description="As missões diárias e semanais aparecem aqui assim que o ciclo abre. Volte após sua próxima corrida."
+            action={{ label: 'Iniciar corrida', href: '/app/run' }}
+          />
+        )}
 
-            <div>
-              <h2 className="font-display text-xl font-bold mb-3 flex items-center gap-2">
-                <span className="text-rq-violet">●</span> Semanais
-                <span className="text-xs text-white/40 font-normal">reset segunda 00:00</span>
-              </h2>
-              <div className="grid sm:grid-cols-3 gap-3">
-                {weekly.map(m => <MissionCard key={m.id} m={m} onClaim={() => claim(m)} loading={claiming === m.id} />)}
+        {!loading && missions.length > 0 && (
+          <>
+            {daily.length > 0 && (
+              <div>
+                <h2 className="font-display text-xl font-bold mb-3 flex items-center gap-2">
+                  <span className="text-rq-lime">●</span> Diárias
+                  <span className="text-xs text-white/40 font-normal">reset 00:00</span>
+                </h2>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {daily.map(m => <MissionCard key={m.id} m={m} onClaim={() => claim(m)} loading={claiming === m.id} />)}
+                </div>
               </div>
-            </div>
+            )}
+
+            {weekly.length > 0 && (
+              <div>
+                <h2 className="font-display text-xl font-bold mb-3 flex items-center gap-2">
+                  <span className="text-rq-violet">●</span> Semanais
+                  <span className="text-xs text-white/40 font-normal">reset segunda 00:00</span>
+                </h2>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {weekly.map(m => <MissionCard key={m.id} m={m} onClaim={() => claim(m)} loading={claiming === m.id} />)}
+                </div>
+              </div>
+            )}
           </>
         )}
       </section>
