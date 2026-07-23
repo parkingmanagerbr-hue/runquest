@@ -4,9 +4,56 @@ import { useRouter } from 'next/navigation';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
 import Link from 'next/link';
-import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain, TrendingUp, TrendingDown, BarChart2, Layers, Swords, X, ChevronRight, Smartphone, Timer } from 'lucide-react';
+import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain, TrendingUp, TrendingDown, BarChart2, Layers, Swords, X, ChevronRight, Smartphone, Timer, ShoppingBag, Users, type LucideIcon } from 'lucide-react';
 import { formatPace } from '@/lib/geo';
 import { localDateKey } from '@/lib/dateKey';
+
+// Grid do dashboard, agora organizado por intenção em vez de um "muro" plano de
+// 21 cards de mesmo peso. As 5 áreas mais usadas (Início, Missões, Correr,
+// Ranking, Perfil) saíram daqui porque viraram a BottomNav — o resto fica
+// agrupado e escaneável. Data-driven p/ não repetir 21 blocos JSX quase iguais.
+interface Tile { href: string; label: string; sub: string; icon: LucideIcon; grad: string; }
+interface Section { title: string; tiles: Tile[]; }
+
+const SECTIONS: Section[] = [
+  {
+    title: 'Treino',
+    tiles: [
+      { href: '/app/workouts', label: 'Treinos', sub: 'Intervalados', icon: Zap, grad: 'from-rq-violet to-purple-500' },
+      { href: '/app/calendar', label: 'Calendário', sub: 'Planos 5K/10K/21K', icon: CalIcon, grad: 'from-rq-violet to-blue-500' },
+      { href: '/app/routes', label: 'Percursos', sub: 'Desenhe sua rota', icon: MapPinned, grad: 'from-rq-emerald to-cyan-500' },
+      { href: '/app/devices', label: 'Relógio', sub: 'Amazfit · Garmin', icon: Watch, grad: 'from-rq-violet to-blue-600' },
+    ],
+  },
+  {
+    title: 'IA & Análise',
+    tiles: [
+      { href: '/app/ai-trainer', label: 'Trainer IA', sub: 'Plano adaptativo', icon: Brain, grad: 'from-rq-lime to-rq-violet' },
+      { href: '/app/adaptive-plan', label: 'Plano Adaptativo', sub: 'Paces + carga', icon: TrendingUp, grad: 'from-rq-lime to-cyan-500' },
+      { href: '/app/race-predictor', label: 'Previsor', sub: 'Previsão de prova', icon: Timer, grad: 'from-rq-lime/70 to-emerald-600' },
+      { href: '/app/fitness', label: 'Evolução', sub: 'Está ficando + rápido?', icon: BarChart2, grad: 'from-cyan-400 to-rq-violet' },
+      { href: '/app/stats', label: 'Estatísticas', sub: 'Progresso anual', icon: BarChart2, grad: 'from-rq-lime/70 to-rq-violet' },
+      { href: '/app/zones', label: 'Zonas', sub: 'Z1-Z5 pace', icon: Layers, grad: 'from-rq-violet to-purple-800' },
+    ],
+  },
+  {
+    title: 'Jogo',
+    tiles: [
+      { href: '/app/challenges', label: 'Desafios', sub: 'Eventos da comunidade', icon: Swords, grad: 'from-rq-orange to-rq-gold' },
+      { href: '/app/territories', label: 'Territórios', sub: 'Conquiste o mapa', icon: MapPinned, grad: 'from-rq-emerald to-cyan-500' },
+      { href: '/app/shop', label: 'Loja', sub: 'Cosméticos', icon: ShoppingBag, grad: 'from-purple-500 to-pink-500' },
+      { href: '/app/goals', label: 'Metas', sub: 'Semanais/mensais', icon: Target, grad: 'from-green-400 to-rq-lime' },
+    ],
+  },
+  {
+    title: 'Social',
+    tiles: [
+      { href: '/app/feed', label: 'Feed', sub: 'Atividades + kudos', icon: Rss, grad: 'from-pink-400 to-rq-orange' },
+      { href: '/app/friends', label: 'Amigos', sub: 'Social', icon: Users, grad: 'from-cyan-400 to-blue-500' },
+      { href: '/app/notifications', label: 'Notificações', sub: 'Atualizações', icon: Bell, grad: 'from-blue-400 to-rq-violet' },
+    ],
+  },
+];
 
 const ONBOARDING_KEY = 'rq.onboarded.v2';
 
@@ -217,13 +264,14 @@ export default function AppDashboard() {
             <span className="font-display tracking-tight">RunQuest</span>
           </div>
           <div className="flex items-center gap-3 text-sm">
-            <span className="text-white/70">{me.displayName}</span>
+            <span className="text-white/70 hidden sm:inline">{me.displayName}</span>
             {me.isPremium && (
               <span className="bg-gradient-to-br from-rq-lime/30 to-rq-violet/30 border border-rq-lime/40 text-rq-lime px-2.5 py-0.5 rounded-full text-xs font-bold">
                 PREMIUM
               </span>
             )}
-            <button onClick={logout} className="text-white/60 hover:text-white"><LogOut className="w-4 h-4" /></button>
+            <Link href="/app/settings" aria-label="Configurações" className="text-white/60 hover:text-white"><Cog className="w-4 h-4" /></Link>
+            <button onClick={logout} aria-label="Sair" className="text-white/60 hover:text-white"><LogOut className="w-4 h-4" /></button>
           </div>
         </div>
       </header>
@@ -328,156 +376,25 @@ export default function AppDashboard() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3">
-          <Link href="/app/devices" className="glass p-4 hover:border-rq-violet/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-violet to-blue-600 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <Watch className="w-4 h-4 text-white" />
+        {SECTIONS.map((section) => (
+          <div key={section.title} className="mt-6">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-3">{section.title}</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {section.tiles.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <Link key={t.href} href={t.href} className="glass p-4 hover:border-rq-lime/40 transition group">
+                    <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${t.grad} flex items-center justify-center mb-2 group-hover:scale-110 transition`}>
+                      <Icon className="w-4 h-4 text-white" />
+                    </div>
+                    <h3 className="font-bold text-sm">{t.label}</h3>
+                    <p className="text-xs text-white/50">{t.sub}</p>
+                  </Link>
+                );
+              })}
             </div>
-            <h3 className="font-bold text-sm">Relógio</h3>
-            <p className="text-xs text-white/50">Amazfit · Garmin</p>
-          </Link>
-          <Link href="/app/workouts" className="glass p-4 hover:border-rq-violet/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-violet to-purple-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <h3 className="font-bold text-sm">Treinos</h3>
-            <p className="text-xs text-white/50">Intervalados</p>
-          </Link>
-          <Link href="/app/missions" className="glass p-4 hover:border-rq-gold/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-gold to-rq-orange flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <Trophy className="w-4 h-4 text-rq-ink" />
-            </div>
-            <h3 className="font-bold text-sm">Missões</h3>
-            <p className="text-xs text-white/50">Diárias/semanais</p>
-          </Link>
-          <Link href="/app/challenges" className="glass p-4 hover:border-rq-orange/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-orange to-rq-gold flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <Swords className="w-4 h-4 text-rq-ink" />
-            </div>
-            <h3 className="font-bold text-sm">Desafios</h3>
-            <p className="text-xs text-white/50">Eventos da comunidade</p>
-          </Link>
-          <Link href="/app/territories" className="glass p-4 hover:border-rq-emerald/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-emerald to-cyan-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <MapPinned className="w-4 h-4 text-white" />
-            </div>
-            <h3 className="font-bold text-sm">Territórios</h3>
-            <p className="text-xs text-white/50">Conquiste mapa</p>
-          </Link>
-          <Link href="/app/calendar" className="glass p-4 hover:border-rq-violet/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-violet to-blue-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <CalIcon className="w-4 h-4 text-white" />
-            </div>
-            <h3 className="font-bold text-sm">Calendário</h3>
-            <p className="text-xs text-white/50">Planos 5K/10K/21K</p>
-          </Link>
-          <Link href="/app/leaderboard" className="glass p-4 hover:border-rq-gold/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-gold to-yellow-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <Trophy className="w-4 h-4 text-rq-ink" />
-            </div>
-            <h3 className="font-bold text-sm">Ranking</h3>
-            <p className="text-xs text-white/50">Semanal</p>
-          </Link>
-          <Link href="/app/shop" className="glass p-4 hover:border-rq-violet/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <span className="text-base">🛍️</span>
-            </div>
-            <h3 className="font-bold text-sm">Loja</h3>
-            <p className="text-xs text-white/50">Cosméticos</p>
-          </Link>
-          <Link href="/app/friends" className="glass p-4 hover:border-cyan-400/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <span className="text-base">👥</span>
-            </div>
-            <h3 className="font-bold text-sm">Amigos</h3>
-            <p className="text-xs text-white/50">Social</p>
-          </Link>
-          <Link href="/app/profile" className="glass p-4 hover:border-rq-lime/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-lime to-emerald-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <span className="text-base">👤</span>
-            </div>
-            <h3 className="font-bold text-sm">Perfil</h3>
-            <p className="text-xs text-white/50">XP + badges</p>
-          </Link>
-          <Link href="/app/goals" className="glass p-4 hover:border-rq-lime/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-green-400 to-rq-lime flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <Target className="w-4 h-4 text-rq-ink" />
-            </div>
-            <h3 className="font-bold text-sm">Metas</h3>
-            <p className="text-xs text-white/50">Semanais/mensais</p>
-          </Link>
-          <Link href="/app/feed" className="glass p-4 hover:border-pink-400/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-400 to-rq-orange flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <Rss className="w-4 h-4 text-white" />
-            </div>
-            <h3 className="font-bold text-sm">Feed</h3>
-            <p className="text-xs text-white/50">Atividades + kudos</p>
-          </Link>
-          <Link href="/app/notifications" className="glass p-4 hover:border-blue-400/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-400 to-rq-violet flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <Bell className="w-4 h-4 text-white" />
-            </div>
-            <h3 className="font-bold text-sm">Notificações</h3>
-            <p className="text-xs text-white/50">Atualizações</p>
-          </Link>
-          <Link href="/app/settings" className="glass p-4 hover:border-white/30 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <Cog className="w-4 h-4 text-white" />
-            </div>
-            <h3 className="font-bold text-sm">Config</h3>
-            <p className="text-xs text-white/50">Perfil + coach</p>
-          </Link>
-          <Link href="/app/stats" className="glass p-4 hover:border-rq-lime/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-lime/70 to-rq-violet flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <BarChart2 className="w-4 h-4 text-rq-ink" />
-            </div>
-            <h3 className="font-bold text-sm">Estatísticas</h3>
-            <p className="text-xs text-white/50">Progresso anual</p>
-          </Link>
-          <Link href="/app/zones" className="glass p-4 hover:border-rq-violet/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-violet to-purple-800 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <Layers className="w-4 h-4 text-white" />
-            </div>
-            <h3 className="font-bold text-sm">Zonas</h3>
-            <p className="text-xs text-white/50">Z1-Z5 pace</p>
-          </Link>
-          <Link href="/app/ai-trainer"
-            className={`glass p-4 transition group ${me.isPremium || me.isOwner ? 'hover:border-rq-lime/50 border-rq-lime/20 bg-gradient-to-br from-rq-lime/5 to-transparent' : 'hover:border-rq-violet/40'}`}>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-lime to-rq-violet flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <Brain className="w-4 h-4 text-rq-ink" />
-            </div>
-            <h3 className="font-bold text-sm">Trainer IA</h3>
-            <p className="text-xs text-white/50">{me.isPremium || me.isOwner ? 'Plano adaptativo' : '🔒 Premium'}</p>
-          </Link>
-          <Link href="/app/race-predictor" className="glass p-4 hover:border-rq-lime/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-lime/70 to-emerald-600 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <Timer className="w-4 h-4 text-rq-ink" />
-            </div>
-            <h3 className="font-bold text-sm">Previsor</h3>
-            <p className="text-xs text-white/50">Previsão de prova</p>
-          </Link>
-          <Link href="/app/adaptive-plan" className="glass p-4 hover:border-rq-lime/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-lime to-cyan-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <TrendingUp className="w-4 h-4 text-rq-ink" />
-            </div>
-            <h3 className="font-bold text-sm">Plano Adaptativo</h3>
-            <p className="text-xs text-white/50">Paces + carga, grátis</p>
-          </Link>
-          <Link href="/app/fitness" className="glass p-4 hover:border-rq-lime/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-rq-violet flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <BarChart2 className="w-4 h-4 text-rq-ink" />
-            </div>
-            <h3 className="font-bold text-sm">Evolução</h3>
-            <p className="text-xs text-white/50">Está ficando + rápido?</p>
-          </Link>
-          <Link href="/app/routes" className="glass p-4 hover:border-rq-emerald/40 transition group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rq-emerald to-cyan-500 flex items-center justify-center mb-2 group-hover:scale-110 transition">
-              <MapPinned className="w-4 h-4 text-rq-ink" />
-            </div>
-            <h3 className="font-bold text-sm">Percursos</h3>
-            <p className="text-xs text-white/50">Desenhe sua rota</p>
-          </Link>
-        </div>
+          </div>
+        ))}
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
           <div className="glass p-4">
