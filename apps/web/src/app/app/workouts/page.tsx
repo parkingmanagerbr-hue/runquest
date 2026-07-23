@@ -6,6 +6,7 @@ import { ArrowLeft, Plus, Play, Trash2, Clock, Repeat, Zap, MapPin, Dumbbell } f
 import { api, tokens } from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { SkeletonList } from '@/components/Skeleton';
+import { EmptyState } from '@/components/EmptyState';
 import { formatDuration } from '@/lib/geo';
 
 interface Segment {
@@ -86,14 +87,12 @@ export default function WorkoutsPage() {
         {loading ? (
           <SkeletonList rows={4} />
         ) : items.length === 0 ? (
-          <div className="glass p-12 text-center">
-            <Zap className="w-12 h-12 mx-auto mb-4 text-rq-lime" />
-            <h2 className="font-display text-xl font-bold mb-2">Nenhum treino ainda</h2>
-            <p className="text-white/60 mb-6">Crie seu primeiro treino intervalado: tiros, tempo, longão…</p>
-            <Link href="/app/workouts/new" className="btn-primary inline-flex">
-              <Plus className="w-4 h-4" /> Criar treino
-            </Link>
-          </div>
+          <EmptyState
+            icon={Zap}
+            title="Nenhum treino ainda"
+            description="Crie seu primeiro treino intervalado: tiros, tempo, longão…"
+            action={{ label: 'Criar treino', href: '/app/workouts/new' }}
+          />
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {items.map(w => (

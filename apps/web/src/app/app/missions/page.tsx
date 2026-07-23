@@ -7,6 +7,7 @@ import { api, tokens } from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { SkeletonList } from '@/components/Skeleton';
 import { EmptyState } from '@/components/EmptyState';
+import { haptic, SUCCESS } from '@/lib/haptics';
 
 interface Mission {
   id: string;
@@ -61,7 +62,7 @@ export default function MissionsPage() {
       const r = await api.post<{ ok?: boolean; xp?: number; coins?: number; error?: string }>(
         `/missions/${m.id}/claim`,
       );
-      if (r.ok) toast(`🎉 +${r.xp} XP · +${r.coins} 🪙 RunCoins`, 'success');
+      if (r.ok) { haptic(SUCCESS); toast(`🎉 +${r.xp} XP · +${r.coins} 🪙 RunCoins`, 'success'); }
       else toast(r.error ?? 'Não foi possível resgatar.', 'error');
       await load();
     } catch {

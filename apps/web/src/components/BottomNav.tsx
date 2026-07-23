@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { NAV_ITEMS, isActive } from '@/lib/nav';
+import { haptic } from '@/lib/haptics';
 
 /**
  * Barra de navegação inferior persistente (padrão de app mobile: Strava, Nike
@@ -27,6 +28,7 @@ export function BottomNav({ pathname }: { pathname: string }) {
                 href={item.href}
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
+                onClick={() => haptic()}
                 className="relative -mt-5 flex w-16 shrink-0 flex-col items-center justify-start gap-1"
               >
                 <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-rq-lime to-rq-emerald text-rq-ink shadow-lg shadow-rq-lime/30 ring-4 ring-rq-ink transition active:scale-95">
@@ -43,10 +45,15 @@ export function BottomNav({ pathname }: { pathname: string }) {
               href={item.href}
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}
-              className={`flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition ${
+              className={`relative flex flex-1 flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition ${
                 active ? 'text-rq-lime' : 'text-white/45 hover:text-white/80'
               }`}
             >
+              {/* Estado ativo não pode depender só de cor (daltonismo): a barrinha
+                  no topo dá um segundo canal de sinalização. */}
+              {active && (
+                <span aria-hidden="true" className="absolute top-0 h-0.5 w-8 rounded-full bg-rq-lime" />
+              )}
               <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
               <span>{item.label}</span>
             </Link>

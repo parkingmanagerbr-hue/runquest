@@ -7,6 +7,7 @@ import { api, tokens } from '@/lib/api';
 import { formatDistance, formatDuration, formatPace } from '@/lib/geo';
 import { runsToCsv } from '@/lib/exportCsv';
 import { SkeletonList } from '@/components/Skeleton';
+import { EmptyState } from '@/components/EmptyState';
 
 interface Run {
   id: string;
@@ -148,12 +149,12 @@ export default function HistoryPage() {
         {loading ? (
           <SkeletonList rows={6} />
         ) : runs.length === 0 ? (
-          <div className="glass p-12 text-center">
-            <Activity className="w-12 h-12 mx-auto mb-4 text-rq-lime" />
-            <h2 className="font-display text-xl font-bold mb-2">Sem corridas ainda</h2>
-            <p className="text-white/60 mb-6">Inicie sua primeira corrida com GPS no mapa.</p>
-            <Link href="/app/run" className="btn-primary inline-flex">Iniciar corrida</Link>
-          </div>
+          <EmptyState
+            icon={Activity}
+            title="Sem corridas ainda"
+            description="Inicie sua primeira corrida com GPS no mapa."
+            action={{ label: 'Iniciar corrida', href: '/app/run' }}
+          />
         ) : (
           <div className="space-y-5">
             {byMonth.map(([key, monthRuns]) => {

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, MapPinned, Trophy, Clock } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
 import { SkeletonList } from '@/components/Skeleton';
+import { EmptyState } from '@/components/EmptyState';
 
 const TerritoryMap = dynamic(() => import('@/components/TerritoryMap').then(m => m.TerritoryMap), {
   ssr: false,
@@ -72,15 +73,12 @@ export default function TerritoriesPage() {
         {loading ? (
           <SkeletonList rows={4} />
         ) : territories.length === 0 ? (
-          <div className="glass p-12 text-center">
-            <MapPinned className="w-12 h-12 mx-auto mb-4 text-rq-lime" />
-            <h2 className="font-display text-xl font-bold mb-2">Sem territórios ainda</h2>
-            <p className="text-white/60 mb-6">
-              Corra pra capturar hexágonos no mapa. <br />
-              <strong>3 visitas</strong> na mesma célula = conquistado.
-            </p>
-            <Link href="/app/run" className="btn-primary inline-flex">Iniciar corrida</Link>
-          </div>
+          <EmptyState
+            icon={MapPinned}
+            title="Sem territórios ainda"
+            description={<>Corra pra capturar hexágonos no mapa.<br /><strong>3 visitas</strong> na mesma célula = conquistado.</>}
+            action={{ label: 'Iniciar corrida', href: '/app/run' }}
+          />
         ) : (
           <>
             <TerritoryMap territories={territories} height="60vh" />
