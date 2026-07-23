@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Coins, Award, Activity, Flame, Zap, Timer } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { SkeletonPage } from '@/components/Skeleton';
 import { formatDuration, formatPace } from '@/lib/geo';
 
 interface PR { label: string; best: { runId: string; paceSecPerKm: number; durationSec: number; distanceMeters: number; date: string } | null }
@@ -81,7 +82,7 @@ export default function ProfilePage() {
     await load();
   };
 
-  if (loading || !me) return <main className="min-h-screen flex items-center justify-center text-white/60">Carregando…</main>;
+  if (loading || !me) return <SkeletonPage />;
 
   const range = levelXpRange(me.level);
   const xpInLevel = me.xp - range.start;

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Calendar as CalIcon, CheckCircle2, Sparkles } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { SkeletonList } from '@/components/Skeleton';
 
 interface ScheduledWorkout {
   date: string;
@@ -86,7 +87,7 @@ export default function CalendarPage() {
       </header>
 
       <section className="max-w-5xl mx-auto px-6 py-8 space-y-6">
-        {loading && <div className="text-white/60">Carregando…</div>}
+        {loading && <SkeletonList rows={4} />}
 
         {!loading && plan && (
           <>

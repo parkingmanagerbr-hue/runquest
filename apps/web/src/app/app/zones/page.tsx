@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Zap, Heart, Info } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { SkeletonList } from '@/components/Skeleton';
 
 interface Run {
   distanceMeters: number;
@@ -165,7 +166,7 @@ export default function ZonesPage() {
           </div>
         )}
 
-        {loading && <div className="text-white/60 text-center py-10">Calculando zonas…</div>}
+        {loading && <SkeletonList rows={5} />}
 
         {!loading && runs.length === 0 && (
           <div className="glass p-8 text-center">

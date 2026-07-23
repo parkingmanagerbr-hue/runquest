@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles, Download, Flame, Gauge, Mountain, StickyNote, Check } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { SkeletonPage } from '@/components/Skeleton';
 import { formatDistance, formatDuration, formatPace, computeSplits } from '@/lib/geo';
 import { Share2, ImageDown } from 'lucide-react';
 import { buildRunCardSvg } from '@/lib/runCard';
@@ -109,7 +110,7 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
     } catch (e) { toast(e instanceof Error ? e.message : String(e), 'error'); }
   };
 
-  if (loading) return <main className="min-h-screen flex items-center justify-center text-white/60">Carregando…</main>;
+  if (loading) return <SkeletonPage />;
   if (!run) return <main className="min-h-screen flex items-center justify-center text-white/60">Corrida não encontrada.</main>;
 
   // Convert coordinates from GeoJSON [lng,lat] to Leaflet [lat,lng]

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Coins, CheckCircle2, Lock, Crown } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { SkeletonPage } from '@/components/Skeleton';
 
 interface Item {
   id: string; code: string; name: string; description: string | null;
@@ -52,7 +53,7 @@ export default function ShopPage() {
     setBusy(null);
   };
 
-  if (loading || !data) return <main className="min-h-screen flex items-center justify-center text-white/60">Carregando…</main>;
+  if (loading || !data) return <SkeletonPage />;
 
   const colors = data.items.filter(i => i.kind === 'territory_color');
   const avatars = data.items.filter(i => i.kind === 'avatar');

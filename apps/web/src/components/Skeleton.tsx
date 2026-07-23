@@ -26,6 +26,23 @@ export function SkeletonList({ rows = 4, className = '' }: { rows?: number; clas
   );
 }
 
+/**
+ * Tela inteira: usada onde a página inteira depende de um fetch e antes
+ * retornava um "Carregando…" centralizado numa tela em branco.
+ */
+export function SkeletonPage({ className = '' }: { className?: string }) {
+  return (
+    <main className={`min-h-screen bg-rq-aurora ${className}`} aria-busy="true">
+      <div className="mx-auto max-w-5xl space-y-4 p-6">
+        <Skeleton className="h-7 w-44" />
+        <Skeleton className="h-4 w-64 !bg-white/[0.07]" />
+        <Skeleton className="h-32 w-full rounded-3xl" />
+        <SkeletonCards count={4} />
+      </div>
+    </main>
+  );
+}
+
 /** Grade de cards (estatísticas, badges, loja…). */
 export function SkeletonCards({ count = 6, className = '' }: { count?: number; className?: string }) {
   return (

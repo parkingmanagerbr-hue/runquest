@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, TrendingUp, Activity, ShieldCheck, ShieldAlert, MapPin, Play, ChevronLeft, ChevronRight, CalendarPlus, CheckCircle2 } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { SkeletonList } from '@/components/Skeleton';
 import { formatPace, formatDuration } from '@/lib/geo';
 import { estimatePaces, pacesFromReference, ZONE_LABEL, type RunLite, type PaceZone } from '@/lib/trainingPaces';
 import {
@@ -130,7 +131,7 @@ export default function AdaptivePlanPage() {
           partir das suas corridas e monta a semana ajustando pela sua carga (ACWR) e evolução — grátis, no seu ritmo.
         </div>
 
-        {loading && <div className="text-white/60">Carregando suas corridas…</div>}
+        {loading && <SkeletonList rows={4} />}
 
         {/* Avaliação de forma */}
         <div className="glass p-5">

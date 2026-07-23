@@ -8,6 +8,8 @@ import { estimateVo2max } from '@/lib/vo2max';
 import { estimateCalories } from '@/lib/calories';
 import { localDateKey } from '@/lib/dateKey';
 import { assessLoad, acwrBand, type AcwrBand } from '@/lib/adaptivePlan';
+import { Skeleton, SkeletonCards } from '@/components/Skeleton';
+import { EmptyState } from '@/components/EmptyState';
 
 interface Run {
   id: string;
@@ -192,13 +194,19 @@ export default function StatsPage() {
       </header>
 
       {loading ? (
-        <div className="flex items-center justify-center min-h-[60vh] text-white/60">Carregando…</div>
+        <div className="max-w-5xl mx-auto px-6 py-6 space-y-4">
+          <Skeleton className="h-24 w-full rounded-3xl" />
+          <SkeletonCards count={4} />
+          <Skeleton className="h-48 w-full rounded-3xl" />
+        </div>
       ) : runs.length === 0 ? (
-        <div className="max-w-xl mx-auto px-6 py-16 text-center">
-          <Activity className="w-12 h-12 mx-auto mb-4 text-rq-lime" />
-          <h2 className="font-display text-xl font-bold mb-2">Sem dados ainda</h2>
-          <p className="text-white/60 mb-6">Complete sua primeira corrida para ver estatísticas.</p>
-          <Link href="/app/run" className="btn-primary inline-flex">Iniciar corrida</Link>
+        <div className="max-w-xl mx-auto px-6 py-16">
+          <EmptyState
+            icon={Activity}
+            title="Sem dados ainda"
+            description="Complete sua primeira corrida para ver estatísticas."
+            action={{ label: 'Iniciar corrida', href: '/app/run' }}
+          />
         </div>
       ) : (
         <section className="max-w-5xl mx-auto px-6 py-6 space-y-6">

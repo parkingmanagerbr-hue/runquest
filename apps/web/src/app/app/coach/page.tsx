@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Send, Sparkles, Lock, Bot } from 'lucide-react';
 import { api, tokens, ApiError } from '@/lib/api';
+import { SkeletonPage } from '@/components/Skeleton';
 
 interface Msg { role: 'user' | 'assistant'; content: string; }
 
@@ -52,7 +53,7 @@ export default function CoachPage() {
   };
 
   if (isPremium === null) {
-    return <main className="min-h-screen flex items-center justify-center text-white/60">Carregando…</main>;
+    return <SkeletonPage />;
   }
 
   return (

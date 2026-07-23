@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Sparkles, Zap, Target, Calendar, ChevronRight, Lock } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { SkeletonPage } from '@/components/Skeleton';
 
 const GOALS = [
   { id: '5K', label: '5 km', emoji: '🏃', desc: 'Completar ou melhorar seu 5K' },
@@ -54,7 +55,7 @@ export default function AITrainerPage() {
     setLoading(false);
   };
 
-  if (isPremium === null) return <main className="min-h-screen flex items-center justify-center text-white/60">Carregando…</main>;
+  if (isPremium === null) return <SkeletonPage />;
 
   return (
     <main className="min-h-screen bg-rq-aurora">

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Play, Pause, SkipForward, SkipBack, X } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { SkeletonPage } from '@/components/Skeleton';
 import { formatDuration } from '@/lib/geo';
 import { useWorkoutEngine, type RawSegment } from '@/lib/useWorkoutEngine';
 
@@ -42,7 +43,7 @@ export default function WorkoutPlayerPage({ params }: { params: Promise<{ id: st
   const eng = useWorkoutEngine(workout?.segments ?? null);
 
   if (!workout) {
-    return <main className="min-h-screen flex items-center justify-center text-white/60">Carregando…</main>;
+    return <SkeletonPage />;
   }
 
   const { cur, next, idx, steps, remaining, running, done, totalRemaining, progress } = eng;

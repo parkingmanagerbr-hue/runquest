@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Save } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { SkeletonPage } from '@/components/Skeleton';
 
 interface Settings {
   displayName: string;
@@ -42,7 +43,7 @@ export default function SettingsPage() {
     toast('Salvo ✓', 'success');
   };
 
-  if (!s) return <main className="min-h-screen flex items-center justify-center text-white/60">Carregando…</main>;
+  if (!s) return <SkeletonPage />;
 
   return (
     <main className="min-h-screen bg-rq-aurora">

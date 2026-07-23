@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Timer, TrendingUp, ChevronRight } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { SkeletonList } from '@/components/Skeleton';
 
 interface PR {
   label: string;
@@ -190,7 +191,7 @@ export default function RacePredictorPage() {
           </div>
         )}
 
-        {loading && <div className="text-white/60">Carregando seus PRs…</div>}
+        {loading && <SkeletonList rows={4} />}
       </section>
     </main>
   );
