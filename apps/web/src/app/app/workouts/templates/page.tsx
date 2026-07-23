@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Dumbbell, MapPin, Play } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 import { formatPace, formatDuration, formatDistance } from '@/lib/geo';
 import { estimatePaces, ZONE_LABEL, type RunLite } from '@/lib/trainingPaces';
 import { buildTemplates, templateToWorkoutBody, type WorkoutTemplate } from '@/lib/workoutTemplates';
@@ -11,6 +12,7 @@ import { buildTemplates, templateToWorkoutBody, type WorkoutTemplate } from '@/l
 
 export default function WorkoutTemplatesPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [runs, setRuns] = useState<RunLite[]>([]);
   const [manualTime, setManualTime] = useState('');
   const [launching, setLaunching] = useState<string | null>(null);
@@ -47,7 +49,7 @@ export default function WorkoutTemplatesPage() {
       router.push(mode === 'gps' ? `/app/run?workout=${w.id}` : `/app/workouts/${w.id}/play`);
     } catch {
       setLaunching(null);
-      alert('Não consegui criar o treino. Tente de novo.');
+      toast('Não consegui criar o treino. Tente de novo.', 'error');
     }
   }
 

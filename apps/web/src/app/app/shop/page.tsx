@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Coins, CheckCircle2, Lock, Crown } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 
 interface Item {
   id: string; code: string; name: string; description: string | null;
@@ -22,6 +23,7 @@ const RARITY_BG: Record<string, string> = {
 
 export default function ShopPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [data, setData] = useState<ShopData | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -38,7 +40,8 @@ export default function ShopPage() {
   const buy = async (id: string) => {
     setBusy(id);
     const r = await api.post<{ error?: string }>(`/shop/${id}/buy`);
-    if (r.error) alert(r.error);
+    if (r.error) toast(r.error, 'error');
+    else toast('Comprado! 🎉', 'success');
     await load();
     setBusy(null);
   };

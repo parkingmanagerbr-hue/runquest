@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Swords, Trophy, Coins, Users, CheckCircle2, Flag, Crown } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 
 interface Challenge {
   id: string;
@@ -52,6 +53,7 @@ function daysLeft(endsAt: string): string {
 
 export default function ChallengesPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -78,8 +80,8 @@ export default function ChallengesPage() {
     setBusy(c.id);
     try {
       const r = await api.post<{ ok: boolean; xp?: number; coins?: number; error?: string }>(`/challenges/${c.id}/claim`);
-      if (r.ok) alert(`🎉 +${r.xp} XP · +${r.coins} 🪙 RunCoins`);
-      else alert(r.error);
+      if (r.ok) toast(`🎉 +${r.xp} XP · +${r.coins} 🪙 RunCoins`, 'success');
+      else toast(r.error ?? 'Não foi possível resgatar.', 'error');
       await load();
     } finally { setBusy(null); }
   };

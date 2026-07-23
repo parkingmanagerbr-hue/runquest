@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, TrendingUp, Activity, ShieldCheck, ShieldAlert, MapPin, Play, ChevronLeft, ChevronRight, CalendarPlus, CheckCircle2 } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 import { formatPace, formatDuration } from '@/lib/geo';
 import { estimatePaces, pacesFromReference, ZONE_LABEL, type RunLite, type PaceZone } from '@/lib/trainingPaces';
 import {
@@ -30,6 +31,7 @@ function fmtTime(sec: number): string {
 
 export default function AdaptivePlanPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [runs, setRuns] = useState<RunLite[]>([]);
   const [loading, setLoading] = useState(true);
   const [goal, setGoal] = useState<Goal>('10k');
@@ -82,7 +84,7 @@ export default function AdaptivePlanPage() {
       router.push(mode === 'gps' ? `/app/run?workout=${w.id}` : `/app/workouts/${w.id}/play`);
     } catch {
       setLaunching(null);
-      alert('Não consegui criar o treino. Tente de novo.');
+      toast('Não consegui criar o treino. Tente de novo.', 'error');
     }
   }
 
@@ -103,7 +105,7 @@ export default function AdaptivePlanPage() {
       });
       setSaved(true);
     } catch {
-      alert('Não consegui salvar o plano no calendário. Tente de novo.');
+      toast('Não consegui salvar o plano no calendário. Tente de novo.', 'error');
     } finally {
       setSaving(false);
     }

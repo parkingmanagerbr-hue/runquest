@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Target, Trophy, Coins, Sparkles, CheckCircle2 } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 
 interface Mission {
   id: string;
@@ -36,6 +37,7 @@ const KIND_UNIT: Record<string, string> = {
 
 export default function MissionsPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState<string | null>(null);
@@ -57,11 +59,11 @@ export default function MissionsPage() {
       const r = await api.post<{ ok?: boolean; xp?: number; coins?: number; error?: string }>(
         `/missions/${m.id}/claim`,
       );
-      if (r.ok) alert(`🎉 +${r.xp} XP · +${r.coins} 🪙 RunCoins`);
-      else alert(r.error);
+      if (r.ok) toast(`🎉 +${r.xp} XP · +${r.coins} 🪙 RunCoins`, 'success');
+      else toast(r.error ?? 'Não foi possível resgatar.', 'error');
       await load();
     } catch {
-      alert('Erro ao resgatar. Tente de novo.');
+      toast('Erro ao resgatar. Tente de novo.', 'error');
     } finally { setClaiming(null); }
   };
 

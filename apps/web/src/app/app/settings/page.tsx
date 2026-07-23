@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 
 interface Settings {
   displayName: string;
@@ -17,6 +18,7 @@ interface Settings {
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [s, setS] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -37,7 +39,7 @@ export default function SettingsPage() {
     await api.patch('/settings', s);
     try { localStorage.setItem('rq.settings', JSON.stringify(s)); } catch {}
     setSaving(false);
-    alert('Salvo ✓');
+    toast('Salvo ✓', 'success');
   };
 
   if (!s) return <main className="min-h-screen flex items-center justify-center text-white/60">Carregando…</main>;

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Play, Pause, Square, MapPin, Activity, ArrowLeft, Heart, Zap, Trophy, Flame, Star, Mountain, Navigation, Footprints } from 'lucide-react';
 import Link from 'next/link';
 import { api, tokens } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 import { haversine, formatPace, formatDuration, formatDistance } from '@/lib/geo';
 import { useHeartRate } from '@/lib/useHeartRate';
 import { useCadence } from '@/lib/useCadence';
@@ -38,6 +39,7 @@ type Point = [number, number];
 
 export default function RunTrackingPage() {
   const router = useRouter();
+  const { toast, confirm } = useToast();
   const [state, setState] = useState<'idle' | 'tracking' | 'paused' | 'done'>('idle');
   const [runResult, setRunResult] = useState<RunResult | null>(null);
   const [points, setPoints] = useState<Point[]>([]);
@@ -347,7 +349,7 @@ export default function RunTrackingPage() {
     const finalDist = distRef.current;
 
     if (pointsRef.current.length < 2 || finalDist < 50) {
-      if (!confirm('Corrida muito curta. Descartar?')) { setState('paused'); stateRef.current = 'paused'; return; }
+      if (!(await confirm('Corrida muito curta. Descartar?', 'Descartar'))) { setState('paused'); stateRef.current = 'paused'; return; }
       reset(); return;
     }
     setState('done'); stateRef.current = 'done';
@@ -376,7 +378,7 @@ export default function RunTrackingPage() {
       setRunResult(run);
     } catch (e) {
       setState('paused'); stateRef.current = 'paused';
-      alert('Erro ao salvar: ' + (e instanceof Error ? e.message : String(e)));
+      toast('Erro ao salvar: ' + (e instanceof Error ? e.message : String(e)), 'error');
     }
   };
 

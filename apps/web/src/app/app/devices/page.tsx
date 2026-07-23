@@ -4,11 +4,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Watch, Bluetooth, Link2, CheckCircle2, ExternalLink, Heart, Smartphone, Footprints } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 import { useHeartRate } from '@/lib/useHeartRate';
 import { useCadence } from '@/lib/useCadence';
 
 export default function DevicesPage() {
   const router = useRouter();
+  const { confirm } = useToast();
   const [strava, setStrava] = useState<{ connected: boolean; athleteId?: string | null } | null>(null);
   // Mesmos hooks BLE usados na tela de corrida (/app/run) — funcionam com
   // qualquer dispositivo do serviço padrão de FC ou cadência/velocidade, de
@@ -28,7 +30,7 @@ export default function DevicesPage() {
   };
 
   const disconnectStrava = async () => {
-    if (!confirm('Desconectar Strava?')) return;
+    if (!(await confirm('Desconectar Strava?', 'Desconectar'))) return;
     await api.stravaDisconnect();
     setStrava({ connected: false });
   };

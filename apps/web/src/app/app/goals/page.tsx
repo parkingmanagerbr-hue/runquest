@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Target, Plus, Trash2, CheckCircle2 } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 
 interface Goal {
   id: string; kind: string; period: string;
@@ -24,6 +25,7 @@ const PERIOD_LABEL: Record<string, string> = {
 
 export default function GoalsPage() {
   const router = useRouter();
+  const { confirm } = useToast();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -45,7 +47,7 @@ export default function GoalsPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm('Excluir meta?')) return;
+    if (!(await confirm('Excluir meta?', 'Excluir'))) return;
     await api.del(`/goals/${id}`);
     await load();
   };

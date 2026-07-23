@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Trash2, Save, ChevronUp, ChevronDown, Zap } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 import { formatDuration, formatDistance } from '@/lib/geo';
 
 const KINDS = [
@@ -53,6 +54,7 @@ function defaultPace(): number {
 
 export default function NewWorkoutPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [name, setName] = useState('');
   const [type, setType] = useState('INTERVALS');
   const [description, setDescription] = useState('');
@@ -112,7 +114,7 @@ export default function NewWorkoutPage() {
       });
       router.replace('/app/workouts');
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e));
+      toast(e instanceof Error ? e.message : String(e), 'error');
     } finally {
       setSaving(false);
     }

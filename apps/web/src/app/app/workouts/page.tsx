@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Plus, Play, Trash2, Clock, Repeat, Zap, MapPin, Dumbbell } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 import { formatDuration } from '@/lib/geo';
 
 interface Segment {
@@ -48,6 +49,7 @@ const KIND_COLOR: Record<string, string> = {
 
 export default function WorkoutsPage() {
   const router = useRouter();
+  const { confirm } = useToast();
   const [items, setItems] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,7 +61,7 @@ export default function WorkoutsPage() {
   }, [router]);
 
   const remove = async (id: string) => {
-    if (!confirm('Excluir esse treino?')) return;
+    if (!(await confirm('Excluir esse treino?', 'Excluir'))) return;
     await api.del(`/workouts/${id}`);
     setItems(items.filter(i => i.id !== id));
   };

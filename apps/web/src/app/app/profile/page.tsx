@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Coins, Award, Activity, Flame, Zap, Timer } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 import { formatDuration, formatPace } from '@/lib/geo';
 
 interface PR { label: string; best: { runId: string; paceSecPerKm: number; durationSec: number; distanceMeters: number; date: string } | null }
@@ -46,6 +47,7 @@ const TIER_COLOR: Record<string, string> = {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [me, setMe] = useState<Me | null>(null);
   const [badges, setBadges] = useState<Badge[]>([]);
   const [daily, setDaily] = useState<{ claimed: boolean; streak: number } | null>(null);
@@ -74,8 +76,8 @@ export default function ProfilePage() {
 
   const claimDaily = async () => {
     const r = await api.post<{ ok: boolean; coins?: number; error?: string }>('/daily/claim');
-    if (r.ok) alert(`+${r.coins} 🪙 RunCoins!`);
-    else alert(r.error);
+    if (r.ok) toast(`+${r.coins} 🪙 RunCoins!`, 'success');
+    else toast(r.error ?? 'Não foi possível resgatar.', 'error');
     await load();
   };
 

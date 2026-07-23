@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Activity, Clock, MapPin, TrendingUp, Upload, Sparkles, Download, Flame, Gauge, Mountain, StickyNote, Check } from 'lucide-react';
 import { api, tokens } from '@/lib/api';
+import { useToast } from '@/components/Toast';
 import { formatDistance, formatDuration, formatPace, computeSplits } from '@/lib/geo';
 import { Share2, ImageDown } from 'lucide-react';
 import { buildRunCardSvg } from '@/lib/runCard';
@@ -52,6 +53,7 @@ function svgToPng(svg: string, w: number, h: number): Promise<Blob> {
 export default function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { toast } = useToast();
   const [run, setRun] = useState<Run | null>(null);
   const [loading, setLoading] = useState(true);
   const [analysis, setAnalysis] = useState<string | null>(null);
@@ -103,8 +105,8 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
         method: 'POST',
         headers: { Authorization: `Bearer ${localStorage.getItem('rq.at')}` },
       }).then(r => r.json());
-      alert(`Enviado pro Strava (upload #${r.uploadId})`);
-    } catch (e) { alert(e instanceof Error ? e.message : String(e)); }
+      toast(`Enviado pro Strava (upload #${r.uploadId})`, 'success');
+    } catch (e) { toast(e instanceof Error ? e.message : String(e), 'error'); }
   };
 
   if (loading) return <main className="min-h-screen flex items-center justify-center text-white/60">Carregando…</main>;
@@ -147,7 +149,7 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
       } catch {}
     } else {
       await navigator.clipboard.writeText(text + '\n' + publicUrl);
-      alert('Link copiado!');
+      toast('Link copiado!', 'success');
     }
   };
 
@@ -177,7 +179,7 @@ export default function RunDetailPage({ params }: { params: Promise<{ id: string
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
     } catch {
-      alert('Não consegui gerar o card. Tente de novo.');
+      toast('Não consegui gerar o card. Tente de novo.', 'error');
     } finally {
       setCardBusy(false);
     }

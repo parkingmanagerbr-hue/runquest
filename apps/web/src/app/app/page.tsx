@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Trophy, MapPinned, Sparkles, HeartPulse, LogOut, Link2, CheckCircle2, Play, Zap, History, Calendar as CalIcon, Target, Rss, Bell, Settings as Cog, Watch, Brain, TrendingUp, TrendingDown, BarChart2, Layers, Swords, X, ChevronRight, Smartphone, Timer, ShoppingBag, Users, type LucideIcon } from 'lucide-react';
 import { formatPace } from '@/lib/geo';
 import { localDateKey } from '@/lib/dateKey';
+import { useToast } from '@/components/Toast';
 
 // Grid do dashboard, agora organizado por intenção em vez de um "muro" plano de
 // 21 cards de mesmo peso. As 5 áreas mais usadas (Início, Missões, Correr,
@@ -174,6 +175,7 @@ const DAY_LABELS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
 
 export default function AppDashboard() {
   const router = useRouter();
+  const { toast, confirm } = useToast();
   const [me, setMe] = useState<{ displayName: string; email: string; isPremium: boolean; isOwner?: boolean; xp?: number; level?: number; runCoins?: number; streakDays?: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [strava, setStrava] = useState<{ connected: boolean; athleteId?: string | null } | null>(null);
@@ -217,37 +219,37 @@ export default function AppDashboard() {
       const v = params.get('strava');
       setTimeout(() => api.stravaStatus().then(setStrava).catch(() => {}), 500);
       window.history.replaceState({}, '', '/app');
-      if (v === 'error') alert('Erro ao conectar Strava: ' + params.get('reason'));
+      if (v === 'error') toast('Erro ao conectar Strava: ' + params.get('reason'), 'error');
     }
-  }, [router]);
+  }, [router, toast]);
 
   const goPremium = async (plan: 'MONTHLY' | 'YEARLY') => {
     try {
       const { initPoint } = await api.checkout(plan);
       window.location.href = initPoint;
-    } catch (e) { alert(e instanceof Error ? e.message : String(e)); }
+    } catch (e) { toast(e instanceof Error ? e.message : String(e), 'error'); }
   };
 
   const connectStrava = async () => {
     try {
       const { url } = await api.stravaAuthorizeUrl();
       window.location.href = url;
-    } catch (e) { alert(e instanceof Error ? e.message : String(e)); }
+    } catch (e) { toast(e instanceof Error ? e.message : String(e), 'error'); }
   };
 
   const importStrava = async () => {
     setImporting(true);
     try {
       const r = await api.stravaImport(90);
-      alert(`Importadas: ${r.imported} | Já existiam: ${r.skipped}`);
-    } catch (e) { alert(e instanceof Error ? e.message : String(e)); }
+      toast(`Importadas: ${r.imported} · Já existiam: ${r.skipped}`, 'success');
+    } catch (e) { toast(e instanceof Error ? e.message : String(e), 'error'); }
     finally { setImporting(false); }
   };
 
   const disconnectStrava = async () => {
-    if (!confirm('Desconectar Strava?')) return;
+    if (!(await confirm('Desconectar Strava?', 'Desconectar'))) return;
     try { await api.stravaDisconnect(); setStrava({ connected: false }); }
-    catch (e) { alert(e instanceof Error ? e.message : String(e)); }
+    catch (e) { toast(e instanceof Error ? e.message : String(e), 'error'); }
   };
 
   const logout = () => { tokens.clear(); router.push('/'); };
