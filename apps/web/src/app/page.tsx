@@ -6,6 +6,7 @@ import {
   Headphones, LineChart, HeartPulse, Globe, Award, Download, ChevronRight,
 } from 'lucide-react';
 import { InstallPwaButton } from '@/components/InstallPwaButton';
+import { DownloadApkButton } from '@/components/DownloadApkButton';
 import { LogoMark } from '@/components/LogoMark';
 import { useI18n, LANGS, type MsgKey } from '@/lib/i18n';
 import {
@@ -97,6 +98,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <InstallPwaButton />
+              <DownloadApkButton />
               <Link href="/auth/register" className="btn-ghost">
                 {t('hero.createAccount')} <ChevronRight className="w-4 h-4" />
               </Link>
@@ -240,9 +242,7 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <InstallPwaButton />
-            <a href="#" className="btn-ghost opacity-60 cursor-not-allowed">
-              <Smartphone className="w-4 h-4" /> {t('install.androidSoon')}
-            </a>
+            <DownloadApkButton />
             <a href="#" className="btn-ghost opacity-60 cursor-not-allowed">
               <Smartphone className="w-4 h-4" /> {t('install.iosSoon')}
             </a>
