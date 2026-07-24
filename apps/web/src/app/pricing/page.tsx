@@ -9,6 +9,8 @@ import {
   formatPrice, yearlySavingsPct, yearlyPerMonth, type CurrencyPricing,
 } from '@/lib/pricing';
 import { useI18n, LANGS, type MsgKey } from '@/lib/i18n';
+import { Skeleton } from '@/components/Skeleton';
+import { haptic } from '@/lib/haptics';
 
 type Plan = 'MONTHLY' | 'YEARLY';
 
@@ -42,6 +44,7 @@ export default function PricingPage() {
   }, []);
 
   const subscribe = async () => {
+    haptic();
     if (!loggedIn) { router.push('/auth/login?next=/pricing'); return; }
     setBusy(true); setError('');
     try {
@@ -86,7 +89,22 @@ export default function PricingPage() {
       </header>
 
       <section className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-        {isPremium && (
+        {/* Enquanto api.me() carrega, isPremium é null. Sem este ramo, um usuário
+            já Premium via primeiro o bloco "Assinar" e só depois ele trocava
+            pelo card "Você já é Premium" — flash de conteúdo errado. */}
+        {isPremium === null && (
+          <div className="space-y-6" aria-busy="true">
+            <Skeleton className="mx-auto h-7 w-2/3" />
+            <div className="grid grid-cols-2 gap-3">
+              <Skeleton className="h-24 rounded-2xl" />
+              <Skeleton className="h-24 rounded-2xl" />
+            </div>
+            <Skeleton className="h-44 rounded-3xl" />
+            <Skeleton className="h-14 rounded-2xl" />
+          </div>
+        )}
+
+        {isPremium === true && (
           <div className="glass p-6 border-rq-lime/40 bg-gradient-to-br from-rq-lime/10 to-transparent text-center">
             <Crown className="w-10 h-10 mx-auto mb-3 text-rq-gold" />
             <h2 className="font-bold text-lg mb-1">{t('pricing.alreadyTitle')}</h2>
@@ -101,7 +119,7 @@ export default function PricingPage() {
           </div>
         )}
 
-        {!isPremium && (
+        {isPremium === false && (
           <>
             <div className="text-center space-y-2">
               <h2 className="font-display text-2xl font-bold">{t('pricing.heading')}</h2>
@@ -160,7 +178,7 @@ export default function PricingPage() {
 
             {error && <div className="glass p-3 border-rq-orange/40 text-rq-orange text-sm">{error}</div>}
 
-            <button onClick={subscribe} disabled={busy || isPremium === null}
+            <button onClick={subscribe} disabled={busy}
               className="btn-primary w-full py-4 text-base disabled:opacity-50 flex items-center justify-center gap-2">
               <Crown className="w-5 h-5" />
               {busy ? t('pricing.opening') : t(plan === 'YEARLY' ? 'pricing.subscribeYearly' : 'pricing.subscribeMonthly')}
