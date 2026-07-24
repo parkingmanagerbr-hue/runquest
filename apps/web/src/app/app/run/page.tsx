@@ -6,6 +6,7 @@ import { Play, Pause, Square, MapPin, Activity, ArrowLeft, Heart, Zap, Trophy, F
 import Link from 'next/link';
 import { api, tokens } from '@/lib/api';
 import { useToast } from '@/components/Toast';
+import { haptic, SUCCESS } from '@/lib/haptics';
 import { haversine, formatPace, formatDuration, formatDistance } from '@/lib/geo';
 import { useHeartRate } from '@/lib/useHeartRate';
 import { useCadence } from '@/lib/useCadence';
@@ -375,6 +376,7 @@ export default function RunTrackingPage() {
       });
       if (!run?.id) throw new Error('Resposta inválida');
       clearActiveRun();
+      haptic(SUCCESS); // vibração de recompensa quando a modal de conquistas aparece
       setRunResult(run);
     } catch (e) {
       setState('paused'); stateRef.current = 'paused';
@@ -703,7 +705,7 @@ export default function RunTrackingPage() {
         {/* Controls */}
         <div className="flex items-center justify-center gap-5 py-2">
           {state === 'idle' && (
-            <button onClick={() => start()}
+            <button onClick={() => { haptic(SUCCESS); start(); }}
               className="w-20 h-20 rounded-full bg-rq-lime text-rq-ink flex flex-col items-center justify-center gap-0.5 shadow-2xl shadow-rq-lime/30 hover:scale-105 active:scale-95 transition">
               <Play className="w-8 h-8 fill-current" />
               <span className="text-xs font-bold">Iniciar</span>
@@ -711,11 +713,11 @@ export default function RunTrackingPage() {
           )}
           {state === 'tracking' && (
             <>
-              <button onClick={pause}
+              <button onClick={() => { haptic(); pause(); }}
                 className="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 active:scale-95 transition">
                 <Pause className="w-7 h-7" />
               </button>
-              <button onClick={stop}
+              <button onClick={() => { haptic(); stop(); }}
                 className="w-20 h-20 rounded-full flex flex-col items-center justify-center gap-0.5 text-white shadow-2xl hover:scale-105 active:scale-95 transition"
                 style={{ background: 'linear-gradient(135deg,#FF7A1A,#ff3838)' }}>
                 <Square className="w-7 h-7 fill-current" />
@@ -725,11 +727,11 @@ export default function RunTrackingPage() {
           )}
           {state === 'paused' && (
             <>
-              <button onClick={resume}
+              <button onClick={() => { haptic(); resume(); }}
                 className="w-16 h-16 rounded-full bg-rq-lime text-rq-ink flex items-center justify-center hover:scale-105 active:scale-95 transition">
                 <Play className="w-7 h-7 fill-current" />
               </button>
-              <button onClick={stop}
+              <button onClick={() => { haptic(); stop(); }}
                 className="w-20 h-20 rounded-full bg-white/10 border border-white/20 flex flex-col items-center justify-center gap-0.5 text-sm font-bold hover:bg-white/20 active:scale-95 transition">
                 <Square className="w-6 h-6" />
                 Salvar
@@ -834,7 +836,8 @@ export default function RunTrackingPage() {
       {/* Post-run modal */}
       {runResult && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-          <div className="bg-rq-night border border-white/10 rounded-3xl w-full max-w-sm p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div role="dialog" aria-modal="true" aria-label="Corrida concluída"
+            className="bg-rq-night border border-white/10 rounded-3xl w-full max-w-sm p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto animate-fadeIn">
             <div className="text-center">
               <div className="text-5xl mb-2">🏃‍♂️</div>
               <h2 className="font-display text-2xl font-black">Corrida concluída!</h2>
