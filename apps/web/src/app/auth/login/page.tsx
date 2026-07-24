@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
+import { PasswordInput } from '@/components/PasswordInput';
 import { useI18n } from '@/lib/i18n';
 
 export default function LoginPage() {
@@ -63,12 +64,13 @@ export default function LoginPage() {
           <input
             type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder={t('auth.field.email')}
+            autoComplete="email" inputMode="email" autoCapitalize="none" autoCorrect="off"
             className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 focus:border-rq-lime/50 outline-none"
           />
-          <input
-            type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+          <PasswordInput
+            value={password} onChange={setPassword}
             placeholder={t('auth.field.password')}
-            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 focus:border-rq-lime/50 outline-none"
+            autoComplete="current-password"
           />
           {err && <div className="text-rq-orange text-sm">{err}</div>}
           <button type="submit" disabled={loading} className="btn-primary w-full disabled:opacity-50">

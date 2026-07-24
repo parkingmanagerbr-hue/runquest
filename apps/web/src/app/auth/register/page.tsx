@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api, tokens } from '@/lib/api';
 import { LogoMark } from '@/components/LogoMark';
+import { PasswordInput } from '@/components/PasswordInput';
 import { useI18n } from '@/lib/i18n';
 
 export default function RegisterPage() {
@@ -63,19 +64,20 @@ export default function RegisterPage() {
             required minLength={2} maxLength={60}
             value={form.displayName} onChange={(e) => setForm({ ...form, displayName: e.target.value })}
             placeholder={t('auth.field.name')}
+            autoComplete="name" autoCapitalize="words"
             className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 focus:border-rq-lime/50 outline-none"
           />
           <input
             type="email" required
             value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
             placeholder={t('auth.field.email')}
+            autoComplete="email" inputMode="email" autoCapitalize="none" autoCorrect="off"
             className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 focus:border-rq-lime/50 outline-none"
           />
-          <input
-            type="password" required minLength={8}
-            value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
+          <PasswordInput
+            value={form.password} onChange={(v) => setForm({ ...form, password: v })}
             placeholder={t('auth.field.passwordMin')}
-            className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 focus:border-rq-lime/50 outline-none"
+            autoComplete="new-password" minLength={8}
           />
           {err && <div className="text-rq-orange text-sm">{err}</div>}
           <button type="submit" disabled={loading} className="btn-primary w-full disabled:opacity-50">
