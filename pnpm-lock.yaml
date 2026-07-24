@@ -260,6 +260,9 @@ importers:
       autoprefixer:
         specifier: ^10.4.20
         version: 10.5.2(postcss@8.5.16)
+      babel-loader:
+        specifier: ^8.3.0
+        version: 8.4.1(@babel/core@7.29.7)(webpack@5.106.2(postcss@8.5.16))
       eslint:
         specifier: ^8.57.0
         version: 8.57.1

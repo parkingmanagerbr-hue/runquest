@@ -11,18 +11,53 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
+  // Fallback servido quando o usuário navega p/ uma rota fora do cache e sem rede.
+  fallbacks: { document: '/offline' },
   runtimeCaching: [
     {
-      urlPattern: /^https:\/\/runquest\.veloxisit\.com\.br\/api\/.*$/i,
+      // API: rede primeiro (dado fresco), mas serve do cache quando offline —
+      // é o que permite ver corridas/missões já carregadas sem conexão.
+      urlPattern: /\/api\/.*$/i,
       handler: 'NetworkFirst',
       options: {
         cacheName: 'api-cache',
-        expiration: { maxEntries: 64, maxAgeSeconds: 60 * 5 },
+        expiration: { maxEntries: 128, maxAgeSeconds: 60 * 60 * 24 },
         networkTimeoutSeconds: 8,
+        cacheableResponse: { statuses: [0, 200] },
       },
     },
     {
-      urlPattern: /\.(?:png|jpg|jpeg|svg|webp|gif|ico)$/i,
+      // Chunks do Next (JS/CSS hasheados e imutáveis) — CacheFirst: a casca do
+      // app abre offline depois da 1ª carga.
+      urlPattern: /\/_next\/static\/.*/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'next-static',
+        expiration: { maxEntries: 256, maxAgeSeconds: 60 * 60 * 24 * 30 },
+      },
+    },
+    {
+      urlPattern: /\/_next\/data\/.*/i,
+      handler: 'NetworkFirst',
+      options: { cacheName: 'next-data', expiration: { maxEntries: 64, maxAgeSeconds: 60 * 60 * 24 } },
+    },
+    {
+      // Navegações (páginas HTML): serve a última versão cacheada quando offline.
+      urlPattern: ({ request }) => request.mode === 'navigate',
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'pages',
+        networkTimeoutSeconds: 5,
+        expiration: { maxEntries: 64, maxAgeSeconds: 60 * 60 * 24 },
+      },
+    },
+    {
+      urlPattern: /\.(?:js|css)$/i,
+      handler: 'StaleWhileRevalidate',
+      options: { cacheName: 'static-resources', expiration: { maxEntries: 128, maxAgeSeconds: 60 * 60 * 24 * 30 } },
+    },
+    {
+      urlPattern: /\.(?:png|jpg|jpeg|svg|webp|gif|ico|woff2?)$/i,
       handler: 'CacheFirst',
       options: {
         cacheName: 'images',
