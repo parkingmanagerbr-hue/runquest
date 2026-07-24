@@ -29,6 +29,15 @@ html, body { background: #0E0A2A; color: #F2F1FA; }
 }
 .animate-fadeIn { animation: fadeIn 0.25s ease-out both; }
 
+/* Foco de teclado visível (WCAG 2.4.7). Muitos controles usam o outline-none do
+   Tailwind, deixando a navegação por Tab invisível. :focus-visible só dispara no
+   teclado (não no clique de mouse), então não polui quem usa mouse. O !important
+   vence o .outline-none, que fica na layer de utilities (carregada depois). */
+:focus-visible {
+  outline: 2px solid #A8FF3E !important;
+  outline-offset: 2px;
+}
+
 /* Acessibilidade: quem pede menos movimento (vestibular, enxaqueca) não recebe
    os hover:scale, o pulse dos skeletons nem o fadeIn dos modais. Neutraliza
    animação/transição globalmente sem tocar em cada componente. */
