@@ -16,10 +16,24 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Assinatura release: credenciais vêm do ~/.gradle/gradle.properties da
+    // máquina (RUNQUEST_*), nunca do repositório. Sem elas o build release cai
+    // na assinatura de debug — CI continua funcionando sem os segredos.
+    signingConfigs {
+        release {
+            if (project.hasProperty('RUNQUEST_STORE_FILE')) {
+                storeFile file(RUNQUEST_STORE_FILE)
+                storePassword RUNQUEST_STORE_PASSWORD
+                keyAlias RUNQUEST_KEY_ALIAS
+                keyPassword RUNQUEST_KEY_PASSWORD
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig project.hasProperty('RUNQUEST_STORE_FILE') ? signingConfigs.release : signingConfigs.debug
         }
     }
 }
