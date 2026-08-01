@@ -6,6 +6,10 @@ on:
     paths:
       - 'apps/**'
       - 'packages/**'
+      # Deps da raiz afetam TODOS os builds; sem estes, um fix de dependência
+      # (ex.: pnpm.overrides) não disparava CI nenhum e nunca ia a produção.
+      - 'package.json'
+      - 'pnpm-lock.yaml'
       - '.github/workflows/deploy.yml'
 
 env:
