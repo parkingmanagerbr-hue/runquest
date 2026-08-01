@@ -1,10 +1,16 @@
 import withPWAInit from 'next-pwa';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
 
 // Raiz do monorepo — no Next 15, sem isto o file-tracing do output standalone
 // infere a raiz errada (há lockfile na raiz E em apps/web) e avisa.
+// SÓ vale quando o build roda DENTRO do monorepo: no Docker o app vive sozinho
+// em /app, e apontar o tracing root para /app/../.. (= /) aninha o server.js em
+// standalone/app/ — o CMD `node server.js` não o encontra e o container morre
+// em crash-loop (502 em produção). Detecta pelo pnpm-workspace.yaml.
 const monorepoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const inMonorepo = fs.existsSync(path.join(monorepoRoot, 'pnpm-workspace.yaml'));
 
 const withPWA = withPWAInit({
   dest: 'public',
@@ -71,7 +77,7 @@ const withPWA = withPWAInit({
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
-  outputFileTracingRoot: monorepoRoot,
+  ...(inMonorepo ? { outputFileTracingRoot: monorepoRoot } : {}),
   poweredByHeader: false,
   async rewrites() {
     return [
